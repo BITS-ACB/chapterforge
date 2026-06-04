@@ -74,16 +74,19 @@ class PlayerPanel(wx.Panel):
         # --- transport buttons -------------------------------------------
         row = wx.BoxSizer(wx.HORIZONTAL)
         self.btn_play = self._button(row, "&Play", self._on_play_pause,
-                                     "Play or pause. Space.")
-        self.btn_stop = self._button(row, "S&top", self._on_stop, "Stop.")
+                                     "Play or pause (Space)")
+        self.btn_stop = self._button(row, "S&top", self._on_stop,
+                                     "Stop playback and return to the beginning")
         self.btn_prev = self._button(row, "P&revious Chapter",
-                                     self._on_prev, "Previous chapter.")
+                                     self._on_prev,
+                                     "Jump to the previous chapter")
         self.btn_next = self._button(row, "Ne&xt Chapter",
-                                     self._on_next, "Next chapter.")
+                                     self._on_next,
+                                     "Jump to the next chapter")
         self.btn_rew = self._button(row, "&Rewind", self._on_rewind,
-                                    "Skip backward.")
+                                    "Skip backward by the configured interval")
         self.btn_ff = self._button(row, "&Forward", self._on_forward,
-                                   "Skip forward.")
+                                   "Skip forward by the configured interval")
         self._box.Add(row, 0, wx.ALL, 4)
 
         # --- position slider ---------------------------------------------
@@ -92,6 +95,7 @@ class PlayerPanel(wx.Panel):
         pos_row.Add(lbl, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 4)
         self.pos_slider = wx.Slider(self, minValue=0, maxValue=1000, value=0)
         self.pos_slider.SetName("Playback position")
+        self.pos_slider.SetToolTip("Drag or use arrow keys to scrub through the audio.")
         self.pos_slider.Bind(wx.EVT_SLIDER, self._on_seek_slider)
         pos_row.Add(self.pos_slider, 1, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 4)
         self._box.Add(pos_row, 0, wx.EXPAND)
@@ -102,7 +106,7 @@ class PlayerPanel(wx.Panel):
         vol_row.Add(vlbl, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 4)
         self.vol_slider = wx.Slider(self, minValue=0, maxValue=100,
                                     value=int(get_volume()))
-        self.vol_slider.SetName("Volume")
+        self.vol_slider.SetName("Playback volume, 0 to 100 percent")
         self.vol_slider.Bind(wx.EVT_SLIDER, self._on_volume_slider)
         vol_row.Add(self.vol_slider, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 4)
         self.status = wx.StaticText(self, label="No audio loaded.")
@@ -189,6 +193,7 @@ class PlayerPanel(wx.Panel):
                 self.mc.Stop()
             except Exception:
                 pass
+            self._media_holder.Detach(self.mc)
             self.mc.Destroy()
             self.mc = None
         self._loaded = False

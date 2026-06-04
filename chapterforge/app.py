@@ -114,8 +114,8 @@ class MainFrame(wx.Frame):
         self.mi_recent = file_menu.AppendSubMenu(
             self.recent_menu, "Open &Recent",
             "Re-open a recently used folder, master or job file")
-        self.mi_output = file_menu.Append(wx.ID_ANY, "Set Out&put File…\tCtrl+S",
-                                          "Choose where the master MP3 is saved")
+        self.mi_output = file_menu.Append(wx.ID_ANY, "Choose Out&put File…\tCtrl+Shift+O",
+                                          "Choose where the master file is saved")
         file_menu.AppendSeparator()
         self.mi_build = file_menu.Append(wx.ID_ANY, "&Build Master MP3\tCtrl+B",
                                          "Build the master MP3 with chapters")
@@ -231,6 +231,28 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self._on_website, self.mi_website)
         self.Bind(wx.EVT_MENU, self._on_about, id=wx.ID_ABOUT)
 
+        # Ctrl+S = smart save: Build in build mode, Save Changes in edit mode.
+        # (Ctrl+Shift+O = Choose Output File; Ctrl+B = explicit Build.)
+        _smart_save_id = wx.NewIdRef()
+        self.Bind(wx.EVT_MENU, self._on_smart_save, id=_smart_save_id)
+        self.SetAcceleratorTable(wx.AcceleratorTable([
+            (wx.ACCEL_CTRL, ord('S'), _smart_save_id),
+        ]))
+
+    def _on_smart_save(self, _evt):
+        """Ctrl+S: save in whatever way makes sense for the current mode."""
+        if self._is_building():
+            return
+        if self.mode == 'edit':
+            if self._edit_is_mp3():
+                self._on_save_edit(None)
+            else:
+                self._announce(
+                    "This file is an M4B, so in-place saving is not available. "
+                    "Use File → Save As to write a copy with the updated tags.")
+        else:
+            self._on_build(None)
+
     def _label(self, parent, text, name=None):
         lbl = wx.StaticText(parent, label=text)
         if name:
@@ -251,7 +273,8 @@ class MainFrame(wx.Frame):
         self.folder_ctrl.SetHint("No folder chosen yet")
         src_box.Add(self.folder_ctrl, 1, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 6)
         self.btn_browse = wx.Button(panel, label="&Browse…")
-        self.btn_browse.SetName("Browse for folder")
+        self.btn_browse.SetName("Browse for source folder of MP3 files")
+        self.btn_browse.SetToolTip("Open a folder whose MP3 files will become the chapters.")
         self.btn_browse.Bind(wx.EVT_BUTTON, self._on_open)
         src_box.Add(self.btn_browse, 0, wx.ALL, 6)
         outer.Add(src_box, 0, wx.EXPAND | wx.ALL, 8)
@@ -261,8 +284,8 @@ class MainFrame(wx.Frame):
 
         # Chapters group
         ch_box = wx.StaticBoxSizer(wx.VERTICAL, panel, "Chapters")
-        ch_box.Add(self._label(panel, "Chapter &list (one per source file):"),
-                   0, wx.ALL, 4)
+        self.ch_list_label = self._label(panel, "Chapter &list (one per source file):")
+        ch_box.Add(self.ch_list_label, 0, wx.ALL, 4)
         self.list = wx.ListCtrl(
             panel, style=wx.LC_REPORT | wx.LC_SINGLE_SEL | wx.BORDER_SUNKEN)
         self.list.SetName("Chapters list")
@@ -288,23 +311,29 @@ class MainFrame(wx.Frame):
         ch_box.Add(edit_row, 0, wx.EXPAND)
 
         btn_row = wx.BoxSizer(wx.HORIZONTAL)
-        self.btn_edit = wx.Button(panel, label="&Edit Title")
-        self.btn_edit.SetName("Edit chapter title")
+        self.btn_edit = wx.Button(panel, label="Edit &Chapter…")
+        self.btn_edit.SetName("Edit selected chapter title, link and image")
+        self.btn_edit.SetToolTip(
+            "Open a dialog to edit this chapter's title, link URL and image.")
         self.btn_edit.Bind(wx.EVT_BUTTON, self._on_edit_chapter)
         self.btn_up = wx.Button(panel, label="Move &Up")
-        self.btn_up.SetName("Move chapter up")
+        self.btn_up.SetName("Move selected chapter up one position")
         self.btn_up.Bind(wx.EVT_BUTTON, lambda e: self._move(-1))
         self.btn_down = wx.Button(panel, label="Move &Down")
-        self.btn_down.SetName("Move chapter down")
+        self.btn_down.SetName("Move selected chapter down one position")
         self.btn_down.Bind(wx.EVT_BUTTON, lambda e: self._move(1))
         self.btn_remove = wx.Button(panel, label="Re&move")
-        self.btn_remove.SetName("Remove chapter")
+        self.btn_remove.SetName("Remove selected chapter from the list")
         self.btn_remove.Bind(wx.EVT_BUTTON, lambda e: self._remove_selected())
-        self.btn_play_sel = wx.Button(panel, label="&Play Selected")
-        self.btn_play_sel.SetName("Play selected chapter")
+        self.btn_play_sel = wx.Button(panel, label="&Play Chapter")
+        self.btn_play_sel.SetName("Play the selected chapter in the player below")
+        self.btn_play_sel.SetToolTip("Jump the player to this chapter and start playing.")
         self.btn_play_sel.Bind(wx.EVT_BUTTON, self._on_play_selected)
-        self.btn_split = wx.Button(panel, label="S&plit at Playhead")
-        self.btn_split.SetName("Split chapter at the player position")
+        self.btn_split = wx.Button(panel, label="S&plit Here")
+        self.btn_split.SetName("Split the current chapter at the player playhead position")
+        self.btn_split.SetToolTip(
+            "Divide the chapter the player is currently inside into two "
+            "chapters at the playhead position.")
         self.btn_split.Bind(wx.EVT_BUTTON, self._on_split_chapter)
         for b in (self.btn_edit, self.btn_up, self.btn_down, self.btn_remove,
                   self.btn_play_sel, self.btn_split):
@@ -342,12 +371,13 @@ class MainFrame(wx.Frame):
         self.cover_ctrl.SetName("Cover image path")
         self.cover_ctrl.SetHint("Optional JPEG or PNG")
         cover_row.Add(self.cover_ctrl, 1, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 4)
-        self.btn_cover = wx.Button(panel, label="Ch&oose…")
-        self.btn_cover.SetName("Choose cover image")
+        self.btn_cover = wx.Button(panel, label="&Browse…")
+        self.btn_cover.SetName("Browse for cover image file")
+        self.btn_cover.SetToolTip("Choose a JPEG or PNG to embed as album art.")
         self.btn_cover.Bind(wx.EVT_BUTTON, self._on_choose_cover)
         cover_row.Add(self.btn_cover, 0, wx.ALL, 4)
         self.btn_cover_clear = wx.Button(panel, label="Cl&ear")
-        self.btn_cover_clear.SetName("Clear cover image")
+        self.btn_cover_clear.SetName("Remove the cover image")
         self.btn_cover_clear.Bind(wx.EVT_BUTTON, self._on_clear_cover)
         cover_row.Add(self.btn_cover_clear, 0, wx.ALL, 4)
         tag_box.Add(cover_row, 0, wx.EXPAND)
@@ -360,50 +390,73 @@ class MainFrame(wx.Frame):
 
         outer.Add(cols, 1, wx.EXPAND)
 
-        # --- Options row -----------------------------------------------
-        opt_box = wx.StaticBoxSizer(wx.HORIZONTAL, panel, "Options")
-        opt_box.Add(self._label(panel, "Chapter titles fro&m:"),
-                    0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 6)
+        # --- Options (two rows so no single crowded strip) -----------------
+        # Row 1: the three dropdowns that define HOW the file is encoded.
+        # Row 2: the three toggles/values that adjust the result.
+        ACV = wx.ALIGN_CENTER_VERTICAL
+        opt_box = wx.StaticBoxSizer(wx.VERTICAL, panel, "Options")
+
+        opt_row1 = wx.BoxSizer(wx.HORIZONTAL)
+        opt_row1.Add(self._label(panel, "Chapter titles fro&m:"), 0, ACV | wx.ALL, 6)
         self.title_source = wx.Choice(panel, choices=["Filename", "Embedded tag"])
         self.title_source.SetName("Chapter title source")
+        self.title_source.SetToolTip(
+            "Filename: use each MP3's file name as its chapter title.\n"
+            "Embedded tag: read the title tag already stored in each MP3.")
         self.title_source.SetSelection(0)
         self.title_source.Bind(wx.EVT_CHOICE, self._on_title_source)
-        opt_box.Add(self.title_source, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 6)
+        opt_row1.Add(self.title_source, 0, ACV | wx.ALL, 6)
 
-        opt_box.Add(self._label(panel, "Re-encode &quality:"),
-                    0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 6)
+        opt_row1.Add(self._label(panel, "Re-encode &quality:"), 0, ACV | wx.ALL, 6)
         self.bitrate_choice = wx.Choice(
             panel, choices=["128k", "160k", "192k", "256k", "320k"])
         self.bitrate_choice.SetName("Re-encode quality")
+        self.bitrate_choice.SetToolTip(
+            "Higher quality sounds better but produces a larger file.\n"
+            "192k is the recommended setting for most audiobooks.")
         self.bitrate_choice.SetStringSelection("192k")
-        opt_box.Add(self.bitrate_choice, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 6)
+        opt_row1.Add(self.bitrate_choice, 0, ACV | wx.ALL, 6)
 
-        self.normalize_chk = wx.CheckBox(panel, label="&Normalize loudness")
-        self.normalize_chk.SetName("Normalize loudness")
-        opt_box.Add(self.normalize_chk, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 6)
-
-        opt_box.Add(self._label(panel, "Output for&mat:"),
-                    0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 6)
-        self.format_choice = wx.Choice(panel, choices=["MP3", "M4B"])
+        opt_row1.Add(self._label(panel, "Output for&mat:"), 0, ACV | wx.ALL, 6)
+        self.format_choice = wx.Choice(panel, choices=["MP3", "M4B audiobook"])
         self.format_choice.SetName("Output format")
+        self.format_choice.SetToolTip(
+            "MP3: works everywhere, widely compatible.\n"
+            "M4B: Apple audiobook format, supported by most podcast and audiobook apps.")
         self.format_choice.SetSelection(0)
         self.format_choice.Bind(wx.EVT_CHOICE, self._on_format_change)
-        opt_box.Add(self.format_choice, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 6)
+        opt_row1.Add(self.format_choice, 0, ACV | wx.ALL, 6)
+        opt_box.Add(opt_row1, 0)
 
-        self.pod2_chk = wx.CheckBox(panel, label="Write chapters &JSON")
-        self.pod2_chk.SetName("Also write a Podcasting 2.0 chapters JSON sidecar")
-        opt_box.Add(self.pod2_chk, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 6)
+        opt_row2 = wx.BoxSizer(wx.HORIZONTAL)
+        self.normalize_chk = wx.CheckBox(panel, label="&Normalize loudness")
+        self.normalize_chk.SetName("Normalize loudness")
+        self.normalize_chk.SetToolTip(
+            "Adjust all chapters to a consistent loudness level.\n"
+            "Useful when source files were recorded at different volumes.")
+        opt_row2.Add(self.normalize_chk, 0, ACV | wx.ALL, 6)
 
-        opt_box.Add(self._label(panel, "&Gap between chapters (s):"),
-                    0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 6)
+        opt_row2.Add(self._label(panel, "&Gap between chapters (s):"), 0, ACV | wx.ALL, 6)
         self.gap_ctrl = wx.SpinCtrlDouble(
             panel, min=0.0, max=30.0, inc=0.5,
             initial=float(self.settings.get("gap_seconds", 0.0)))
         self.gap_ctrl.SetDigits(1)
         self.gap_ctrl.SetName("Gap between chapters in seconds")
+        self.gap_ctrl.SetToolTip(
+            "Insert a moment of silence between each chapter.\n"
+            "0 means chapters play back-to-back with no pause.")
         self.gap_ctrl.Bind(wx.EVT_SPINCTRLDOUBLE, self._on_estimate_inputs)
         self.bitrate_choice.Bind(wx.EVT_CHOICE, self._on_estimate_inputs)
-        opt_box.Add(self.gap_ctrl, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 6)
+        opt_row2.Add(self.gap_ctrl, 0, ACV | wx.ALL, 6)
+
+        self.pod2_chk = wx.CheckBox(panel, label="Write chapters &JSON")
+        self.pod2_chk.SetName("Also write a Podcasting 2.0 chapters JSON sidecar")
+        self.pod2_chk.SetToolTip(
+            "Save a .chapters.json file alongside the master.\n"
+            "Required by Podcasting 2.0 apps such as Pocketcasts and Overcast.")
+        opt_row2.Add(self.pod2_chk, 0, ACV | wx.ALL, 6)
+        opt_box.Add(opt_row2, 0)
+
         outer.Add(opt_box, 0, wx.EXPAND | wx.ALL, 8)
 
         # --- Output + build row ----------------------------------------
@@ -412,10 +465,11 @@ class MainFrame(wx.Frame):
                     0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 6)
         self.output_ctrl = wx.TextCtrl(panel, style=wx.TE_READONLY)
         self.output_ctrl.SetName("Output file")
-        self.output_ctrl.SetHint("Choose where to save the master MP3")
+        self.output_ctrl.SetHint("Not yet set — click 'Save to…' to pick a location")
         out_box.Add(self.output_ctrl, 1, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 6)
-        self.btn_output = wx.Button(panel, label="&Set…")
-        self.btn_output.SetName("Set output file")
+        self.btn_output = wx.Button(panel, label="Save &to…")
+        self.btn_output.SetName("Save master file to a chosen location")
+        self.btn_output.SetToolTip("Pick the folder and file name for the finished master.")
         self.btn_output.Bind(wx.EVT_BUTTON, self._on_set_output)
         out_box.Add(self.btn_output, 0, wx.ALL, 6)
         outer.Add(out_box, 0, wx.EXPAND | wx.ALL, 8)
@@ -428,6 +482,9 @@ class MainFrame(wx.Frame):
         self.action_row_sizer = action_row
         self.btn_build = wx.Button(panel, label="Build Master MP&3")
         self.btn_build.SetName("Build master MP3")
+        self.btn_build.SetToolTip(
+            "Create the chaptered master file from the loaded MP3s.\n"
+            "Requires a folder of files and an output path.")
         self.btn_build.Bind(wx.EVT_BUTTON, self._on_build)
         self.btn_build.SetDefault()
         self.btn_save_edit = wx.Button(panel, label="Sa&ve Changes")
@@ -445,7 +502,9 @@ class MainFrame(wx.Frame):
         action_row.Add(self.gauge, 1, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 6)
         outer.Add(action_row, 0, wx.EXPAND | wx.ALL, 4)
 
-        self.status_text = wx.StaticText(panel, label="Ready.")
+        self.status_text = wx.StaticText(
+            panel,
+            label="Open a folder of MP3 files to get started (File → Open Folder, or Ctrl+O).")
         self.status_text.SetName("Status")
         outer.Add(self.status_text, 0, wx.EXPAND | wx.ALL, 8)
 
@@ -470,6 +529,14 @@ class MainFrame(wx.Frame):
 
     def _is_building(self) -> bool:
         return self.worker is not None and self.worker.is_alive()
+
+    def _confirm_discard_edits(self) -> bool:
+        """Return True if it is safe to replace the current edit session."""
+        if self.mode != "edit" or not self.edit_dirty:
+            return True
+        return wx.MessageBox(
+            "You have unsaved changes. Discard them?",
+            "Unsaved changes", wx.YES_NO | wx.ICON_QUESTION, self) == wx.YES
 
     def _row_count(self) -> int:
         return (len(self.edit_chapters) if self.mode == "edit"
@@ -496,6 +563,16 @@ class MainFrame(wx.Frame):
             ctrl.Enable(not building and not edit)
         self.btn_build.Enable(not building and not edit and has_items
                               and bool(self.output_path))
+        if self.format_choice.GetSelection() == 1:
+            self.btn_build.SetLabel("Build M4B &Audiobook")
+            self.btn_build.SetName("Build M4B audiobook")
+        else:
+            self.btn_build.SetLabel("Build Master MP&3")
+            self.btn_build.SetName("Build master MP3")
+        self.btn_remove.SetName(
+            "Merge selected chapter into the one above it"
+            if edit else
+            "Remove selected chapter from the list")
         self.btn_edit.Enable(not building and sel >= 0)
         # Reorder only makes sense when assembling from source files.
         self.btn_up.Enable(not building and not edit and sel > 0)
@@ -517,6 +594,15 @@ class MainFrame(wx.Frame):
         self.btn_build.Show(not edit)
         self.btn_save_edit.Show(edit)
         self.btn_save_edit.Enable(can_save_edit)
+        if edit and not self._edit_is_mp3():
+            self.btn_save_edit.SetToolTip(
+                "In-place saving is only supported for MP3 files.\n"
+                "This file is an M4B — use File → Save As (Ctrl+Alt+S) to save "
+                "a copy with the updated chapter titles and tags.")
+        else:
+            self.btn_save_edit.SetToolTip(
+                "Write updated chapter titles and tags directly into the open file.\n"
+                "Keyboard shortcut: Ctrl+S or Ctrl+Shift+S.")
         self.action_row_sizer.Layout()
         self.mi_build.Enable(not building and not edit and has_items
                              and bool(self.output_path))
@@ -578,12 +664,13 @@ class MainFrame(wx.Frame):
         dlg.Destroy()
 
     def _load_folder(self, folder: str):
+        if not self._confirm_discard_edits():
+            return
         self._announce("Scanning folder…")
         wx.BeginBusyCursor()
         try:
             items, skipped_masters = core.scan_folder_detailed(folder)
         except core.ChapterForgeError as exc:
-            wx.EndBusyCursor()
             wx.MessageBox(str(exc), "Could not scan folder",
                           wx.OK | wx.ICON_ERROR, self)
             return
@@ -639,9 +726,9 @@ class MainFrame(wx.Frame):
     def _current_output_ext(self) -> str:
         return ".m4b" if self.format_choice.GetSelection() == 1 else ".mp3"
 
-    def _on_set_output(self, _evt):
+    def _on_set_output(self, _evt) -> bool:
         if self._is_building():
-            return
+            return False
         ext = self._current_output_ext()
         default_dir = (os.path.dirname(self.output_path)
                        or self.settings.get("last_output_dir", "")
@@ -653,12 +740,14 @@ class MainFrame(wx.Frame):
             self, "Save master as", defaultDir=default_dir,
             defaultFile=default_file, wildcard=wildcard,
             style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT)
-        if dlg.ShowModal() == wx.ID_OK:
+        confirmed = dlg.ShowModal() == wx.ID_OK
+        if confirmed:
             path = dlg.GetPath()
             if not path.lower().endswith(ext):
                 path += ext
             self._set_output_path(path, auto=False)
         dlg.Destroy()
+        return confirmed
 
     def _on_format_change(self, _evt):
         # Only rewrite an auto-generated output path; never silently move a
@@ -1165,10 +1254,7 @@ class MainFrame(wx.Frame):
         if self.mode == "edit":
             if not self.player.has_media():
                 self.player.load(self.edit_path, self.edit_chapters)
-                # Load is async; queue the chapter to play once ready.
-                self.player.play_chapter(sel)
-            else:
-                self.player.play_chapter(sel)
+            self.player.play_chapter(sel)
         else:
             # Audition a single source file in the player.
             item = self.items[sel]
@@ -1435,13 +1521,13 @@ class MainFrame(wx.Frame):
         self._open_master_path(path)
 
     def _open_master_path(self, path: str):
+        if not self._confirm_discard_edits():
+            return
         self._announce("Reading chapters…")
         wx.BeginBusyCursor()
         try:
             tags, chapters, total_ms = core.read_master(path)
         except core.ChapterForgeError as exc:
-            if wx.IsBusy():
-                wx.EndBusyCursor()
             wx.MessageBox(str(exc), "Could not read file",
                           wx.OK | wx.ICON_ERROR, self)
             return
@@ -1463,6 +1549,10 @@ class MainFrame(wx.Frame):
         self.folder_ctrl.ChangeValue(path)
         self._apply_tags_to_ui(tags)
         self._refresh_list(select=0 if chapters else -1)
+        self.ch_list_label.SetLabel("Chapter &list:")
+        col4 = wx.ListItem()
+        col4.SetText("URL / Link")
+        self.list.SetColumn(4, col4)
         is_mp3 = core.output_format(path) == "mp3"
         note = ("" if is_mp3 else
                 " This is an M4B/MP4 file, so use Save As to write a new file"
@@ -1480,6 +1570,10 @@ class MainFrame(wx.Frame):
         self.edit_chapters = []
         self.edit_total_ms = 0
         self.edit_dirty = False
+        self.ch_list_label.SetLabel("Chapter &list (one per source file):")
+        col4 = wx.ListItem()
+        col4.SetText("Source file")
+        self.list.SetColumn(4, col4)
         self._update_command_state()
 
     def _apply_tags_to_ui(self, tags: core.Tags):
@@ -1505,6 +1599,7 @@ class MainFrame(wx.Frame):
         except core.ChapterForgeError as exc:
             wx.MessageBox(str(exc), "Could not save",
                           wx.OK | wx.ICON_ERROR, self)
+            self.player.load(self.edit_path, self.edit_chapters)
             return
         self.edit_dirty = False
         if self.pod2_chk.GetValue():
@@ -1528,8 +1623,7 @@ class MainFrame(wx.Frame):
             self._save_edit_as()
         else:
             # In build mode, Save As is a convenient "build to a chosen file".
-            self._on_set_output(None)
-            if self.output_path:
+            if self._on_set_output(None):
                 self._on_build(None)
 
     def _save_edit_as(self):
@@ -1556,8 +1650,6 @@ class MainFrame(wx.Frame):
         try:
             core.save_master_as(self.edit_path, dest, self.edit_chapters, tags)
         except core.ChapterForgeError as exc:
-            if wx.IsBusy():
-                wx.EndBusyCursor()
             wx.MessageBox(str(exc), "Could not save", wx.OK | wx.ICON_ERROR, self)
             return
         finally:
@@ -1577,6 +1669,8 @@ class MainFrame(wx.Frame):
     # ------------------------------------------------------------------
     def _on_silence(self, _evt):
         if self._is_building():
+            return
+        if not self._confirm_discard_edits():
             return
         start_dir = self.settings.get("last_input_dir", "") or self.folder or ""
         dlg = wx.FileDialog(
@@ -1599,8 +1693,6 @@ class MainFrame(wx.Frame):
             chapters = core.detect_silence_chapters(
                 path, noise_db=noise, min_silence=min_sil)
         except core.ChapterForgeError as exc:
-            if wx.IsBusy():
-                wx.EndBusyCursor()
             wx.MessageBox(str(exc), "Could not analyse file",
                           wx.OK | wx.ICON_ERROR, self)
             return
@@ -1736,6 +1828,8 @@ class MainFrame(wx.Frame):
 
     def _load_job_file(self, path: str):
         folder = os.path.dirname(path)
+        if not self._confirm_discard_edits():
+            return
         try:
             manifest = manifest_mod.read_manifest(path)
         except OSError as exc:
@@ -1843,6 +1937,10 @@ class MainFrame(wx.Frame):
 
     def _quit_from_tray(self):
         self._shutdown_tray()
+        try:
+            self.player.shutdown()
+        except Exception:
+            pass
         self.Destroy()
 
     # ------------------------------------------------------------------
@@ -1861,7 +1959,8 @@ class MainFrame(wx.Frame):
             "2. Review chapters in the list. Rename with Edit Title, reorder "
             "with Move Up/Down, drop one with Remove.\n"
             "3. Fill in the master tags (title, artist, album, cover, …).\n"
-            "4. Set Output File (Ctrl+S), then Build Master MP3 (Ctrl+B).\n"
+            "4. Click 'Save to…' (Ctrl+Shift+O) to choose where to save, "
+            "then Build (Ctrl+B or just Ctrl+S).\n"
             "\n"
             "Job files (.cfjob): save the current order, titles and tags with "
             "File → Generate Job File, hand-edit it, and reload with File → "
@@ -1903,10 +2002,11 @@ class MainFrame(wx.Frame):
             "\n"
             "Ctrl+O\tOpen folder of MP3 files\n"
             "Ctrl+E\tOpen an existing chaptered file to edit\n"
-            "Ctrl+S\tSet output file\n"
-            "Ctrl+B\tBuild master (MP3 or M4B)\n"
-            "Ctrl+Shift+S\tSave changes to the open master\n"
-            "Ctrl+Alt+S\tSave As (a new file)\n"
+            "Ctrl+S\tBuild (build mode) / Save Changes (edit mode)\n"
+            "Ctrl+Shift+O\tChoose output file location\n"
+            "Ctrl+B\tBuild master (MP3 or M4B) — explicit\n"
+            "Ctrl+Shift+S\tSave changes to the open master — explicit\n"
+            "Ctrl+Alt+S\tSave As (write a new copy)\n"
             "Esc\tCancel a build in progress\n"
             "Ctrl+L\tLoad a .cfjob job file\n"
             "Ctrl+G\tGenerate a .cfjob job file\n"
@@ -2096,6 +2196,9 @@ class MainFrame(wx.Frame):
             self.Hide()
             evt.Veto()
             return
+        if not self._force_quit and not self._confirm_discard_edits():
+            evt.Veto()
+            return
         if self._is_building():
             if wx.MessageBox(
                     "A build is in progress. Cancel it and quit?",
@@ -2182,92 +2285,189 @@ class SettingsDialog(wx.Dialog):
                          style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
         self.settings = settings
         outer = wx.BoxSizer(wx.VERTICAL)
-        grid = wx.FlexGridSizer(0, 2, 8, 10)
-        grid.AddGrowableCol(1, 1)
+        nb = wx.Notebook(self)
+        nb.SetName("Settings categories")
 
-        def row(label_text, ctrl, name):
-            lbl = wx.StaticText(self, label=label_text)
+        def make_row(panel, grid, label_text, ctrl_factory, name, tip=""):
+            lbl = wx.StaticText(panel, label=label_text)
+            ctrl = ctrl_factory()
             ctrl.SetName(name)
+            if tip:
+                ctrl.SetToolTip(tip)
             grid.Add(lbl, 0, wx.ALIGN_CENTER_VERTICAL)
             grid.Add(ctrl, 1, wx.EXPAND)
             return ctrl
 
-        self.fmt = wx.Choice(self, choices=["MP3 (.mp3)", "M4B audiobook (.m4b)"])
-        self.fmt.SetSelection(1 if settings.get("output_format") == "m4b" else 0)
-        row("Default output &format:", self.fmt, "Default output format")
+        # ----------------------------------------------------------------
+        # Tab 1 — Build (all the audio/encoding settings)
+        # ----------------------------------------------------------------
+        bp = wx.Panel(nb)
+        bg = wx.FlexGridSizer(0, 2, 10, 10)
+        bg.AddGrowableCol(1, 1)
 
-        self.title_src = wx.Choice(self, choices=["Filename", "Embedded tag"])
+        def brow(label, factory, name, tip=""):
+            return make_row(bp, bg, label, factory, name, tip)
+
+        self.fmt = brow(
+            "Default output &format:",
+            lambda: wx.Choice(bp, choices=["MP3 (.mp3)", "M4B audiobook (.m4b)"]),
+            "Default output format",
+            "MP3 works everywhere. M4B is the Apple audiobook format, supported by most "
+            "podcast and audiobook apps.")
+        self.fmt.SetSelection(1 if settings.get("output_format") == "m4b" else 0)
+
+        self.title_src = brow(
+            "Chapter titles fro&m:",
+            lambda: wx.Choice(bp, choices=["Filename", "Embedded tag"]),
+            "Chapter title source",
+            "Filename: use each MP3's file name as its chapter title.\n"
+            "Embedded tag: read the title tag already stored inside each MP3.")
         self.title_src.SetSelection(
             1 if settings.get("title_source") == core.TITLE_SOURCE_EMBEDDED else 0)
-        row("Chapter titles fro&m:", self.title_src, "Chapter title source")
 
-        self.bitrate = wx.Choice(
-            self, choices=["128k", "160k", "192k", "256k", "320k"])
+        self.bitrate = brow(
+            "Re-encode &quality:",
+            lambda: wx.Choice(bp, choices=["128k", "160k", "192k", "256k", "320k"]),
+            "Re-encode quality",
+            "Higher quality sounds better but produces a larger file.\n"
+            "192k is the recommended setting for most audiobooks.")
         self.bitrate.SetStringSelection(str(settings.get("bitrate", "192k")))
-        row("Re-encode &quality:", self.bitrate, "Re-encode quality")
 
-        self.normalize = wx.CheckBox(self, label="")
+        self.normalize = brow(
+            "&Normalize loudness:",
+            lambda: wx.CheckBox(bp, label=""),
+            "Normalize loudness",
+            "Adjust all chapters to a consistent loudness level.\n"
+            "Useful when source files were recorded at different volumes.")
         self.normalize.SetValue(bool(settings.get("normalize", False)))
-        row("&Normalize loudness:", self.normalize, "Normalize loudness")
 
-        self.auto_cover = wx.CheckBox(self, label="")
+        self.gap = brow(
+            "&Gap between chapters (seconds):",
+            lambda: wx.SpinCtrlDouble(bp, min=0.0, max=30.0, inc=0.5,
+                                     initial=float(settings.get("gap_seconds", 0.0))),
+            "Gap of silence between chapters in seconds",
+            "Insert a moment of silence between each chapter.\n"
+            "0 means chapters play back-to-back with no pause.")
+        self.gap.SetDigits(1)
+
+        self.auto_cover = brow(
+            "Auto-detect &cover image:",
+            lambda: wx.CheckBox(bp, label=""),
+            "Auto-detect cover image",
+            "Automatically find cover.jpg or folder.jpg in the source folder "
+            "and use it as the album art.")
         self.auto_cover.SetValue(bool(settings.get("auto_cover", True)))
-        row("Auto-detect &cover image:", self.auto_cover, "Auto-detect cover image")
 
-        self.write_pod2 = wx.CheckBox(self, label="")
+        self.write_pod2 = brow(
+            "Write chapters &JSON (Podcasting 2.0):",
+            lambda: wx.CheckBox(bp, label=""),
+            "Also write a Podcasting 2.0 chapters JSON sidecar",
+            "Save a .chapters.json file alongside the master.\n"
+            "Required for chapter art and links in Podcasting 2.0 apps.")
         self.write_pod2.SetValue(bool(settings.get("write_pod2", False)))
-        row("Also write chapters &JSON (Podcasting 2.0):", self.write_pod2,
-            "Also write a Podcasting 2.0 chapters JSON sidecar")
 
-        self.skip = wx.SpinCtrl(self, min=1, max=300,
-                                initial=int(settings.get("skip_seconds", 10)))
-        row("Player &skip interval (seconds):", self.skip,
-            "Player skip interval in seconds")
+        bp_sizer = wx.BoxSizer(wx.VERTICAL)
+        bp_sizer.Add(bg, 1, wx.EXPAND | wx.ALL, 14)
+        bp.SetSizer(bp_sizer)
+        nb.AddPage(bp, "Build")
 
-        self.volume = wx.SpinCtrl(self, min=0, max=100,
-                                  initial=int(settings.get("default_volume", 80)))
-        row("Default &volume (percent):", self.volume,
-            "Default playback volume percent")
+        # ----------------------------------------------------------------
+        # Tab 2 — General (player and appearance)
+        # ----------------------------------------------------------------
+        gp = wx.Panel(nb)
+        gg = wx.FlexGridSizer(0, 2, 10, 10)
+        gg.AddGrowableCol(1, 1)
 
-        self.verbosity = wx.Choice(self, choices=["Quiet", "Normal", "Verbose"])
+        def grow(label, factory, name, tip=""):
+            return make_row(gp, gg, label, factory, name, tip)
+
+        self.skip = grow(
+            "Player &skip interval (seconds):",
+            lambda: wx.SpinCtrl(gp, min=1, max=300,
+                                initial=int(settings.get("skip_seconds", 10))),
+            "Player skip interval in seconds",
+            "How many seconds the Rewind and Forward buttons jump in the player.")
+
+        self.volume = grow(
+            "Default &volume (percent):",
+            lambda: wx.SpinCtrl(gp, min=0, max=100,
+                                initial=int(settings.get("default_volume", 80))),
+            "Default playback volume percent",
+            "Starting volume when a file is loaded. Can also be adjusted in the player.")
+
+        self.verbosity = grow(
+            "Announcement &detail:",
+            lambda: wx.Choice(gp, choices=["Quiet", "Normal", "Verbose"]),
+            "Announcement detail",
+            "How much ChapterForge announces via the screen reader.\n"
+            "Quiet reduces repetitive messages; Verbose adds extra context.")
         vmap = {"quiet": 0, "normal": 1, "verbose": 2}
         self.verbosity.SetSelection(
             vmap.get(str(settings.get("announce_verbosity", "normal")), 1))
-        row("Announcement &detail:", self.verbosity, "Announcement detail")
 
-        self.noise_db = wx.SpinCtrlDouble(
-            self, min=-90.0, max=0.0, inc=1.0,
-            initial=float(settings.get("silence_noise_db", -30.0)))
-        row("Silence &threshold (dB):", self.noise_db,
-            "Silence detection threshold in decibels")
+        self.text_scale = grow(
+            "&Text size (percent):",
+            lambda: wx.SpinCtrl(gp, min=50, max=300,
+                                initial=int(settings.get("text_scale", 100))),
+            "User interface text size percent",
+            "Scale all text in the app. 100 is the default; 150 is 50% larger.\n"
+            "Takes effect after clicking OK.")
 
-        self.min_silence = wx.SpinCtrlDouble(
-            self, min=0.1, max=30.0, inc=0.1,
-            initial=float(settings.get("silence_min_seconds", 0.8)))
-        row("Minimum silence &length (seconds):", self.min_silence,
-            "Minimum silence length in seconds")
-
-        self.gap = wx.SpinCtrlDouble(
-            self, min=0.0, max=30.0, inc=0.5,
-            initial=float(settings.get("gap_seconds", 0.0)))
-        self.gap.SetDigits(1)
-        row("&Gap between chapters (seconds):", self.gap,
-            "Gap of silence between chapters in seconds")
-
-        self.text_scale = wx.SpinCtrl(
-            self, min=50, max=300,
-            initial=int(settings.get("text_scale", 100)))
-        row("&Text size (percent):", self.text_scale,
-            "User interface text size percent")
-
-        self.high_contrast = wx.CheckBox(self, label="")
+        self.high_contrast = grow(
+            "&High-contrast theme:",
+            lambda: wx.CheckBox(gp, label=""),
+            "High-contrast theme",
+            "Use a black background with white text for improved visibility.\n"
+            "Takes effect after clicking OK.")
         self.high_contrast.SetValue(bool(settings.get("high_contrast", False)))
-        row("&High-contrast theme:", self.high_contrast, "High-contrast theme")
 
-        outer.Add(grid, 1, wx.EXPAND | wx.ALL, 14)
+        gp_sizer = wx.BoxSizer(wx.VERTICAL)
+        gp_sizer.Add(gg, 1, wx.EXPAND | wx.ALL, 14)
+        gp.SetSizer(gp_sizer)
+        nb.AddPage(gp, "General")
+
+        # ----------------------------------------------------------------
+        # Tab 3 — Advanced (silence detection, rarely changed)
+        # ----------------------------------------------------------------
+        ap = wx.Panel(nb)
+        ag = wx.FlexGridSizer(0, 2, 10, 10)
+        ag.AddGrowableCol(1, 1)
+
+        def arow(label, factory, name, tip=""):
+            return make_row(ap, ag, label, factory, name, tip)
+
+        hint_lbl = wx.StaticText(
+            ap,
+            label="These settings affect Tools → Auto-chapter by Silence.")
+        hint_lbl.SetForegroundColour(
+            wx.SystemSettings.GetColour(wx.SYS_COLOUR_GRAYTEXT))
+
+        self.noise_db = arow(
+            "Silence &threshold (dB):",
+            lambda: wx.SpinCtrlDouble(ap, min=-90.0, max=0.0, inc=1.0,
+                                     initial=float(settings.get("silence_noise_db", -30.0))),
+            "Silence detection threshold in decibels",
+            "Audio quieter than this level counts as silence.\n"
+            "-30 dB is a good starting point for most recordings.")
+
+        self.min_silence = arow(
+            "Minimum silence &length (seconds):",
+            lambda: wx.SpinCtrlDouble(ap, min=0.1, max=30.0, inc=0.1,
+                                     initial=float(settings.get("silence_min_seconds", 0.8))),
+            "Minimum silence length in seconds",
+            "A gap shorter than this will not be treated as a chapter boundary.")
+
+        ap_sizer = wx.BoxSizer(wx.VERTICAL)
+        ap_sizer.Add(hint_lbl, 0, wx.ALL, 14)
+        ap_sizer.Add(ag, 1, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 14)
+        ap.SetSizer(ap_sizer)
+        nb.AddPage(ap, "Advanced")
+
+        outer.Add(nb, 1, wx.EXPAND | wx.ALL, 8)
         outer.Add(self.CreateButtonSizer(wx.OK | wx.CANCEL),
                   0, wx.EXPAND | wx.ALL, 12)
         self.SetSizerAndFit(outer)
+        self.SetMinSize((480, -1))
         self.CentreOnParent()
 
     def result(self) -> dict:

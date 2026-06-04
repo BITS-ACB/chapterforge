@@ -12,6 +12,7 @@ from typing import List, Optional
 
 import wx
 
+from . import a11y
 from .watcher_config import Process, load_processes, save_processes
 
 
@@ -53,7 +54,7 @@ class ProcessEditDialog(wx.Dialog):
         self.folder_ctrl.SetHint("Folder that will receive sub-folders of MP3s")
         wf_row.Add(self.folder_ctrl, 1, wx.ALIGN_CENTER_VERTICAL)
         browse = wx.Button(panel, label="B&rowse…")
-        browse.SetName("Browse for watch folder")
+        browse.SetName("Browse for the folder to watch for new MP3 sub-folders")
         browse.Bind(wx.EVT_BUTTON, self._on_browse)
         wf_row.Add(browse, 0, wx.LEFT, 6)
         grid.Add(wf_row, 1, wx.EXPAND)
@@ -196,8 +197,8 @@ class ProcessesDialog(wx.Dialog):
 
     @staticmethod
     def _describe(p: Process) -> str:
-        state = "on" if p.enabled else "off"
-        return f"{p.name}  [{state}]  →  {p.watch_folder}"
+        state = "enabled" if p.enabled else "disabled"
+        return f"{p.name} — {state} — {p.watch_folder}"
 
     def _on_add(self, _evt):
         dlg = ProcessEditDialog(self, Process())
@@ -231,6 +232,8 @@ class ProcessesDialog(wx.Dialog):
             return
         self.processes[i].enabled = not self.processes[i].enabled
         self._refresh(i)
+        state = "enabled" if self.processes[i].enabled else "disabled"
+        a11y.announce(f"{self.processes[i].name} {state}.")
 
     def _on_save(self, evt):
         save_processes(self.processes)

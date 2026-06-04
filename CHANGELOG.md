@@ -4,6 +4,63 @@ All notable changes to ChapterForge are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.5.0] - 2026-06-04
+
+An accessibility and usability overhaul. Every control is now fully described
+when tabbing with a screen reader, the settings dialog is reorganised into
+logical tabs, and the keyboard shortcut model matches standard app conventions.
+
+### Added
+- **Build-Release.ps1** — a single PowerShell script that runs tests, builds
+  HTML docs, runs PyInstaller and packages the Inno Setup installer in one step.
+  Accepts `-SkipTests`, `-SkipDocs`, `-SkipInstaller` and `-Open` flags.
+- **Smart Ctrl+S** — `Ctrl+S` now does the right thing in context: triggers
+  Build in build mode and Save Changes in edit mode (M4B files redirect you to
+  Save As with a spoken explanation). `Ctrl+Shift+O` is the new shortcut for
+  choosing the output file location.
+- **Tooltips on every control** — every button, checkbox, dropdown and spinner
+  on the main window and the settings dialog has a plain-English tooltip that
+  explains what it does and why you'd change it. Useful for new users and
+  screen-reader users who explore with the mouse.
+
+### Changed
+- **Settings dialog** restructured into three tabs: *Build* (encoding choices),
+  *General* (player, appearance, announcements) and *Advanced* (silence
+  detection). Related settings are grouped; unrelated ones no longer share a
+  crowded flat list.
+- **Options row** on the main window split into two rows: the three encoding
+  dropdowns on top, and the three toggles/values below. Reduces horizontal
+  crowding and makes the tab order easier to follow.
+- **Button names** throughout carry their full context when read by a screen
+  reader (e.g. "Browse for source folder of MP3 files", "Save master file to a
+  chosen location", "Edit selected chapter title, link and image"). Trailing
+  punctuation removed from player button names.
+- **"Set…" → "Save to…"** on the output-file button — the label now reads as
+  intent rather than a generic imperative.
+- **"Edit Title" → "Edit Chapter…"** — the ellipsis signals a dialog and the
+  name reflects that it edits title, URL *and* image.
+- **"Play Selected" → "Play Chapter"** — shorter and unambiguous.
+- **"Split at Playhead" → "Split Here"** — shorter label, tooltip carries the
+  explanation.
+- **Build button label** updates dynamically: "Build Master MP3" when MP3 is
+  selected, "Build M4B Audiobook" when M4B is selected.
+- **"Remove" / "Merge Up"** button's accessible name updates in edit mode to
+  "Merge selected chapter into the one above it".
+- **Save Changes button tooltip** explains the greyed-out state for M4B files.
+- **Settings dialog z-order fix** — `StaticText` labels are now created before
+  their associated controls so NVDA's preceding-static-text heuristic maps each
+  label to the correct control.
+- **Chapter list** label and column 4 header switch dynamically between build
+  mode ("Chapter list, one per source file" / "Source file") and edit mode
+  ("Chapter list" / "URL / Link").
+- **Unsaved-changes guards** — switching mode, opening a folder, or loading a
+  job file while in edit mode with unsaved edits now prompts before discarding.
+- **Player sizer leak fixed** — repeated load/release cycles no longer
+  accumulate dead sizer items.
+- **Volume slider name** updated to "Playback volume, 0 to 100 percent" for
+  clearer screen-reader announcement.
+- **Initial status text** is now a welcoming instruction rather than "Ready."
+
 ## [1.2.0] - 2026-06-20
 
 A polish release that deepens editing, playback and accessibility. Everything
