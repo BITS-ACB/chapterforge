@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ChapterForge — Changelog</title>
+<style>:root {
+  --bg: #ffffff; --fg: #1b1b1b; --muted: #555; --accent: #0b5fa5;
+  --border: #d0d7de; --code-bg: #f3f4f6; --nav-bg: #f6f8fa;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0d1117; --fg: #e6edf3; --muted: #9da7b1; --accent: #58a6ff;
+    --border: #30363d; --code-bg: #161b22; --nav-bg: #161b22;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0; background: var(--bg); color: var(--fg);
+  font: 1rem/1.6 -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+}
+.skip {
+  position: absolute; left: -999px; top: 0; background: var(--accent);
+  color: #fff; padding: .6rem 1rem; z-index: 100;
+}
+.skip:focus { left: 0; }
+header.site {
+  border-bottom: 1px solid var(--border); background: var(--nav-bg);
+  padding: .5rem 1rem;
+}
+header.site nav ul {
+  list-style: none; display: flex; flex-wrap: wrap; gap: .25rem 1rem;
+  margin: 0; padding: 0;
+}
+header.site nav a { text-decoration: none; color: var(--accent); padding: .25rem 0; }
+header.site nav a[aria-current="page"] { font-weight: 700; text-decoration: underline; }
+.wrap { max-width: 52rem; margin: 0 auto; padding: 1rem 1.25rem 4rem; }
+main { outline: none; }
+h1 { font-size: 2rem; line-height: 1.2; margin: 1rem 0 .5rem; }
+h2 { font-size: 1.5rem; margin-top: 2.2rem; border-bottom: 1px solid var(--border); padding-bottom: .2rem; }
+h3 { font-size: 1.2rem; margin-top: 1.6rem; }
+a { color: var(--accent); }
+a:focus-visible, button:focus-visible, input:focus-visible {
+  outline: 3px solid var(--accent); outline-offset: 2px;
+}
+code { background: var(--code-bg); padding: .1rem .35rem; border-radius: 4px;
+  font-family: Consolas, "SFMono-Regular", Menlo, monospace; font-size: .9em; }
+pre { background: var(--code-bg); padding: 1rem; border-radius: 8px;
+  overflow: auto; border: 1px solid var(--border); }
+pre code { background: none; padding: 0; }
+table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+th, td { border: 1px solid var(--border); padding: .5rem .7rem; text-align: left; vertical-align: top; }
+thead th { background: var(--nav-bg); }
+li.task { list-style: none; margin-left: -1.2rem; }
+li.task input { margin-right: .4rem; }
+nav.toc { background: var(--nav-bg); border: 1px solid var(--border);
+  border-radius: 8px; padding: .75rem 1rem; margin: 1.5rem 0; }
+nav.toc p { margin: 0 0 .4rem; font-weight: 700; }
+nav.toc ul { margin: 0; padding-left: 1.2rem; }
+nav.toc li.lvl3 { margin-left: 1rem; list-style: circle; }
+footer.site { color: var(--muted); border-top: 1px solid var(--border);
+  margin-top: 3rem; padding: 1rem 1.25rem; font-size: .9rem; }</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="site"><nav aria-label="Documentation"><ul><li><a href="index.html">Home</a></li><li><a href="USER_GUIDE.html">User Guide</a></li><li><a href="DEPLOYMENT.html">Deployment</a></li><li><a href="CHANGELOG.html" aria-current="page">Changelog</a></li><li><a href="THIRD_PARTY.html">Third-Party Notices</a></li></ul></nav></header>
+<div class="wrap">
+<main id="main" tabindex="-1">
+<nav class="toc" aria-label="On this page"><p>On this page</p><ul><li><a href="#120---2026-06-20">[1.2.0] - 2026-06-20</a></li><li class="lvl3"><a href="#added">Added</a></li><li class="lvl3"><a href="#changed">Changed</a></li><li><a href="#110---2026-06-15">[1.1.0] - 2026-06-15</a></li><li class="lvl3"><a href="#added">Added</a></li><li class="lvl3"><a href="#changed">Changed</a></li><li><a href="#100---2026-06-01">[1.0.0] - 2026-06-01</a></li><li class="lvl3"><a href="#added">Added</a></li></ul></nav>
+<h1>Changelog</h1>
+<p>All notable changes to ChapterForge are documented here. The format is based on <a href="https://keepachangelog.com/">Keep a Changelog</a>, and this project adheres to <a href="https://semver.org/">Semantic Versioning</a>.</p>
+<h2 id="120---2026-06-20">[1.2.0] - 2026-06-20</h2>
+<p>A polish release that deepens editing, playback and accessibility. Everything remains fully keyboard accessible with screen-reader announcements.</p>
+<h3 id="added">Added</h3>
+<ul>
+<li><strong>Play from a chosen chapter</strong> — a &quot;Play Selected&quot; button (and the player&#x27;s</li>
+</ul>
+<p>chapter map) lets you jump straight to any chapter. In build mode it auditions the selected source file.</p>
+<ul>
+<li><strong>Real chapter editing of existing masters</strong> — merge a chapter into its</li>
+</ul>
+<p>neighbour (Remove/Delete becomes &quot;Merge Up&quot; in edit mode), <strong>Split at Playhead</strong> to add a boundary where the player is paused, and adjust a chapter&#x27;s <strong>start time</strong> from the Edit dialog. Edits update the player without interrupting playback.</p>
+<ul>
+<li><strong>Import / Export chapter lists</strong> — export the chapter list as Audacity</li>
+</ul>
+<p>labels, a CUE sheet, plain timestamps or Podcasting 2.0 JSON; import any of those into an open master to replace its markers.</p>
+<ul>
+<li><strong>Inter-chapter gaps</strong> — insert a configurable amount of silence between</li>
+</ul>
+<p>chapters when building (also <code>--gap-seconds</code> on the command line).</p>
+<ul>
+<li><strong>Post-build verification</strong> — after each build ChapterForge re-reads the file</li>
+</ul>
+<p>and confirms the chapter count, announcing &quot;Verified N chapters.&quot;</p>
+<ul>
+<li><strong>Output size estimate</strong> — a live estimate of the master&#x27;s duration and</li>
+</ul>
+<p>approximate file size is shown before you build.</p>
+<ul>
+<li><strong>Open Recent</strong> — the File menu remembers recently opened folders, masters and</li>
+</ul>
+<p>job files.</p>
+<ul>
+<li><strong>Accessibility appearance options</strong> — adjustable UI text size and an optional</li>
+</ul>
+<p>high-contrast theme (Tools → Settings).</p>
+<ul>
+<li><strong>Save Diagnostics</strong> (Help menu) — write a support report with version,</li>
+</ul>
+<p>Python/wxPython/OS and FFmpeg details, and your current settings.</p>
+<ul>
+<li><strong>Download &amp; install updates</strong> — &quot;Check for Updates&quot; can now download the</li>
+</ul>
+<p>right installer for your platform (over a verified HTTPS/GitHub connection) and launch it, instead of only opening the releases page. The CLI gains a matching <code>--update</code>.</p>
+<h3 id="changed">Changed</h3>
+<ul>
+<li>Editing chapters of an open master now updates the in-app player in place</li>
+</ul>
+<p>rather than reloading the file, so playback and position are preserved.</p>
+<h2 id="110---2026-06-15">[1.1.0] - 2026-06-15</h2>
+<p>A big &quot;maximum magic&quot; feature release. Everything stays fully keyboard accessible with screen-reader announcements.</p>
+<h3 id="added">Added</h3>
+<ul>
+<li><strong>M4B audiobook export</strong> — choose MP3 or M4B output. M4B writes proper MP4</li>
+</ul>
+<p>chapter metadata and an attached cover, ideal for audiobook players.</p>
+<ul>
+<li><strong>In-app accessible player</strong> — preview the master without leaving the app:</li>
+</ul>
+<p>Play/Pause, Stop, Previous/Next chapter, Rewind/Forward (by a configurable interval), a volume control and a position slider. The current chapter is announced as the play-head crosses each boundary; Previous restarts the current chapter unless you are within the first few seconds.</p>
+<ul>
+<li><strong>Edit existing chaptered files</strong> — open a finished MP3 (or M4B) to correct</li>
+</ul>
+<p>its ID3 tags and chapter titles. MP3 edits save in place (no re-encode); any file can be written to a new file with <strong>Save As</strong>.</p>
+<ul>
+<li><strong>Save As</strong> — write the master, or an edited master, to a new file without</li>
+</ul>
+<p>touching the original.</p>
+<ul>
+<li><strong>Auto-chapter by silence</strong> — detect chapter breaks in a single long</li>
+</ul>
+<p>recording from its silent gaps, then rename and save them.</p>
+<ul>
+<li><strong>Batch build a library</strong> — point ChapterForge at a parent folder and build a</li>
+</ul>
+<p>master for every book sub-folder in one pass.</p>
+<ul>
+<li><strong>Podcasting 2.0 chapters</strong> — optionally write a <code>…chapters.json</code> sidecar with</li>
+</ul>
+<p>per-chapter titles, and optional link URLs and images.</p>
+<ul>
+<li><strong>Rich per-chapter metadata</strong> — the Edit dialog now sets a chapter&#x27;s title,</li>
+</ul>
+<p>link URL and image.</p>
+<ul>
+<li><strong>Pre-flight checks</strong> — before a build, ChapterForge warns about mixed sample</li>
+</ul>
+<p>rates or channel counts so you can decide whether to continue.</p>
+<ul>
+<li><strong>Settings dialog</strong> (Tools → Settings, <code>Ctrl+,</code>) — defaults for output format,</li>
+</ul>
+<p>re-encode quality, normalization, cover auto-detect, chapters JSON, the player skip interval and volume, announcement detail and silence-detection tuning.</p>
+<h3 id="changed">Changed</h3>
+<ul>
+<li>The output format and a &quot;write chapters JSON&quot; option are now on the main</li>
+</ul>
+<p>Options bar; the default output extension follows your chosen format.</p>
+<h2 id="100---2026-06-01">[1.0.0] - 2026-06-01</h2>
+<p>First public release.</p>
+<h3 id="added">Added</h3>
+<ul>
+<li><strong>Master builder</strong> — concatenate a folder of MP3s into one master MP3 with</li>
+</ul>
+<p>embedded ID3v2 <code>CHAP</code> chapter frames and an ordered <code>CTOC</code>. Uses lossless <code>-c copy</code> when source streams are uniform; re-encodes only when required.</p>
+<ul>
+<li><strong>Accessible wxPython GUI</strong> — fully keyboard-navigable, labeled controls,</li>
+</ul>
+<p>menus with mnemonics and accelerators, and screen-reader announcements for status and progress. Chapter list supports edit (F2), reorder (Alt+Up/Down) and remove (Delete).</p>
+<ul>
+<li><strong>ID3 tagging</strong> — title, artist, album-artist, album, genre, year, comment,</li>
+</ul>
+<p>cover art (APIC), with auto-detected cover preview.</p>
+<ul>
+<li><strong>Chapter titles from filenames</strong>, with an option to keep or strip leading</li>
+</ul>
+<p>track numbers.</p>
+<ul>
+<li><strong>Rich CLI</strong> (<code>chapterforge-cli</code>) with <code>--help</code>, live terminal progress, and</li>
+</ul>
+<p>flags for tags, output path, job files, watching and update checks.</p>
+<ul>
+<li><strong>Job files (<code>.cfjob</code>)</strong> — simple, hand-editable definitions of file order</li>
+</ul>
+<p>and chapter titles. Generate, edit and load from the GUI or CLI.</p>
+<ul>
+<li><strong>Reusable processes &amp; folder watcher</strong> — define watch folders with naming</li>
+</ul>
+<p>templates; a system-tray app processes new MP3 folders automatically in the background.</p>
+<ul>
+<li><strong>Windows notifications</strong> — toast + screen-reader announcements when jobs</li>
+</ul>
+<p>start and complete, in both foreground and background modes.</p>
+<ul>
+<li><strong>Visible output organization</strong> — completed masters land in</li>
+</ul>
+<p><code>_ChapterForge\Completed\&lt;book&gt;\</code> with a readable <code>… - chapters.txt</code> report; failures are recorded under <code>_ChapterForge\Failed\&lt;book&gt;.txt</code>.</p>
+<ul>
+<li><strong>Existing-master detection</strong> — a previously built master in the source</li>
+</ul>
+<p>folder is skipped instead of being added as an extra chapter.</p>
+<ul>
+<li><strong>Check for updates</strong> via GitHub Releases.</li>
+<li><strong>Run watcher at sign-in</strong> (per-user) toggle.</li>
+<li><strong>Packaging</strong> — PyInstaller one-folder build (GUI + CLI exes, ffmpeg bundled)</li>
+</ul>
+<p>and an Inno Setup installer.</p>
+<ul>
+<li><strong>About window</strong> crediting **Blind Information Technology Specialists</li>
+</ul>
+<p>(BITS)**, showing the version and a 2026 copyright, with buttons linking to Join BITS, Let It Glow and Community Access.</p>
+<ul>
+<li>Documentation: README, User Guide, Deployment guide, third-party notices,</li>
+</ul>
+<p>MIT license. The in-app <strong>Help</strong> menu opens accessible HTML versions (generated by <code>tools/build_docs.py</code>) in the browser.</p>
+<p>[1.1.0]: https://github.com/bits-acb/chapterforge/releases/tag/v1.1.0 [1.0.0]: https://github.com/bits-acb/chapterforge/releases/tag/v1.0.0</p>
+</main>
+</div>
+<footer class="site">© 2026 Blind Information Technology Specialists (BITS). ChapterForge documentation, generated from Markdown.</footer>
+</body>
+</html>

@@ -1,0 +1,52 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "chapterforge"
+version = "1.0.0"
+description = "Accessible app + CLI that builds a master MP3 with chapter markers from a folder of MP3s."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { file = "LICENSE" }
+authors = [{ name = "Blind Information Technology Specialists (BITS)" }]
+keywords = ["mp3", "chapters", "id3", "audiobook", "podcast", "accessibility", "wxpython"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Win32 (MS Windows)",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: Microsoft :: Windows",
+    "Programming Language :: Python :: 3",
+    "Topic :: Multimedia :: Sound/Audio",
+    "Topic :: Adaptive Technologies",
+]
+dependencies = [
+    "wxPython>=4.2",
+    "mutagen>=1.47",
+]
+
+[project.optional-dependencies]
+# Richer screen-reader output on Windows (graceful fallback when absent).
+speech = ["prismatoid>=0.16.5; sys_platform == 'win32'"]
+# Building the distributable executable + installer payload.
+build = ["pyinstaller>=6.0"]
+dev = ["pytest>=7"]
+
+[project.urls]
+Homepage = "https://github.com/bits-acb/chapterforge"
+Documentation = "https://github.com/bits-acb/chapterforge/blob/main/docs/USER_GUIDE.md"
+Issues = "https://github.com/bits-acb/chapterforge/issues"
+
+[project.scripts]
+chapterforge-cli = "chapterforge.cli:main"
+
+[project.gui-scripts]
+chapterforge = "chapterforge.app:main"
+
+[tool.setuptools]
+packages = ["chapterforge"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

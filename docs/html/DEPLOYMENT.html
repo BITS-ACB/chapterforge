@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ChapterForge — Deployment Guide</title>
+<style>:root {
+  --bg: #ffffff; --fg: #1b1b1b; --muted: #555; --accent: #0b5fa5;
+  --border: #d0d7de; --code-bg: #f3f4f6; --nav-bg: #f6f8fa;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0d1117; --fg: #e6edf3; --muted: #9da7b1; --accent: #58a6ff;
+    --border: #30363d; --code-bg: #161b22; --nav-bg: #161b22;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0; background: var(--bg); color: var(--fg);
+  font: 1rem/1.6 -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+}
+.skip {
+  position: absolute; left: -999px; top: 0; background: var(--accent);
+  color: #fff; padding: .6rem 1rem; z-index: 100;
+}
+.skip:focus { left: 0; }
+header.site {
+  border-bottom: 1px solid var(--border); background: var(--nav-bg);
+  padding: .5rem 1rem;
+}
+header.site nav ul {
+  list-style: none; display: flex; flex-wrap: wrap; gap: .25rem 1rem;
+  margin: 0; padding: 0;
+}
+header.site nav a { text-decoration: none; color: var(--accent); padding: .25rem 0; }
+header.site nav a[aria-current="page"] { font-weight: 700; text-decoration: underline; }
+.wrap { max-width: 52rem; margin: 0 auto; padding: 1rem 1.25rem 4rem; }
+main { outline: none; }
+h1 { font-size: 2rem; line-height: 1.2; margin: 1rem 0 .5rem; }
+h2 { font-size: 1.5rem; margin-top: 2.2rem; border-bottom: 1px solid var(--border); padding-bottom: .2rem; }
+h3 { font-size: 1.2rem; margin-top: 1.6rem; }
+a { color: var(--accent); }
+a:focus-visible, button:focus-visible, input:focus-visible {
+  outline: 3px solid var(--accent); outline-offset: 2px;
+}
+code { background: var(--code-bg); padding: .1rem .35rem; border-radius: 4px;
+  font-family: Consolas, "SFMono-Regular", Menlo, monospace; font-size: .9em; }
+pre { background: var(--code-bg); padding: 1rem; border-radius: 8px;
+  overflow: auto; border: 1px solid var(--border); }
+pre code { background: none; padding: 0; }
+table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+th, td { border: 1px solid var(--border); padding: .5rem .7rem; text-align: left; vertical-align: top; }
+thead th { background: var(--nav-bg); }
+li.task { list-style: none; margin-left: -1.2rem; }
+li.task input { margin-right: .4rem; }
+nav.toc { background: var(--nav-bg); border: 1px solid var(--border);
+  border-radius: 8px; padding: .75rem 1rem; margin: 1.5rem 0; }
+nav.toc p { margin: 0 0 .4rem; font-weight: 700; }
+nav.toc ul { margin: 0; padding-left: 1.2rem; }
+nav.toc li.lvl3 { margin-left: 1rem; list-style: circle; }
+footer.site { color: var(--muted); border-top: 1px solid var(--border);
+  margin-top: 3rem; padding: 1rem 1.25rem; font-size: .9rem; }</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="site"><nav aria-label="Documentation"><ul><li><a href="index.html">Home</a></li><li><a href="USER_GUIDE.html">User Guide</a></li><li><a href="DEPLOYMENT.html" aria-current="page">Deployment</a></li><li><a href="CHANGELOG.html">Changelog</a></li><li><a href="THIRD_PARTY.html">Third-Party Notices</a></li></ul></nav></header>
+<div class="wrap">
+<main id="main" tabindex="-1">
+<nav class="toc" aria-label="On this page"><p>On this page</p><ul><li><a href="#1-prerequisites">1. Prerequisites</a></li><li><a href="#2-versioning">2. Versioning</a></li><li><a href="#3-run-the-tests">3. Run the tests</a></li><li><a href="#4-build-the-executables-pyinstaller">4. Build the executables (PyInstaller)</a></li><li><a href="#5-build-the-installer-inno-setup">5. Build the installer (Inno Setup)</a></li><li><a href="#6-publish-a-github-release">6. Publish a GitHub Release</a></li><li><a href="#7-the-update-feed">7. The update feed</a></li><li><a href="#8-release-checklist">8. Release checklist</a></li></ul></nav>
+<h1>ChapterForge — Deployment Guide</h1>
+<p>This document describes how to build, package, release and update ChapterForge on Windows.</p>
+<hr>
+<h2 id="1-prerequisites">1. Prerequisites</h2>
+<ul>
+<li><strong>Python 3.10+</strong> (developed on 3.12).</li>
+<li><strong>FFmpeg</strong> — <code>ffmpeg.exe</code> and <code>ffprobe.exe</code>. For a self-contained build, place</li>
+</ul>
+<p>them in <code>bin\</code> at the repo root; the PyInstaller spec bundles them and the app resolves them from <code>_internal\bin\</code> at runtime.</p>
+<ul>
+<li>Python build dependencies:</li>
+</ul>
+<p>``<code>bash pip install -r requirements.txt pip install pyinstaller </code>``</p>
+<ul>
+<li><strong>Inno Setup 6</strong> for the installer. <code>ISCC.exe</code> is typically at:</li>
+</ul>
+<p>``<code> C:\Users\&lt;you&gt;\AppData\Local\Programs\Inno Setup 6\ISCC.exe </code>``</p>
+<p>(It is usually <strong>not</strong> on <code>PATH</code>; call it by full path.)</p>
+<hr>
+<h2 id="2-versioning">2. Versioning</h2>
+<p>ChapterForge follows <a href="https://semver.org/">Semantic Versioning</a>: <code>MAJOR.MINOR.PATCH</code>.</p>
+<p>When cutting a release, update the version in <strong>all</strong> of these places:</p>
+<ul>
+<li><code>pyproject.toml</code> → <code>[project] version</code></li>
+<li><code>chapterforge/__init__.py</code> (or wherever <code>__version__</code> is defined)</li>
+<li><code>installer/ChapterForge.iss</code> → <code>AppVersion</code> / <code>MyAppVersion</code></li>
+<li><code>CHANGELOG.md</code> (add a dated section)</li>
+</ul>
+<p>The GitHub tag should be <code>vMAJOR.MINOR.PATCH</code> (e.g. <code>v1.0.0</code>).</p>
+<hr>
+<h2 id="3-run-the-tests">3. Run the tests</h2>
+<pre><code>python -m pytest -q</code></pre>
+<p>The audio tests synthesize tiny MP3s with FFmpeg and are skipped if FFmpeg is not on <code>PATH</code>. All tests must pass before building a release.</p>
+<hr>
+<h2 id="4-build-the-executables-pyinstaller">4. Build the executables (PyInstaller)</h2>
+<p>First generate the HTML help that the app&#x27;s <strong>Help</strong> menu opens (the spec bundles <code>docs/html</code>):</p>
+<pre><code>python tools/build_docs.py</code></pre>
+<p>Then build:</p>
+<pre><code>pyinstaller ChapterForge.spec</code></pre>
+<p>This produces a <strong>one-folder</strong> build under <code>dist\ChapterForge\</code>:</p>
+<ul>
+<li><code>ChapterForge.exe</code> — the GUI app (windowed, <code>console=False</code>).</li>
+<li><code>chapterforge-cli.exe</code> — the CLI (console, <code>console=True</code>).</li>
+<li><code>_internal\</code> — Python runtime, dependencies, and <code>_internal\bin\ffmpeg.exe</code> /</li>
+</ul>
+<p><code>ffprobe.exe</code>.</p>
+<p>The one-folder layout is deliberate: there is <strong>no per-launch temp extraction</strong>, which avoids the temp-folder cleanup problems of one-file builds when the app closes.</p>
+<p>Smoke-test the build before packaging:</p>
+<pre><code>dist\ChapterForge\chapterforge-cli.exe &quot;C:\path\to\sample\folder&quot; --list
+dist\ChapterForge\ChapterForge.exe</code></pre>
+<hr>
+<h2 id="5-build-the-installer-inno-setup">5. Build the installer (Inno Setup)</h2>
+<pre><code>&amp; &quot;C:\Users\&lt;you&gt;\AppData\Local\Programs\Inno Setup 6\ISCC.exe&quot; installer\ChapterForge.iss</code></pre>
+<p>This wraps <code>dist\ChapterForge\</code> into a single <code>ChapterForge-Setup.exe</code> under the installer&#x27;s output directory. The installer is <strong>per-user</strong> (no admin required), creates Start-menu shortcuts for the GUI and adds the CLI to the install folder. Autostart of the watcher is handled <strong>in-app</strong> (per-user <code>HKCU\…\Run</code>), not by the installer, so the installer needs no elevation.</p>
+<hr>
+<h2 id="6-publish-a-github-release">6. Publish a GitHub Release</h2>
+<ol>
+<li>Commit and tag: <code>git tag v1.0.0 &amp;&amp; git push --tags</code>.</li>
+<li>Create a Release for the tag on GitHub.</li>
+<li>Attach <code>ChapterForge-Setup.exe</code> as a release asset.</li>
+<li>Paste the relevant <code>CHANGELOG.md</code> section as the release notes.</li>
+</ol>
+<hr>
+<h2 id="7-the-update-feed">7. The update feed</h2>
+<p>The in-app <strong>Check for Updates</strong> feature (<code>chapterforge/updates.py</code>) queries the <strong>GitHub Releases API</strong> for the configured repository, compares the latest tag to the running version, and points users at the download.</p>
+<p>Before the first public release, replace the placeholders in <code>chapterforge/updates.py</code>:</p>
+<pre><code>GITHUB_OWNER = &quot;bits-acb&quot;   # -&gt; your GitHub org/user
+GITHUB_REPO  = &quot;chapterforge&quot;</code></pre>
+<p>Notes on the implementation (adapted from QUILL):</p>
+<ul>
+<li>Versions are compared with a tuple ranking so finals outrank pre-releases.</li>
+<li>Only <strong>HTTPS</strong> URLs on trusted GitHub hosts are accepted for the download</li>
+</ul>
+<p>link.</p>
+<ul>
+<li>Network/parse failures are reported gracefully; they never crash the app.</li>
+</ul>
+<p>So each release is picked up automatically by existing installs once the tag is published — no separate update server is required.</p>
+<hr>
+<h2 id="8-release-checklist">8. Release checklist</h2>
+<ul>
+<li class="task"><input type="checkbox" disabled> Version bumped in <code>pyproject.toml</code>, <code>__init__</code>, <code>.iss</code>, <code>CHANGELOG.md</code>.</li>
+<li class="task"><input type="checkbox" disabled> <code>python -m pytest -q</code> passes.</li>
+<li class="task"><input type="checkbox" disabled> <code>GITHUB_OWNER</code>/<code>GITHUB_REPO</code> set correctly in <code>updates.py</code>.</li>
+<li class="task"><input type="checkbox" disabled> <code>pyinstaller ChapterForge.spec</code> succeeds; both exes smoke-tested.</li>
+<li class="task"><input type="checkbox" disabled> <code>ISCC.exe installer\ChapterForge.iss</code> produces <code>ChapterForge-Setup.exe</code>.</li>
+<li class="task"><input type="checkbox" disabled> Installer test-installed and launched on a clean user profile.</li>
+<li class="task"><input type="checkbox" disabled> Git tag <code>vX.Y.Z</code> pushed.</li>
+<li class="task"><input type="checkbox" disabled> GitHub Release created with installer asset + changelog notes.</li>
+<li class="task"><input type="checkbox" disabled> <strong>Check for Updates</strong> in the previous version detects the new release.</li>
+</ul>
+</main>
+</div>
+<footer class="site">© 2026 Blind Information Technology Specialists (BITS). ChapterForge documentation, generated from Markdown.</footer>
+</body>
+</html>

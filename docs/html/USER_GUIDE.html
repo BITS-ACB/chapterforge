@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ChapterForge — User Guide</title>
+<style>:root {
+  --bg: #ffffff; --fg: #1b1b1b; --muted: #555; --accent: #0b5fa5;
+  --border: #d0d7de; --code-bg: #f3f4f6; --nav-bg: #f6f8fa;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0d1117; --fg: #e6edf3; --muted: #9da7b1; --accent: #58a6ff;
+    --border: #30363d; --code-bg: #161b22; --nav-bg: #161b22;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0; background: var(--bg); color: var(--fg);
+  font: 1rem/1.6 -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+}
+.skip {
+  position: absolute; left: -999px; top: 0; background: var(--accent);
+  color: #fff; padding: .6rem 1rem; z-index: 100;
+}
+.skip:focus { left: 0; }
+header.site {
+  border-bottom: 1px solid var(--border); background: var(--nav-bg);
+  padding: .5rem 1rem;
+}
+header.site nav ul {
+  list-style: none; display: flex; flex-wrap: wrap; gap: .25rem 1rem;
+  margin: 0; padding: 0;
+}
+header.site nav a { text-decoration: none; color: var(--accent); padding: .25rem 0; }
+header.site nav a[aria-current="page"] { font-weight: 700; text-decoration: underline; }
+.wrap { max-width: 52rem; margin: 0 auto; padding: 1rem 1.25rem 4rem; }
+main { outline: none; }
+h1 { font-size: 2rem; line-height: 1.2; margin: 1rem 0 .5rem; }
+h2 { font-size: 1.5rem; margin-top: 2.2rem; border-bottom: 1px solid var(--border); padding-bottom: .2rem; }
+h3 { font-size: 1.2rem; margin-top: 1.6rem; }
+a { color: var(--accent); }
+a:focus-visible, button:focus-visible, input:focus-visible {
+  outline: 3px solid var(--accent); outline-offset: 2px;
+}
+code { background: var(--code-bg); padding: .1rem .35rem; border-radius: 4px;
+  font-family: Consolas, "SFMono-Regular", Menlo, monospace; font-size: .9em; }
+pre { background: var(--code-bg); padding: 1rem; border-radius: 8px;
+  overflow: auto; border: 1px solid var(--border); }
+pre code { background: none; padding: 0; }
+table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+th, td { border: 1px solid var(--border); padding: .5rem .7rem; text-align: left; vertical-align: top; }
+thead th { background: var(--nav-bg); }
+li.task { list-style: none; margin-left: -1.2rem; }
+li.task input { margin-right: .4rem; }
+nav.toc { background: var(--nav-bg); border: 1px solid var(--border);
+  border-radius: 8px; padding: .75rem 1rem; margin: 1.5rem 0; }
+nav.toc p { margin: 0 0 .4rem; font-weight: 700; }
+nav.toc ul { margin: 0; padding-left: 1.2rem; }
+nav.toc li.lvl3 { margin-left: 1rem; list-style: circle; }
+footer.site { color: var(--muted); border-top: 1px solid var(--border);
+  margin-top: 3rem; padding: 1rem 1.25rem; font-size: .9rem; }</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="site"><nav aria-label="Documentation"><ul><li><a href="index.html">Home</a></li><li><a href="USER_GUIDE.html" aria-current="page">User Guide</a></li><li><a href="DEPLOYMENT.html">Deployment</a></li><li><a href="CHANGELOG.html">Changelog</a></li><li><a href="THIRD_PARTY.html">Third-Party Notices</a></li></ul></nav></header>
+<div class="wrap">
+<main id="main" tabindex="-1">
+<nav class="toc" aria-label="On this page"><p>On this page</p><ul><li><a href="#1-quick-start-graphical-app">1. Quick start (graphical app)</a></li><li><a href="#2-keyboard-shortcuts">2. Keyboard shortcuts</a></li><li><a href="#3-working-with-chapters">3. Working with chapters</a></li><li><a href="#4-tags-cover-art">4. Tags &amp; cover art</a></li><li><a href="#5-output-format-mp3-or-m4b">5. Output format: MP3 or M4B</a></li><li><a href="#6-previewing-with-the-built-in-player">6. Previewing with the built-in player</a></li><li><a href="#7-editing-an-existing-chaptered-file">7. Editing an existing chaptered file</a></li><li class="lvl3"><a href="#importing-and-exporting-chapter-lists">Importing and exporting chapter lists</a></li><li><a href="#8-auto-chapter-by-silence">8. Auto-chapter by silence</a></li><li><a href="#9-batch-building-a-library">9. Batch-building a library</a></li><li><a href="#10-settings">10. Settings</a></li><li><a href="#11-job-files-cfjob">11. Job files (`.cfjob`)</a></li><li><a href="#12-background-folder-watcher">12. Background folder watcher</a></li><li><a href="#13-output-organization">13. Output organization</a></li><li><a href="#14-command-line">14. Command line</a></li><li><a href="#15-updates">15. Updates</a></li><li><a href="#16-troubleshooting">16. Troubleshooting</a></li></ul></nav>
+<h1>ChapterForge — User Guide</h1>
+<p>ChapterForge turns a folder of MP3 files into a single <strong>master MP3</strong> with embedded chapter markers (ID3v2 <code>CHAP</code>/<code>CTOC</code>). Each source file becomes one chapter, titled from its filename. It is designed to be fully usable with a keyboard and a screen reader.</p>
+<hr>
+<h2 id="1-quick-start-graphical-app">1. Quick start (graphical app)</h2>
+<ol>
+<li>Launch <strong>ChapterForge</strong> (Start menu shortcut, or <code>chapterforge</code> with no</li>
+</ol>
+<p>arguments).</p>
+<ol>
+<li><strong>File → Open Folder…</strong> (<code>Ctrl+O</code>) and choose the folder of MP3s.</li>
+</ol>
+<ul>
+<li>Files are listed in natural order (<code>01</code>, <code>02</code>, … <code>10</code>, <code>11</code>).</li>
+<li>If a previously built master is found in the folder, it is skipped</li>
+</ul>
+<p>automatically and reported in the status line.</p>
+<ol>
+<li>Review the <strong>Chapters</strong> list. Adjust as needed (see §3).</li>
+<li>Fill in the <strong>Tags</strong> (title, artist, album, year, cover, …).</li>
+<li><strong>File → Build Master MP3</strong> (<code>Ctrl+B</code>).</li>
+<li>Choose/confirm the output file (<code>Ctrl+S</code> sets it explicitly).</li>
+</ol>
+<p>The build runs on a background thread; progress and status are announced to your screen reader. When it finishes, a master MP3 and a readable <code>… - chapters.txt</code> report are written next to each other.</p>
+<hr>
+<h2 id="2-keyboard-shortcuts">2. Keyboard shortcuts</h2>
+<table>
+<thead><tr><th>Key</th><th>Action</th></tr></thead>
+<tbody>
+<tr><td><code>Ctrl+O</code></td><td>Open folder</td></tr>
+<tr><td><code>Ctrl+E</code></td><td>Open an existing chaptered file to edit</td></tr>
+<tr><td><code>Ctrl+S</code></td><td>Set output file</td></tr>
+<tr><td><code>Ctrl+B</code></td><td>Build master (MP3 or M4B)</td></tr>
+<tr><td><code>Ctrl+Shift+S</code></td><td>Save changes to the open master</td></tr>
+<tr><td><code>Ctrl+Alt+S</code></td><td>Save As (a new file)</td></tr>
+<tr><td><code>Ctrl+L</code></td><td>Load job file (<code>.cfjob</code>)</td></tr>
+<tr><td><code>Ctrl+G</code></td><td>Generate job file</td></tr>
+<tr><td><code>Ctrl+W</code></td><td>Watch Folders…</td></tr>
+<tr><td><code>Ctrl+,</code></td><td>Settings</td></tr>
+<tr><td><code>Ctrl+/</code></td><td>Keyboard shortcuts help</td></tr>
+<tr><td><code>Alt+F4</code></td><td>Exit</td></tr>
+</tbody></table>
+<p><strong>In the Chapters list:</strong></p>
+<table>
+<thead><tr><th>Key</th><th>Action</th></tr></thead>
+<tbody>
+<tr><td><code>Up</code> / <code>Down</code></td><td>Move selection</td></tr>
+<tr><td><code>F2</code> / <code>Enter</code></td><td>Edit the selected chapter title</td></tr>
+<tr><td><code>Delete</code></td><td>Remove the selected chapter (build mode)</td></tr>
+<tr><td><code>Alt+Up</code> / <code>Alt+Down</code></td><td>Reorder the selected chapter (build mode)</td></tr>
+</tbody></table>
+<p>The <strong>Edit Title</strong> button opens a dialog for the chapter&#x27;s title, an optional link <strong>URL</strong> and an optional <strong>image</strong> (carried into the chapters JSON sidecar).</p>
+<p>All actions are also available as labeled buttons (Edit Title, Move Up, Move Down, Remove) and via the menus.</p>
+<hr>
+<h2 id="3-working-with-chapters">3. Working with chapters</h2>
+<ul>
+<li><strong>Rename</strong> a chapter: select it and press <code>F2</code> (or the <strong>Edit Title</strong></li>
+</ul>
+<p>button). Titles default to the filename, with optional stripping of a leading track number.</p>
+<ul>
+<li><strong>Reorder</strong>: <code>Alt+Up</code>/<code>Alt+Down</code> or the <strong>Move Up</strong>/<strong>Move Down</strong> buttons.</li>
+<li><strong>Remove</strong>: <code>Delete</code> or the <strong>Remove</strong> button.</li>
+<li>Chapter start/end times are computed automatically from each file&#x27;s duration.</li>
+</ul>
+<hr>
+<h2 id="4-tags-cover-art">4. Tags &amp; cover art</h2>
+<p>Set the master&#x27;s ID3 tags in the <strong>Tags</strong> panel: title, artist, album-artist, album (defaults to the folder name), genre, year, comment and cover image. ChapterForge auto-detects a cover image in the folder (e.g. <code>cover.jpg</code>) and shows a preview; you can replace or clear it.</p>
+<hr>
+<h2 id="5-output-format-mp3-or-m4b">5. Output format: MP3 or M4B</h2>
+<p>On the <strong>Options</strong> bar choose the <strong>Output format</strong>:</p>
+<ul>
+<li><strong>MP3</strong> — a single master MP3 with ID3v2 <code>CHAP</code>/<code>CTOC</code> chapters. Lossless</li>
+</ul>
+<p><code>-c copy</code> when sources are uniform.</p>
+<ul>
+<li><strong>M4B</strong> — an AAC audiobook with native MP4 chapter metadata and an attached</li>
+</ul>
+<p>cover image. Ideal for audiobook apps (Apple Books, BookPlayer, etc.).</p>
+<p>The default output extension follows your choice. Tick <strong>Write chapters JSON</strong> to also emit a Podcasting 2.0 <code>…chapters.json</code> sidecar with each chapter&#x27;s start time, title, and any link URL or image you set.</p>
+<hr>
+<h2 id="6-previewing-with-the-built-in-player">6. Previewing with the built-in player</h2>
+<p>A fully accessible player sits at the bottom of the window so you can check the result without leaving ChapterForge. After a build you can load the file straight into it; in edit mode the opened file loads automatically.</p>
+<ul>
+<li><strong>Play/Pause</strong> (also <code>Space</code> when focused), <strong>Stop</strong>.</li>
+<li><strong>Previous / Next Chapter</strong> — jump between chapters. <em>Previous</em> restarts the</li>
+</ul>
+<p>current chapter unless you are within the first few seconds, when it jumps to the previous one (familiar audiobook behaviour).</p>
+<ul>
+<li><strong>Rewind / Forward</strong> — skip by the interval set in <strong>Settings</strong> (default 10s).</li>
+<li><strong>Volume</strong> and <strong>Position</strong> sliders — adjust with the arrow keys.</li>
+</ul>
+<p>The current chapter is announced to your screen reader as playback crosses each boundary, and seeks/skip announce the new time.</p>
+<hr>
+<h2 id="7-editing-an-existing-chaptered-file">7. Editing an existing chaptered file</h2>
+<p><strong>File → Open Existing Master…</strong> (<code>Ctrl+E</code>) loads a finished file so you can fix its ID3 tags and chapter titles (and link URLs/images).</p>
+<ul>
+<li>For <strong>MP3</strong>, <strong>Save Changes</strong> (<code>Ctrl+Shift+S</code>) rewrites the tags and chapters</li>
+</ul>
+<p>in place — no re-encode.</p>
+<ul>
+<li>For any file, <strong>Save As</strong> (<code>Ctrl+Alt+S</code>) writes a new file (the only way to</li>
+</ul>
+<p>save an M4B, which can&#x27;t be re-tagged in place).</p>
+<p>You can also reshape the chapter map (the audio itself is never changed):</p>
+<ul>
+<li><strong>Merge Up</strong> (the Remove button / <code>Delete</code> in edit mode) folds a chapter into</li>
+</ul>
+<p>its neighbour, removing that boundary.</p>
+<ul>
+<li><strong>Split at Playhead</strong> adds a new boundary at the player&#x27;s current position —</li>
+</ul>
+<p>pause where the new chapter should begin, then split and give it a title.</p>
+<ul>
+<li><strong>Edit Title</strong> also lets you type a precise <strong>start time</strong> (<code>H:MM:SS</code>) for any</li>
+</ul>
+<p>chapter except the first.</p>
+<ul>
+<li><strong>Play Selected</strong> jumps the player straight to the highlighted chapter.</li>
+</ul>
+<p>These edits update the player immediately without interrupting playback.</p>
+<h3 id="importing-and-exporting-chapter-lists">Importing and exporting chapter lists</h3>
+<ul>
+<li><strong>File → Export Chapters…</strong> saves the current list as <strong>Audacity labels</strong>, a</li>
+</ul>
+<p><strong>CUE sheet</strong>, plain <strong>timestamps</strong>, or <strong>Podcasting 2.0 JSON</strong>.</p>
+<ul>
+<li><strong>File → Import Chapters…</strong> (in edit mode) reads any of those formats and</li>
+</ul>
+<p>replaces the open master&#x27;s markers; use <strong>Save Changes</strong> to keep them.</p>
+<hr>
+<h2 id="8-auto-chapter-by-silence">8. Auto-chapter by silence</h2>
+<p><strong>Tools → Auto-chapter by Silence…</strong> analyses one long recording and proposes chapter breaks at its silent gaps. Tune the <strong>silence threshold</strong> and <strong>minimum silence length</strong> in <strong>Settings</strong>. The detected chapters open in edit mode so you can rename them and then <strong>Save Changes</strong> (MP3) or <strong>Save As</strong>.</p>
+<hr>
+<h2 id="9-batch-building-a-library">9. Batch-building a library</h2>
+<p><strong>Tools → Batch Build Folder…</strong> points ChapterForge at a <em>parent</em> folder and builds a master for <strong>every</strong> book sub-folder that contains MP3s, using your current format/quality options. Progress covers the whole run and a summary reports successes and any failures.</p>
+<p>Before each build, the main window shows a <strong>live estimate</strong> of the master&#x27;s duration and approximate file size. After a build, ChapterForge <strong>verifies</strong> the result by re-reading it and announcing the confirmed chapter count.</p>
+<hr>
+<h2 id="10-settings">10. Settings</h2>
+<p><strong>Tools → Settings</strong> (<code>Ctrl+,</code>) collects your preferences: default output format, re-encode quality, loudness normalization, cover auto-detect, chapters JSON, an optional <strong>gap of silence between chapters</strong>, the player <strong>skip interval</strong> and <strong>default volume</strong>, announcement detail, silence-detection tuning, and accessibility appearance — <strong>UI text size</strong> and a <strong>high-contrast theme</strong>. They persist between sessions.</p>
+<p>The <strong>File → Open Recent</strong> submenu remembers the folders, masters and job files you used most recently. <strong>Help → Save Diagnostics…</strong> writes a support report (version, Python/wxPython/OS and FFmpeg details, and your settings) to a text file.</p>
+<hr>
+<h2 id="11-job-files-cfjob">11. Job files (<code>.cfjob</code>)</h2>
+<p>A job file is a small, hand-editable text file that records the <strong>order</strong> and <strong>chapter titles</strong> for a build (plus optional tags). Use it to script repeatable builds or to prepare a build for the watcher.</p>
+<ul>
+<li><strong>Generate</strong> one from the current folder: <strong>File → Generate Job File…</strong></li>
+</ul>
+<p>(<code>Ctrl+G</code>).</p>
+<ul>
+<li><strong>Load</strong> one to rebuild: <strong>File → Load Job File…</strong> (<code>Ctrl+L</code>).</li>
+<li>From the CLI: <code>chapterforge-cli -j mybook.cfjob</code>.</li>
+</ul>
+<p>The format is intentionally simple — open it in any text editor to change the order of files or the chapter names.</p>
+<hr>
+<h2 id="12-background-folder-watcher">12. Background folder watcher</h2>
+<p>ChapterForge can sit in the <strong>system tray</strong> and build new folders of MP3s for you automatically.</p>
+<ul>
+<li><strong>Tools → Watch Folders…</strong> (<code>Ctrl+W</code>) — define reusable <em>processes</em>: a watch</li>
+</ul>
+<p>folder plus a naming template for the output master.</p>
+<ul>
+<li><strong>Tools → Start Background Watcher</strong> — minimises to the tray and watches.</li>
+<li><strong>Tools → Start Watcher at Sign-in</strong> — registers a per-user startup entry so</li>
+</ul>
+<p>the watcher runs automatically when you log in.</p>
+<ul>
+<li><code>chapterforge-cli --watch</code> runs the watcher standalone.</li>
+</ul>
+<p><strong>How it stays safe:</strong></p>
+<ul>
+<li>A folder is only built once its set of files has been <strong>unchanged</strong> for a</li>
+</ul>
+<p>short settle window (so it won&#x27;t grab a half-copied folder).</p>
+<ul>
+<li>Output goes into an excluded <code>_ChapterForge\Completed\&lt;book&gt;\</code> folder, so the</li>
+</ul>
+<p>watcher never re-processes its own output.</p>
+<ul>
+<li>Each folder is built <strong>once</strong>; done/failed markers and a lock file prevent</li>
+</ul>
+<p>double-processing.</p>
+<ul>
+<li>Failures are recorded under <code>_ChapterForge\Failed\&lt;book&gt;.txt</code>.</li>
+<li>You get a toast + screen-reader announcement when a build starts, finishes or</li>
+</ul>
+<p>fails.</p>
+<hr>
+<h2 id="13-output-organization">13. Output organization</h2>
+<p>After a build you&#x27;ll find, next to (or under <code>_ChapterForge\Completed\</code> for the watcher):</p>
+<ul>
+<li><code>&lt;book&gt; - Master.mp3</code> — the master with chapter markers.</li>
+<li><code>&lt;book&gt; - Master - chapters.txt</code> — a readable report listing the tags and the</li>
+</ul>
+<p>start/end time and title of every chapter.</p>
+<p>This makes it easy to confirm what was produced without opening an audio player.</p>
+<hr>
+<h2 id="14-command-line">14. Command line</h2>
+<p>Run <code>chapterforge-cli --help</code> for the full list. Common examples:</p>
+<pre><code># Build a master from a folder
+chapterforge-cli &quot;C:\Audiobooks\My Book&quot;
+
+# Export an M4B audiobook and a Podcasting 2.0 chapters sidecar
+chapterforge-cli &quot;C:\Audiobooks\My Book&quot; --format m4b --pod2-chapters
+
+# Set tags and normalize
+chapterforge-cli -i ./chapters -o book.mp3 --title &quot;My Book&quot; --artist &quot;Jane Doe&quot; --normalize
+
+# Just preview the chapter plan
+chapterforge-cli ./chapters --list
+
+# Build a master for every book sub-folder of a library
+chapterforge-cli --batch &quot;C:\Audiobooks&quot; --format m4b
+
+# Auto-chapter one long recording by its silent gaps
+chapterforge-cli --split-silence recording.mp3 --noise-db -30 --min-silence 0.8
+
+# Build from a job file
+chapterforge-cli -j mybook.cfjob
+
+# Run the tray watcher / check for updates
+chapterforge-cli --watch
+chapterforge-cli --check-updates</code></pre>
+<hr>
+<h2 id="15-updates">15. Updates</h2>
+<p><strong>Help → Check for Updates</strong> queries GitHub Releases and tells you if a newer version is available. When an installer for your platform is published, you can choose <strong>Download &amp; Install</strong> — ChapterForge downloads it over a verified HTTPS/GitHub connection, then launches the installer and closes so it can be replaced. You can instead choose <strong>Open Page</strong> to download manually, or <strong>Later</strong> to dismiss.</p>
+<p>From a terminal, <code>chapterforge-cli --check-updates</code> reports the latest version, and <code>chapterforge-cli --update</code> downloads and launches the installer.</p>
+<hr>
+<h2 id="16-troubleshooting">16. Troubleshooting</h2>
+<ul>
+<li><strong>A stray master became a chapter</strong> — name your previously built master after</li>
+</ul>
+<p>the folder (e.g. <code>My Book.mp3</code>) or end it with <code>- Master.mp3</code>; ChapterForge skips those automatically.</p>
+<ul>
+<li><strong>The build re-encoded instead of copying</strong> — this happens when source files</li>
+</ul>
+<p>have mismatched sample rates/channels, or when <code>--normalize</code> is used. The result is still correct; only the encode path differs.</p>
+<ul>
+<li><strong>The watcher didn&#x27;t pick up a folder</strong> — make sure copying has fully</li>
+</ul>
+<p>finished; the settle window waits for the files to stop changing.</p>
+<ul>
+<li><strong>The player won&#x27;t play an M4B</strong> — in-app playback uses the system media</li>
+</ul>
+<p>backend, whose M4B/AAC support varies by machine. The exported file is still valid; play it in your audiobook app, or preview the MP3 build instead.</p>
+</main>
+</div>
+<footer class="site">© 2026 Blind Information Technology Specialists (BITS). ChapterForge documentation, generated from Markdown.</footer>
+</body>
+</html>

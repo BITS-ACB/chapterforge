@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ChapterForge — Third-Party Notices</title>
+<style>:root {
+  --bg: #ffffff; --fg: #1b1b1b; --muted: #555; --accent: #0b5fa5;
+  --border: #d0d7de; --code-bg: #f3f4f6; --nav-bg: #f6f8fa;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0d1117; --fg: #e6edf3; --muted: #9da7b1; --accent: #58a6ff;
+    --border: #30363d; --code-bg: #161b22; --nav-bg: #161b22;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0; background: var(--bg); color: var(--fg);
+  font: 1rem/1.6 -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+}
+.skip {
+  position: absolute; left: -999px; top: 0; background: var(--accent);
+  color: #fff; padding: .6rem 1rem; z-index: 100;
+}
+.skip:focus { left: 0; }
+header.site {
+  border-bottom: 1px solid var(--border); background: var(--nav-bg);
+  padding: .5rem 1rem;
+}
+header.site nav ul {
+  list-style: none; display: flex; flex-wrap: wrap; gap: .25rem 1rem;
+  margin: 0; padding: 0;
+}
+header.site nav a { text-decoration: none; color: var(--accent); padding: .25rem 0; }
+header.site nav a[aria-current="page"] { font-weight: 700; text-decoration: underline; }
+.wrap { max-width: 52rem; margin: 0 auto; padding: 1rem 1.25rem 4rem; }
+main { outline: none; }
+h1 { font-size: 2rem; line-height: 1.2; margin: 1rem 0 .5rem; }
+h2 { font-size: 1.5rem; margin-top: 2.2rem; border-bottom: 1px solid var(--border); padding-bottom: .2rem; }
+h3 { font-size: 1.2rem; margin-top: 1.6rem; }
+a { color: var(--accent); }
+a:focus-visible, button:focus-visible, input:focus-visible {
+  outline: 3px solid var(--accent); outline-offset: 2px;
+}
+code { background: var(--code-bg); padding: .1rem .35rem; border-radius: 4px;
+  font-family: Consolas, "SFMono-Regular", Menlo, monospace; font-size: .9em; }
+pre { background: var(--code-bg); padding: 1rem; border-radius: 8px;
+  overflow: auto; border: 1px solid var(--border); }
+pre code { background: none; padding: 0; }
+table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+th, td { border: 1px solid var(--border); padding: .5rem .7rem; text-align: left; vertical-align: top; }
+thead th { background: var(--nav-bg); }
+li.task { list-style: none; margin-left: -1.2rem; }
+li.task input { margin-right: .4rem; }
+nav.toc { background: var(--nav-bg); border: 1px solid var(--border);
+  border-radius: 8px; padding: .75rem 1rem; margin: 1.5rem 0; }
+nav.toc p { margin: 0 0 .4rem; font-weight: 700; }
+nav.toc ul { margin: 0; padding-left: 1.2rem; }
+nav.toc li.lvl3 { margin-left: 1rem; list-style: circle; }
+footer.site { color: var(--muted); border-top: 1px solid var(--border);
+  margin-top: 3rem; padding: 1rem 1.25rem; font-size: .9rem; }</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="site"><nav aria-label="Documentation"><ul><li><a href="index.html">Home</a></li><li><a href="USER_GUIDE.html">User Guide</a></li><li><a href="DEPLOYMENT.html">Deployment</a></li><li><a href="CHANGELOG.html">Changelog</a></li><li><a href="THIRD_PARTY.html" aria-current="page">Third-Party Notices</a></li></ul></nav></header>
+<div class="wrap">
+<main id="main" tabindex="-1">
+<nav class="toc" aria-label="On this page"><p>On this page</p><ul><li><a href="#ffmpeg-ffmpegexe-ffprobeexe">FFmpeg (ffmpeg.exe, ffprobe.exe)</a></li><li><a href="#mutagen">Mutagen</a></li><li><a href="#wxpython">wxPython</a></li><li><a href="#quill-accessibility-patterns">QUILL (accessibility patterns)</a></li></ul></nav>
+<h1>Third-party software and attributions</h1>
+<p>ChapterForge bundles and/or adapts the following third-party components.</p>
+<h2 id="ffmpeg-ffmpegexe-ffprobeexe">FFmpeg (ffmpeg.exe, ffprobe.exe)</h2>
+<p>ChapterForge ships the FFmpeg command-line tools (<code>ffmpeg.exe</code>, <code>ffprobe.exe</code>) to decode, concatenate and re-encode audio. FFmpeg is licensed under the GNU LGPL/GPL depending on the build. See https://ffmpeg.org and the license of the specific build you ship. If you redistribute ChapterForge you must comply with the FFmpeg license terms (typically: provide the FFmpeg source or a written offer, and keep the license/notices intact).</p>
+<h2 id="mutagen">Mutagen</h2>
+<p>ID3v2 tags and CHAP/CTOC chapter frames are written with Mutagen, licensed under the GNU GPL v2 or later. https://mutagen.readthedocs.io</p>
+<h2 id="wxpython">wxPython</h2>
+<p>The graphical interface uses wxPython (wxWidgets), licensed under the wxWindows Library Licence. https://www.wxpython.org</p>
+<h2 id="quill-accessibility-patterns">QUILL (accessibility patterns)</h2>
+<p>The screen-reader bridge and announcement helpers in <code>chapterforge/a11y.py</code> and the notification-log pattern in <code>chapterforge/notify.py</code> are adapted from the QUILL project&#x27;s accessibility layer:</p>
+<ul>
+<li>the Prism / Prismatoid screen-reader bridge with graceful &quot;status-only&quot;</li>
+</ul>
+<p>fallback,</p>
+<ul>
+<li>the <code>announce()</code> transcript API,</li>
+<li>the announcement grammar (<code>format_announcement</code> / <code>format_progress</code> /</li>
+</ul>
+<p><code>pluralize</code>),</p>
+<ul>
+<li>the in-app JSON notifications log.</li>
+</ul>
+<p>The optional <code>prismatoid</code> package provides the actual screen-reader backend on Windows; when it is not installed, ChapterForge degrades gracefully and relies on visible status text and standard accessible controls.</p>
+</main>
+</div>
+<footer class="site">© 2026 Blind Information Technology Specialists (BITS). ChapterForge documentation, generated from Markdown.</footer>
+</body>
+</html>

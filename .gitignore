@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+.pytest_cache/
+.mypy_cache/
+.venv/
+venv/
+env/
+
+# Build / packaging artifacts
+build/
+dist/
+*.spec.bak
+installer/Output/
+installer_output/
+*.exe
+
+# Bundled binaries (large; fetched/placed locally for builds)
+bin/ffmpeg.exe
+bin/ffprobe.exe
+
+# Sample / source audio (large, not for distribution)
+samples/test.mp3
+/ACB Braille Forum June 2026/
+
+# Watcher output folders
+_ChapterForge/
+
+# Editor / OS
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
