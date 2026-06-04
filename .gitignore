@@ -25,6 +25,14 @@ bin/ffprobe.exe
 samples/test.mp3
 /ACB Braille Forum June 2026/
 
+# Audio media — never commit source/built audio
+*.mp3
+*.m4b
+*.m4a
+*.aac
+*.wav
+*.flac
+
 # Watcher output folders
 _ChapterForge/
 
