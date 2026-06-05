@@ -50,7 +50,9 @@ DEFAULTS: Dict[str, Any] = {
     "win_y": -1,
     "win_max": False,
     # Startup behaviour.
-    "start_minimized": False,  # hide window on launch; show tray icon instead
+    "start_minimized": False,       # hide window on launch; show tray icon instead
+    "check_updates_startup": True,  # silently check for updates at launch
+    "wizard_seen": False,           # True once the setup wizard has been completed
     # Colour theme.
     "theme": "system",         # 'system', 'light', 'dark', 'high_contrast'
     "high_contrast": False,    # kept for backwards compatibility with older settings files

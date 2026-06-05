@@ -52,9 +52,10 @@ Entry points: `main.py` (GUI/watcher), `cli_main.py` (CLI console).
 
 ## Key Constraints
 
-- **Accessibility is a first-class requirement.** This is a binding contract. Every interactive control MUST have:
-  - An accessible name via `ctrl.SetName("Clear description of what this control does")`. This is what screen readers announce.
-  - A visible label (via `wx.StaticText` for groups, or `label=` parameter for CheckBox).
+- **Accessibility is a first-class requirement.** This is a binding contract. Every interactive control MUST have an accessible name and a visible label. How to supply the accessible name depends on the control type — `SetName()` is NOT the screen-reader name for all controls:
+  - **`wx.CheckBox`**: NVDA reads the `label=` constructor text (Win32 button window text). Never use `label=""` or `label="Enabled"`. Put the full descriptive label in `label=` and omit the `wx.StaticText` for that row — use `make_check()` in `SettingsDialog` for this pattern.
+  - **`wx.SpinCtrl` / `wx.SpinCtrlDouble`**: composite Win32 controls; their inner edit field has no label by default. Always attach `ctrl.SetAccessible(_NamedAccessible(ctrl, "description"))` (class defined in `app.py` just above `SettingsDialog`). In `SettingsDialog` pass `use_accessible=True` to `make_row()`.
+  - **All other controls**: `ctrl.SetName("description")` sets the accessible name via IAccessible and is the correct call.
   - Keyboard access: never disable keyboard navigation, tabbing, or shortcuts.
   - When a dialog opens, set focus on the first meaningful control via `ctrl.SetFocus()`.
   - Announce background operations (start, progress, completion) via `a11y.announce()`.

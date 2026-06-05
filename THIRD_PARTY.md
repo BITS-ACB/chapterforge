@@ -1,4 +1,4 @@
-# Third-party software and attributions
+﻿# Third-party software and attributions
 
 ChapterForge bundles and/or incorporates the following third-party components. Where applicable, license text and source code are provided alongside the distribution.
 
@@ -43,7 +43,7 @@ The optional `prismatoid` package provides enhanced screen-reader output on Wind
 
 ## QUILL (accessibility patterns)
 
-**Attribution:** BITS (Blind Information Technology Specialists)
+**Attribution:** BITS (Blind Information Technology Solutions)
 
 The screen-reader announcement and accessibility layer in ChapterForge (`chapterforge/a11y.py` and `chapterforge/notify.py`) is adapted from the QUILL project's accessibility design. This includes:
 
@@ -64,6 +64,6 @@ The following tools are used to build and package ChapterForge but are not bundl
 
 ---
 
-**© 2026 Blind Information Technology Specialists (BITS)**
+**© 2026 Blind Information Technology Solutions (BITS)**
 
 ChapterForge is an accessible audiobook builder for Windows. For more information, visit https://github.com/bits-acb/chapterforge.

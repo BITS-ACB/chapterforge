@@ -1,4 +1,4 @@
-# ChapterForge
+﻿# ChapterForge
 
 An accessible Windows desktop app (with a full command line and a background
 folder watcher) that turns a **folder of MP3 files** into a single **master MP3
@@ -91,9 +91,9 @@ python main.py --watch    # background tray watcher
 5. **Set Output File…** (`Ctrl+S`), then **Build Master MP3** (`Ctrl+B`).
 
 See **Help → User Guide** and **Help → Keyboard Shortcuts** in the app, or
-[`docs/USER_GUIDE.md`](docs/USER_GUIDE.md). The **Help** menu also opens the
-Deployment Guide, Release Notes and the full documentation set as HTML in your
-browser (generate it with `python tools/build_docs.py`).
+[`docs/USER_GUIDE.md`](docs/USER_GUIDE.md). The **Help** menu also opens
+Release Notes and the full documentation set as HTML in your browser
+(generate it with `python tools/build_docs.py`).
 
 ## Command line
 
@@ -220,7 +220,7 @@ player compatibility.
 
 ## Credits
 
-ChapterForge is developed by **Blind Information Technology Specialists
+ChapterForge is developed by **Blind Information Technology Solutions
 (BITS)**, a community building accessible software. Explore our services:
 
 - [Join BITS](https://www.joinbits.org)
@@ -234,7 +234,7 @@ patterns are adapted from the **QUILL** project. See
 ## License
 
 ChapterForge's own source code is released under the **MIT License** — see
-[`LICENSE`](LICENSE). © 2026 Blind Information Technology Specialists (BITS).
+[`LICENSE`](LICENSE). © 2026 Blind Information Technology Solutions (BITS).
 
 Note that the packaged build bundles third-party programs (FFmpeg) and depends
 on libraries (Mutagen is GPL-licensed) that carry their own license terms. If

@@ -25,6 +25,9 @@ Design points worth knowing:
 from __future__ import annotations
 
 import bisect
+import os
+import tempfile
+import threading
 from typing import Callable, List, Optional, Sequence
 
 import wx
@@ -46,6 +49,11 @@ class PlayerPanel(wx.Panel):
     #: previous chapter; later than this it restarts the current chapter.
     PREV_RESTART_MS = 3000
 
+    SPEED_VALUES = [0.75, 1.0, 1.25, 1.5, 1.75, 2.0]
+    SPEED_LABELS = [
+        "0.75x - slower", "1.0x - normal", "1.25x",
+        "1.5x", "1.75x", "2.0x - double speed"]
+
     def __init__(self, parent, announce: Callable[[str], None],
                  get_skip_seconds: Callable[[], int],
                  get_volume: Callable[[], int],
@@ -64,6 +72,13 @@ class PlayerPanel(wx.Panel):
         self._pending_play = False
         self._pending_seek_ms: Optional[int] = None
         self._suppress_announce = False
+
+        # Speed / tempo state
+        self._speed: float = 1.0          # active playback speed ratio
+        self._orig_path: str = ""         # path before any speed processing
+        self._orig_chapters: List[core.Chapter] = []  # chapters before scaling
+        self._speed_temp: Optional[str] = None         # temp file for speed-adjusted audio
+        self._speed_busy: bool = False     # True while FFmpeg is running
 
         self._box = wx.StaticBoxSizer(wx.VERTICAL, self, "Player")
         self._media_holder = wx.BoxSizer(wx.VERTICAL)
@@ -114,6 +129,32 @@ class PlayerPanel(wx.Panel):
         vol_row.Add(self.status, 1, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 8)
         self._box.Add(vol_row, 0, wx.EXPAND)
 
+        # --- speed / tempo row -------------------------------------------
+        spd_row = wx.BoxSizer(wx.HORIZONTAL)
+        slbl = wx.StaticText(self, label="S&peed:")
+        spd_row.Add(slbl, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 4)
+        self.speed_choice = wx.Choice(self, choices=self.SPEED_LABELS)
+        self.speed_choice.SetSelection(1)  # 1.0x default
+        self.speed_choice.SetName(
+            "Playback speed - audio is re-processed by FFmpeg when speed is changed")
+        self.speed_choice.SetToolTip(
+            "Change the playback speed without affecting pitch.\n"
+            "ChapterForge uses FFmpeg to time-stretch the audio (this takes a moment).\n"
+            "You can also save the speed-adjusted audio as an MP3.")
+        self.speed_choice.Bind(wx.EVT_CHOICE, self._on_speed_change)
+        spd_row.Add(self.speed_choice, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 4)
+
+        self.btn_save_speed = wx.Button(self, label="Save at This &Speed…")
+        self.btn_save_speed.SetName(
+            "Save the audio at the current playback speed as a new MP3 file")
+        self.btn_save_speed.SetToolTip(
+            "Export the audio at the selected speed to an MP3 file.\n"
+            "The pitch is preserved — speech sounds natural at any speed.")
+        self.btn_save_speed.Bind(wx.EVT_BUTTON, self._on_save_at_speed)
+        self.btn_save_speed.Enable(False)
+        spd_row.Add(self.btn_save_speed, 0, wx.ALL, 4)
+        self._box.Add(spd_row, 0, wx.EXPAND)
+
         self.SetSizer(self._box)
 
         self._timer = wx.Timer(self)
@@ -132,7 +173,9 @@ class PlayerPanel(wx.Panel):
             mc = None
         else:
             mc.SetMinSize((0, 0))
-            mc.Hide()
+            # Do NOT hide: the Windows backend requires a visible, realized
+            # HWND before Load() can attach to the media pipeline.
+            # SetMinSize((0,0)) already makes it take no visual space.
             mc.Bind(wx.media.EVT_MEDIA_LOADED, self._on_media_loaded)
             mc.Bind(wx.media.EVT_MEDIA_FINISHED, self._on_media_finished)
             self._media_holder.Add(mc, 0)
@@ -151,12 +194,29 @@ class PlayerPanel(wx.Panel):
             b.Enable(on)
         # Volume always usable so it can be pre-set.
         self.vol_slider.Enable(True)
+        # Speed choice and save button enabled only when media is ready
+        # and no speed-change is in progress.
+        self.speed_choice.Enable(on and not self._speed_busy)
+        self.btn_save_speed.Enable(on and bool(self._orig_path))
 
     # ------------------------------------------------------------------
     # Public API
     # ------------------------------------------------------------------
     def load(self, path: str, chapters: Sequence[core.Chapter]) -> bool:
-        """Load *path* with its *chapters*. Returns False if unsupported."""
+        """Load *path* with its *chapters*. Returns False if unsupported.
+
+        When loading a file that is *not* the current speed-temp (i.e. a new
+        source file), the speed selector is reset to 1.0x and any existing
+        temp file is cleaned up.
+        """
+        is_speed_temp = (path == self._speed_temp)
+        if not is_speed_temp:
+            # Brand new source — discard any previous speed-adjusted temp
+            self._cleanup_speed_temp()
+            self._orig_path = path
+            self._orig_chapters = list(chapters)
+            self._speed = 1.0
+            self.speed_choice.SetSelection(1)
         self.release(recreate=True)
         if self.mc is None:
             self._set_status("Audio playback is unavailable on this system.")
@@ -170,6 +230,10 @@ class PlayerPanel(wx.Panel):
         self._pending_seek_ms = None
         try:
             ok = self.mc.Load(path)
+            if not ok:
+                # Some Windows backends need a file:// URI rather than a bare path.
+                uri = "file:///" + path.replace("\\", "/")
+                ok = self.mc.LoadURI(uri)
         except Exception:
             ok = False
         if not ok:
@@ -211,6 +275,7 @@ class PlayerPanel(wx.Panel):
 
     def shutdown(self):
         self.release(recreate=False)
+        self._cleanup_speed_temp()
 
     def is_playing(self) -> bool:
         return (self.mc is not None
@@ -445,3 +510,152 @@ class PlayerPanel(wx.Panel):
         self.status.SetLabel(text)
         if announce:
             self._announce(text)
+
+    # ------------------------------------------------------------------
+    # Speed / tempo control
+    # ------------------------------------------------------------------
+
+    def _cleanup_speed_temp(self):
+        """Delete the temporary speed-adjusted file if one exists."""
+        if self._speed_temp and os.path.isfile(self._speed_temp):
+            try:
+                os.unlink(self._speed_temp)
+            except Exception:
+                pass
+        self._speed_temp = None
+
+    def _scaled_chapters(self, speed: float) -> List[core.Chapter]:
+        """Return copies of the original chapters with timestamps scaled for *speed*."""
+        result = []
+        for c in self._orig_chapters:
+            result.append(core.Chapter(
+                index=c.index,
+                title=c.title,
+                start_ms=int(c.start_ms / speed),
+                end_ms=int(c.end_ms / speed) if c.end_ms else 0,
+                url=c.url,
+                img=c.img,
+            ))
+        return result
+
+    def _on_speed_change(self, _evt):
+        idx = self.speed_choice.GetSelection()
+        new_speed = self.SPEED_VALUES[idx]
+        if abs(new_speed - self._speed) < 0.001:
+            return
+        if not self._orig_path:
+            self._speed = new_speed
+            return
+        # Convert current playback position to original-audio milliseconds
+        if self._loaded:
+            output_ms = self._tell()
+            orig_ms = int(output_ms * self._speed)
+        else:
+            orig_ms = 0
+        was_playing = self.is_playing()
+        self._apply_speed(new_speed, orig_ms, was_playing)
+
+    def _apply_speed(self, new_speed: float, orig_ms: int, resume: bool):
+        """Start background tempo processing and reload when done."""
+        self._speed_busy = True
+        self._enable_controls(False)
+        self._speed = new_speed
+
+        if abs(new_speed - 1.0) < 0.001:
+            # Back to normal — just reload the original without FFmpeg.
+            self._cleanup_speed_temp()
+            scaled = self._orig_chapters
+            self._speed_temp = None
+            self.load(self._orig_path, scaled)
+            if orig_ms > 0:
+                self._pending_seek_ms = orig_ms
+            if resume:
+                self._pending_play = True
+            self._speed_busy = False
+            self._enable_controls(self._loaded)
+            return
+
+        src = self._orig_path
+        label = self.SPEED_LABELS[self.SPEED_VALUES.index(new_speed)]
+        self._set_status(f"Processing audio at {label}…", announce=True)
+
+        tmp = tempfile.mktemp(suffix=".mp3")
+
+        def work():
+            ok = core.apply_tempo(src, new_speed, tmp)
+            wx.CallAfter(self._speed_done, tmp, new_speed, orig_ms, resume, ok)
+
+        threading.Thread(target=work, daemon=True).start()
+
+    def _speed_done(self, tmp: str, speed: float, orig_ms: int,
+                    resume: bool, ok: bool):
+        self._speed_busy = False
+        if not ok:
+            self._set_status("Speed change failed — check the audio file.", announce=True)
+            # Revert selector to the previous working speed
+            try:
+                prev_idx = self.SPEED_VALUES.index(1.0)
+            except ValueError:
+                prev_idx = 1
+            self.speed_choice.SetSelection(prev_idx)
+            self._speed = 1.0
+            self._enable_controls(self._loaded)
+            return
+
+        old_temp = self._speed_temp
+        self._speed_temp = tmp
+
+        # Clean up the previous temp AFTER assigning the new one so
+        # load() does not delete it during release().
+        if old_temp and old_temp != tmp and os.path.isfile(old_temp):
+            try:
+                os.unlink(old_temp)
+            except Exception:
+                pass
+
+        seek_ms = int(orig_ms / speed) if speed > 0 else 0
+        scaled = self._scaled_chapters(speed)
+        if self.load(tmp, scaled):
+            if seek_ms > 0:
+                self._pending_seek_ms = seek_ms
+            if resume:
+                self._pending_play = True
+        label = self.SPEED_LABELS[self.SPEED_VALUES.index(speed)]
+        self._set_status(f"Speed: {label}")
+        self._announce(f"Playing at {label}.")
+
+    def _on_save_at_speed(self, _evt):
+        if not self._orig_path:
+            return
+        speed = self._speed
+        stem = os.path.splitext(self._orig_path)[0]
+        label = f"{speed:.2f}x".replace(".", "_")
+        default_name = os.path.basename(f"{stem} - {label}.mp3")
+        dlg = wx.FileDialog(
+            self,
+            message="Save audio at this speed as MP3",
+            defaultDir=os.path.dirname(self._orig_path),
+            defaultFile=default_name,
+            wildcard="MP3 audio (*.mp3)|*.mp3",
+            style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT)
+        if dlg.ShowModal() != wx.ID_OK:
+            dlg.Destroy()
+            return
+        dst = dlg.GetPath()
+        dlg.Destroy()
+
+        self._set_status(f"Exporting at {speed}x speed…", announce=True)
+        self.btn_save_speed.Enable(False)
+
+        def work():
+            ok = core.apply_tempo(self._orig_path, speed, dst)
+            wx.CallAfter(self._save_done, dst, speed, ok)
+
+        threading.Thread(target=work, daemon=True).start()
+
+    def _save_done(self, dst: str, speed: float, ok: bool):
+        self.btn_save_speed.Enable(True)
+        if ok:
+            self._set_status(f"Saved: {os.path.basename(dst)}", announce=True)
+        else:
+            self._set_status("Export failed — check the audio file.", announce=True)

@@ -1,4 +1,4 @@
-"""Update checking for ChapterForge.
+﻿"""Update checking for ChapterForge.
 
 Adapted from the QUILL project's ``quill/core/updates.py``: it queries the
 GitHub Releases API for the newest eligible release, compares versions with
@@ -25,7 +25,7 @@ from urllib.request import Request, urlopen
 
 from . import __version__
 
-# Project repository (Blind Information Technology Specialists / ACB).
+# Project repository (Blind Information Technology Solutions / ACB).
 GITHUB_OWNER = "bits-acb"
 GITHUB_REPO = "chapterforge"
 GITHUB_RELEASES_API = (

@@ -1,15 +1,15 @@
-"""ChapterForge - build a master MP3 with chapter markers from a folder of MP3s."""
+﻿"""ChapterForge - build a master MP3 with chapter markers from a folder of MP3s."""
 
-__version__ = "1.82"
+__version__ = "1.90"
 __app_name__ = "ChapterForge"
 
 # Organization & attribution -------------------------------------------------
-__org__ = "Blind Information Technology Specialists (BITS)"
+__org__ = "Blind Information Technology Solutions (BITS)"
 __org_short__ = "BITS"
 __author__ = __org__
 __copyright_year__ = "2026"
 __copyright__ = (
-    f"\u00a9 {__copyright_year__} Blind Information Technology Specialists "
+    f"\u00a9 {__copyright_year__} Blind Information Technology Solutions "
     f"(BITS). All rights reserved."
 )
 __license_name__ = "MIT"
@@ -18,7 +18,7 @@ __license_name__ = "MIT"
 # Each entry: (label, description, url)
 SERVICES = [
     ("Join BITS",
-     "Blind Information Technology Specialists",
+     "Blind Information Technology Solutions",
      "https://www.joinbits.org"),
     ("Let It Glow",
      "letitglow.app",

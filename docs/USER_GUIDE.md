@@ -35,13 +35,12 @@ human-readable `… - chapters.txt` report are saved next to each other.
 | `Ctrl+S` | Build (build mode) or Save Changes (edit mode) |
 | `Ctrl+B` | Build master — explicit |
 | `Ctrl+Shift+S` | Save changes to the open master — explicit |
-| `Ctrl+Alt+S` | Save As (new file) |
 | `Ctrl+L` | Load a Saved Setup (`.cfjob`) |
 | `Ctrl+G` | Save This Setup as a Template |
 | `Ctrl+W` | Set Up Automatic Building |
 | `Ctrl+,` | Settings |
 | `Ctrl+Shift+P` | Command Palette — search all commands |
-| `Ctrl+/` | Keyboard shortcuts help |
+| `Ctrl+/` | Open keyboard shortcuts in browser |
 | `Ctrl+=` | Larger text |
 | `Ctrl+-` | Smaller text |
 | `Ctrl+0` | Reset text size |
@@ -124,8 +123,7 @@ correct its tags, chapter titles, link URLs, and images.
 
 - **Save Changes** (`Ctrl+Shift+S`) rewrites tags and chapters in-place for
   MP3 files — no re-encode, no quality loss.
-- **Save As** (`Ctrl+Alt+S`) writes a new file (required for M4B, which cannot
-  be re-tagged in place).
+- **File → Save As** writes a new file (required for M4B, which cannot be re-tagged in place).
 
 ### Reshaping the chapter map
 
@@ -251,7 +249,7 @@ other Windows screen reader:
 ## 16. Getting help
 
 - **Help → User Guide** (`F1`) — this document.
-- **Help → Keyboard Shortcuts** (`Ctrl+/`) — shortcut reference.
+- **Help → Keyboard Shortcuts** (`Ctrl+/`) — opens the shortcut reference in your browser.
 - **Help → Get Help Information…** — saves a diagnostic report for support.
 - **Help → Look for Updates…** — checks for a newer version and offers to
   download and install it.

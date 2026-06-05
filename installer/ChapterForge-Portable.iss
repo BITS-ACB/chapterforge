@@ -1,4 +1,4 @@
-; Inno Setup script for ChapterForge - Portable Edition
+﻿; Inno Setup script for ChapterForge - Portable Edition
 ; Produces a self-extracting portable archive that can be run from any folder
 ; (USB drive, network share, etc.) without installing to Program Files.
 ;
@@ -7,8 +7,8 @@
 ;   2. iscc installer\ChapterForge-Portable.iss -> installer_output\ChapterForge-Portable.exe
 
 #define AppName "ChapterForge"
-#define AppVersion "1.81"
-#define AppPublisher "Blind Information Technology Specialists (BITS)"
+#define AppVersion "1.90"
+#define AppPublisher "Blind Information Technology Solutions (BITS)"
 #define AppExeName "ChapterForge.exe"
 #define CliExeName "chapterforge-cli.exe"
 

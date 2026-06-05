@@ -64,7 +64,7 @@ footer.site { color: var(--muted); border-top: 1px solid var(--border);
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
-<header class="site"><nav aria-label="Documentation"><ul><li><a href="index.html">Home</a></li><li><a href="USER_GUIDE.html" aria-current="page">User Guide</a></li><li><a href="DEPLOYMENT.html">Deployment</a></li><li><a href="CHANGELOG.html">Changelog</a></li><li><a href="THIRD_PARTY.html">Third-Party Notices</a></li></ul></nav></header>
+<header class="site"><nav aria-label="Documentation"><ul><li><a href="index.html">Home</a></li><li><a href="USER_GUIDE.html" aria-current="page">User Guide</a></li><li><a href="CHANGELOG.html">Changelog</a></li><li><a href="THIRD_PARTY.html">Third-Party Notices</a></li></ul></nav></header>
 <div class="wrap">
 <main id="main" tabindex="-1">
 <nav class="toc" aria-label="On this page"><p>On this page</p><ul><li><a href="#1-quick-start">1. Quick start</a></li><li><a href="#2-keyboard-shortcuts">2. Keyboard shortcuts</a></li><li><a href="#3-the-two-step-workflow">3. The two-step workflow</a></li><li><a href="#4-working-with-chapters">4. Working with chapters</a></li><li><a href="#5-tags-and-cover-art">5. Tags and cover art</a></li><li><a href="#6-output-format-mp3-or-m4b">6. Output format: MP3 or M4B</a></li><li><a href="#7-editing-an-existing-chaptered-file">7. Editing an existing chaptered file</a></li><li class="lvl3"><a href="#reshaping-the-chapter-map">Reshaping the chapter map</a></li><li class="lvl3"><a href="#reordering-the-audio-itself">Reordering the audio itself</a></li><li class="lvl3"><a href="#loading-and-saving-chapter-lists">Loading and saving chapter lists</a></li><li><a href="#8-the-view-menu">8. The View menu</a></li><li><a href="#9-the-command-palette">9. The Command Palette</a></li><li><a href="#10-find-chapters-in-silent-gaps">10. Find chapters in silent gaps</a></li><li><a href="#11-build-multiple-books-at-once">11. Build multiple books at once</a></li><li><a href="#12-auto-building-in-the-background">12. Auto-building in the background</a></li><li><a href="#13-job-files-saved-setups">13. Job files (saved setups)</a></li><li><a href="#14-ffmpeg">14. FFmpeg</a></li><li><a href="#15-accessibility">15. Accessibility</a></li><li><a href="#16-getting-help">16. Getting help</a></li></ul></nav>
@@ -78,10 +78,7 @@ footer.site { color: var(--muted); border-top: 1px solid var(--border);
 </ol>
 <ul>
 <li>Files are listed in natural order (<code>01</code>, <code>02</code>, <code>10</code>, <code>11</code>).</li>
-<li>Leading track numbers are automatically stripped from chapter titles</li>
-</ul>
-<p>(<code>01 Chapter One.mp3</code> becomes <em>Chapter One</em>).</p>
-<ul>
+<li>Leading track numbers are automatically stripped from chapter titles (<code>01 Chapter One.mp3</code> becomes <em>Chapter One</em>).</li>
 <li>If a previously built master exists in the folder it is skipped automatically.</li>
 </ul>
 <ol>
@@ -101,13 +98,12 @@ footer.site { color: var(--muted); border-top: 1px solid var(--border);
 <tr><td><code>Ctrl+S</code></td><td>Build (build mode) or Save Changes (edit mode)</td></tr>
 <tr><td><code>Ctrl+B</code></td><td>Build master — explicit</td></tr>
 <tr><td><code>Ctrl+Shift+S</code></td><td>Save changes to the open master — explicit</td></tr>
-<tr><td><code>Ctrl+Alt+S</code></td><td>Save As (new file)</td></tr>
 <tr><td><code>Ctrl+L</code></td><td>Load a Saved Setup (<code>.cfjob</code>)</td></tr>
 <tr><td><code>Ctrl+G</code></td><td>Save This Setup as a Template</td></tr>
 <tr><td><code>Ctrl+W</code></td><td>Set Up Automatic Building</td></tr>
 <tr><td><code>Ctrl+,</code></td><td>Settings</td></tr>
 <tr><td><code>Ctrl+Shift+P</code></td><td>Command Palette — search all commands</td></tr>
-<tr><td><code>Ctrl+/</code></td><td>Keyboard shortcuts help</td></tr>
+<tr><td><code>Ctrl+/</code></td><td>Open keyboard shortcuts in browser</td></tr>
 <tr><td><code>Ctrl+=</code></td><td>Larger text</td></tr>
 <tr><td><code>Ctrl+-</code></td><td>Smaller text</td></tr>
 <tr><td><code>Ctrl+0</code></td><td>Reset text size</td></tr>
@@ -133,25 +129,12 @@ footer.site { color: var(--muted); border-top: 1px solid var(--border);
 <hr>
 <h2 id="4-working-with-chapters">4. Working with chapters</h2>
 <ul>
-<li><strong>Rename</strong> a chapter: select it, type a new name in the *Selected chapter</li>
+<li><strong>Rename</strong> a chapter: select it, type a new name in the <em>Selected chapter title</em> field, then press <code>Enter</code> or click away. Or press <code>F2</code> to jump straight to the title field.</li>
+<li><strong>Set Link &amp; Image</strong>: the <strong>Set Link &amp; Image…</strong> button opens a dialog to set the chapter&#x27;s optional podcast link URL and per-chapter cover image.</li>
+<li><strong>Reorder</strong>: <code>Alt+Up</code>/<code>Alt+Down</code> or the <strong>Move Up</strong>/<strong>Move Down</strong> buttons. Works in both build mode (reorders source files) and edit mode (swaps chapter labels — see §7 for full audio reordering).</li>
+<li><strong>Remove</strong>: <code>Delete</code> or the <strong>Remove</strong> button removes a chapter in build mode, or merges it with the one above in edit mode.</li>
+<li>Chapter start and end times are computed automatically from each file&#x27;s duration.</li>
 </ul>
-<p>title* field, then press <code>Enter</code> or click away. Or press <code>F2</code> to jump straight to the title field.</p>
-<ul>
-<li><strong>Set Link &amp; Image</strong>: the <strong>Set Link &amp; Image…</strong> button opens a dialog to set</li>
-</ul>
-<p>the chapter&#x27;s optional podcast link URL and per-chapter cover image.</p>
-<ul>
-<li><strong>Reorder</strong>: <code>Alt+Up</code>/<code>Alt+Down</code> or the <strong>Move Up</strong>/<strong>Move Down</strong> buttons.</li>
-</ul>
-<p>Works in both build mode (reorders source files) and edit mode (swaps chapter labels — see §7 for full audio reordering).</p>
-<ul>
-<li><strong>Remove</strong>: <code>Delete</code> or the <strong>Remove</strong> button removes a chapter in build mode,</li>
-</ul>
-<p>or merges it with the one above in edit mode.</p>
-<ul>
-<li>Chapter start and end times are computed automatically from each file&#x27;s</li>
-</ul>
-<p>duration.</p>
 <hr>
 <h2 id="5-tags-and-cover-art">5. Tags and cover art</h2>
 <p>Set the master&#x27;s ID3 tags on the Tags page (Step 2): title, artist, album-artist, album, genre, year, comment and cover image. ChapterForge auto-detects a cover image in the folder (e.g. <code>cover.jpg</code>) and shows a preview; you can replace it or click <strong>Remove Cover</strong> to clear it.</p>
@@ -159,71 +142,42 @@ footer.site { color: var(--muted); border-top: 1px solid var(--border);
 <h2 id="6-output-format-mp3-or-m4b">6. Output format: MP3 or M4B</h2>
 <p>On the <strong>Options</strong> panel choose the <strong>Output format</strong>:</p>
 <ul>
-<li><strong>MP3</strong> — a single master MP3 with ID3v2 <code>CHAP</code>/<code>CTOC</code> chapters. Uses</li>
+<li><strong>MP3</strong> — a single master MP3 with ID3v2 <code>CHAP</code>/<code>CTOC</code> chapters. Uses lossless <code>-c copy</code> when sources are uniform; re-encodes only when needed.</li>
+<li><strong>M4B</strong> — an AAC audiobook with native MP4 chapter metadata and an attached cover image. Ideal for Apple Books, BookPlayer, and similar apps.</li>
 </ul>
-<p>lossless <code>-c copy</code> when sources are uniform; re-encodes only when needed.</p>
-<ul>
-<li><strong>M4B</strong> — an AAC audiobook with native MP4 chapter metadata and an attached</li>
-</ul>
-<p>cover image. Ideal for Apple Books, BookPlayer, and similar apps.</p>
 <p>Tick <strong>Write chapters JSON</strong> to also save a Podcasting 2.0 <code>…chapters.json</code> sidecar containing each chapter&#x27;s start time, title, and any link URL or image.</p>
 <hr>
 <h2 id="7-editing-an-existing-chaptered-file">7. Editing an existing chaptered file</h2>
 <p><strong>File → Open Existing Master…</strong> (<code>Ctrl+O</code>) opens a finished file so you can correct its tags, chapter titles, link URLs, and images.</p>
 <ul>
-<li><strong>Save Changes</strong> (<code>Ctrl+Shift+S</code>) rewrites tags and chapters in-place for</li>
+<li><strong>Save Changes</strong> (<code>Ctrl+Shift+S</code>) rewrites tags and chapters in-place for MP3 files — no re-encode, no quality loss.</li>
+<li><strong>File → Save As</strong> writes a new file (required for M4B, which cannot be re-tagged in place).</li>
 </ul>
-<p>MP3 files — no re-encode, no quality loss.</p>
-<ul>
-<li><strong>Save As</strong> (<code>Ctrl+Alt+S</code>) writes a new file (required for M4B, which cannot</li>
-</ul>
-<p>be re-tagged in place).</p>
 <h3 id="reshaping-the-chapter-map">Reshaping the chapter map</h3>
 <ul>
 <li><strong>Merge Up</strong> (<code>Delete</code> in edit mode) folds a chapter into its neighbour.</li>
-<li><strong>Split at Playhead</strong> adds a new boundary at the player&#x27;s current position —</li>
+<li><strong>Split at Playhead</strong> adds a new boundary at the player&#x27;s current position — pause at the right spot, click <strong>Split Here</strong>, and give it a title.</li>
+<li><strong>Set Link &amp; Image…</strong> also lets you type a precise <strong>start time</strong> for any chapter except the first.</li>
+<li><strong>Move Up / Move Down</strong> swap chapter labels while keeping audio positions fixed. Useful for correcting a mislabelled or misordered chapter list.</li>
 </ul>
-<p>pause at the right spot, click <strong>Split Here</strong>, and give it a title.</p>
-<ul>
-<li><strong>Set Link &amp; Image…</strong> also lets you type a precise <strong>start time</strong> for any</li>
-</ul>
-<p>chapter except the first.</p>
-<ul>
-<li><strong>Move Up / Move Down</strong> swap chapter labels while keeping audio positions</li>
-</ul>
-<p>fixed. Useful for correcting a mislabelled or misordered chapter list.</p>
 <h3 id="reordering-the-audio-itself">Reordering the audio itself</h3>
 <p>When you reorder chapters in edit mode and then click <strong>Save Changes</strong> or <strong>Save As</strong>, ChapterForge asks:</p>
 <p>&gt; <em>You have reordered the chapters. Should the audio also be reordered?</em></p>
 <ul>
-<li><strong>Yes</strong> — opens a Save As dialog (defaulting to <code>filename (reordered).mp3</code>).</li>
+<li><strong>Yes</strong> — opens a Save As dialog (defaulting to <code>filename (reordered).mp3</code>). FFmpeg extracts each chapter segment and concatenates them in the new order. The original file is <strong>never</strong> modified. No re-encode — audio quality is preserved.</li>
+<li><strong>No</strong> — saves tags and chapter labels only; the audio plays in its original order.</li>
 </ul>
-<p>FFmpeg extracts each chapter segment and concatenates them in the new order. The original file is <strong>never</strong> modified. No re-encode — audio quality is preserved.</p>
-<ul>
-<li><strong>No</strong> — saves tags and chapter labels only; the audio plays in its original</li>
-</ul>
-<p>order.</p>
 <h3 id="loading-and-saving-chapter-lists">Loading and saving chapter lists</h3>
 <ul>
-<li><strong>Edit → Save Chapter List…</strong> exports the current list as <strong>Audacity labels</strong>,</li>
+<li><strong>Edit → Save Chapter List…</strong> exports the current list as <strong>Audacity labels</strong>, a <strong>CUE sheet</strong>, plain <strong>timestamps</strong>, or <strong>Podcasting 2.0 JSON</strong>.</li>
+<li><strong>Edit → Load Chapter List From File…</strong> (edit mode) reads any of those formats and replaces the open master&#x27;s markers; use <strong>Save Changes</strong> to keep them.</li>
 </ul>
-<p>a <strong>CUE sheet</strong>, plain <strong>timestamps</strong>, or <strong>Podcasting 2.0 JSON</strong>.</p>
-<ul>
-<li><strong>Edit → Load Chapter List From File…</strong> (edit mode) reads any of those</li>
-</ul>
-<p>formats and replaces the open master&#x27;s markers; use <strong>Save Changes</strong> to keep them.</p>
 <hr>
 <h2 id="8-the-view-menu">8. The View menu</h2>
 <p>The <strong>View</strong> menu gives you instant control over the app&#x27;s appearance:</p>
 <ul>
-<li><strong>Theme</strong> submenu: <strong>Follow System</strong>, <strong>Light</strong>, <strong>Dark</strong>, <strong>High Contrast</strong>.</li>
-</ul>
-<p>Changes apply immediately without opening Settings.</p>
-<ul>
-<li><strong>Larger Text</strong> (<code>Ctrl+=</code>), <strong>Smaller Text</strong> (<code>Ctrl+-</code>), <strong>Reset Text Size</strong></li>
-</ul>
-<p>(<code>Ctrl+0</code>) — adjusts the font size for all text in the app.</p>
-<ul>
+<li><strong>Theme</strong> submenu: <strong>Follow System</strong>, <strong>Light</strong>, <strong>Dark</strong>, <strong>High Contrast</strong>. Changes apply immediately without opening Settings.</li>
+<li><strong>Larger Text</strong> (<code>Ctrl+=</code>), <strong>Smaller Text</strong> (<code>Ctrl+-</code>), <strong>Reset Text Size</strong> (<code>Ctrl+0</code>) — adjusts the font size for all text in the app.</li>
 <li><strong>Show Audio Player</strong> — toggle the player panel on or off.</li>
 </ul>
 <hr>
@@ -252,31 +206,21 @@ footer.site { color: var(--muted); border-top: 1px solid var(--border);
 <ul>
 <li>Every control has a descriptive accessible name and a visible label.</li>
 <li>All operations are keyboard-accessible via menus, buttons, and shortcuts.</li>
-<li>Long operations (build, download, reorder) run on background threads and</li>
+<li>Long operations (build, download, reorder) run on background threads and announce start, progress, and completion to your screen reader.</li>
+<li>The chapter list announces the selected chapter&#x27;s number and title on each navigation keystroke.</li>
+<li>Arrow-key navigation in the chapter list automatically selects the focused item so the Play button and other actions stay enabled.</li>
 </ul>
-<p>announce start, progress, and completion to your screen reader.</p>
-<ul>
-<li>The chapter list announces the selected chapter&#x27;s number and title on each</li>
-</ul>
-<p>navigation keystroke.</p>
-<ul>
-<li>Arrow-key navigation in the chapter list automatically selects the focused</li>
-</ul>
-<p>item so the Play button and other actions stay enabled.</p>
 <hr>
 <h2 id="16-getting-help">16. Getting help</h2>
 <ul>
 <li><strong>Help → User Guide</strong> (<code>F1</code>) — this document.</li>
-<li><strong>Help → Keyboard Shortcuts</strong> (<code>Ctrl+/</code>) — shortcut reference.</li>
+<li><strong>Help → Keyboard Shortcuts</strong> (<code>Ctrl+/</code>) — opens the shortcut reference in your browser.</li>
 <li><strong>Help → Get Help Information…</strong> — saves a diagnostic report for support.</li>
-<li><strong>Help → Look for Updates…</strong> — checks for a newer version and offers to</li>
-</ul>
-<p>download and install it.</p>
-<ul>
+<li><strong>Help → Look for Updates…</strong> — checks for a newer version and offers to download and install it.</li>
 <li>Issues and questions: https://github.com/BITS-ACB/chapterforge</li>
 </ul>
 </main>
 </div>
-<footer class="site">© 2026 Blind Information Technology Specialists (BITS). ChapterForge documentation, generated from Markdown.</footer>
+<footer class="site">© 2026 Blind Information Technology Solutions (BITS). ChapterForge documentation, generated from Markdown.</footer>
 </body>
 </html>

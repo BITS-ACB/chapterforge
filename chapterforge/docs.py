@@ -53,27 +53,31 @@ def doc_path(page: str = HOME) -> str | None:
     return candidate if os.path.isfile(candidate) else None
 
 
-def open_doc(page: str = HOME) -> bool:
+def open_doc(page: str = HOME, anchor: str = "") -> bool:
     """Open a documentation page in the default browser.
 
-    Tries to open local HTML files first (development), then falls back to
-    GitHub Pages online documentation. Returns True if a page was opened.
+    Pass anchor (without #) to jump to a specific section.
+    Tries local HTML files first, then falls back to GitHub Pages.
+    Returns True if a page was opened.
     """
     import webbrowser
+
+    def _with_anchor(url: str) -> str:
+        return url + ("#" + anchor if anchor else "")
 
     # Try local files first (for development)
     path = doc_path(page)
     if path:
         try:
-            webbrowser.open("file:///" + path.replace("\\", "/"))
+            webbrowser.open(_with_anchor("file:///" + path.replace("\\", "/")))
             return True
         except Exception:
             pass
 
     # Fall back to GitHub Pages
     try:
-        url = f"https://bits-acb.github.io/chapterforge/html/{page}"
-        webbrowser.open(url)
+        webbrowser.open(_with_anchor(
+            f"https://bits-acb.github.io/chapterforge/html/{page}"))
         return True
     except Exception:
         return False

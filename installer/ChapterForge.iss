@@ -1,4 +1,4 @@
-; Inno Setup script for ChapterForge
+﻿; Inno Setup script for ChapterForge
 ; Packages the PyInstaller one-folder output (dist\ChapterForge) into a single
 ; installer. One-folder is used so the app never extracts to a temp directory
 ; at launch (which is the failure mode of PyInstaller one-file builds).
@@ -13,8 +13,8 @@
 ;   2. iscc installer\ChapterForge.iss          -> installer_output\ChapterForge-Setup.exe
 
 #define AppName "ChapterForge"
-#define AppVersion "1.82"
-#define AppPublisher "Blind Information Technology Specialists (BITS)"
+#define AppVersion "1.90"
+#define AppPublisher "Blind Information Technology Solutions (BITS)"
 #define AppExeName "ChapterForge.exe"
 #define CliExeName "chapterforge-cli.exe"
 

@@ -1,8 +1,102 @@
-# Changelog
+﻿# Changelog
 
 All notable changes to ChapterForge are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
+
+## [1.90] - 2026-06-05
+
+### Added
+
+- **Playback speed control with pitch preservation** - Speed selector (0.75x, 1.0x, 1.25x,
+  1.5x, 1.75x, 2.0x) in the audio player. Uses FFmpeg `atempo` for time-stretching that
+  preserves pitch at any speed - no chipmunk effect. Chapter boundaries are automatically
+  scaled so Prev/Next navigation stays accurate. Resumes playback from the equivalent
+  position after a speed change.
+- **"Save at This Speed" export** - Button beside the speed selector saves the audio at
+  any speed as a new MP3 file. Uses the same FFmpeg `atempo` pipeline as playback.
+  The original file is always the source, so any speed can be exported regardless of
+  what is currently loaded.
+- **Startup Wizard** - Ten-step guided setup experience shown on first launch and
+  available at any time from Help - Setup Wizard. Each step explains a key concept and,
+  where relevant, lets the user configure the matching setting right there. Every step
+  is skippable. Settings are saved incrementally as the user advances. Fully accessible:
+  dialog title announces the current step, body text is a navigable read-only control,
+  and a11y.announce fires on every step change. Steps: Welcome, Two-Step Workflow,
+  Opening Files, Chapter Titles, Output Format, Audio Quality, Podcasting 2.0 Chapters,
+  Cover Art, Keyboard Shortcuts, and a personalized summary on the final step.
+- **Column navigation in the chapter list** - Left and Right arrow keys now navigate
+  between columns (Chapter number, Title, Start time, Duration, Source file), announcing
+  each column name and value. Compatible with JAWS and NVDA table navigation. Up/Down
+  resets to row-summary mode. Accessible name updated to describe the feature.
+- **Go to Chapters (Ctrl+1) and Go to Tags and Build (Ctrl+2)** - New View menu items
+  and frame-level keyboard shortcuts to jump between the two workflow pages from anywhere
+  in the app. Both are in the command palette and greyed out when already on that page.
+- **Check for updates on startup** - New setting on the General tab (on by default).
+  Runs a silent background check at launch; only notifies when an update is available.
+  Never shows a "you are up to date" message at startup.
+- **Minimize to System Tray button** - Permanently visible button at the bottom-right of
+  the main window (last in tab order). Hides the window and shows a tray icon so
+  ChapterForge keeps running while out of the way.
+- **Play This Chapter and Split Here in Edit menu** - Both actions were previously only
+  in the right-click context menu. They are now also in the Edit menu for keyboard and
+  menu-bar users.
+
+### Changed
+
+- **Options panel removed from the main page** - Output format, re-encode quality,
+  normalize, gap, and Podcasting 2.0 JSON settings have been removed from the chapter
+  list page. These settings live only in Settings (Ctrl+comma), eliminating the
+  duplication and simplifying the main screen. Values are read directly from the saved
+  settings when building.
+- **"Save to" button removed from output section** - Identical to File - Save Master As;
+  the menu item is sufficient. The output path display field and its hint text remain.
+- **Browse button renamed "Open Folder" / "Open File"** - Matches the standard label
+  pattern used elsewhere and describes the action instead of the mechanism.
+- **General tab is now the first tab in Settings** - Player, appearance, and startup
+  options are more commonly adjusted than build encoding settings; General tab opens first.
+- **Alt+Up / Alt+Down are now frame-level accelerators** - Move Up and Move Down in the
+  chapter list now work from anywhere in the window, not only when the list has focus.
+  The redundant key handler in the list has been removed to prevent double-firing.
+- **Ctrl+/ opens keyboard shortcuts in the browser** - Was a plain-text scroll dialog.
+  Now opens the User Guide at the keyboard shortcuts section using the same browser-based
+  help as F1.
+- **Save As shortcut changed from Ctrl+Alt+S to Ctrl+Shift+A** - Ctrl+Alt combinations
+  conflict with AltGr on international keyboards and with some screen reader commands.
+- **Organization name corrected** - "Blind Information Technology Specialists" corrected
+  to "Blind Information Technology Solutions" across all source files, docs, and metadata.
+- **Deployment Guide hidden from user-facing navigation** - The HTML page is still
+  generated for developers but is no longer listed in the documentation nav or Help menu.
+
+### Fixed
+
+- **Play button not working in build mode** - Windows media backends (WMP, DirectShow,
+  Media Foundation) require a visible, realized HWND before Load() will accept a file.
+  The MediaCtrl was being hidden after creation, silently causing Load() to fail.
+  The control now remains visible at zero size, which is visually identical.
+- **"Playing chapter X" announced even when audio load fails** - The announce was outside
+  the success branch. It now only fires when load succeeds; on failure a descriptive
+  error is announced instead.
+- **Chapter title numbers not stripped** - Files named with only digits (e.g. "01.mp3",
+  "1.mp3") were falling back to the bare number as the chapter title. Pure-numeric stems
+  now return an empty title, which is then replaced with "Chapter N" automatically.
+- **Checkbox accessible names not read by NVDA** - `SetName()` sets wxPython's internal
+  Python name, not the Win32 button window text that NVDA reads. All checkboxes in
+  Settings now use a descriptive `label=` parameter and are created without a separate
+  static-text label for that row (`make_check` pattern). CLAUDE.md updated to document
+  the correct per-control-type rules permanently.
+- **Spinner accessible names not read by NVDA** - `wx.SpinCtrl` and `wx.SpinCtrlDouble`
+  are composite Win32 controls; NVDA focuses the inner edit field which has no
+  associated label. All spinners in Settings now use `ctrl.SetAccessible(_NamedAccessible(ctrl, name))`.
+- **LoadURI fallback for media loading** - Some Windows configurations accept a
+  `file:///` URI but not a bare path in `wx.media.MediaCtrl.Load()`. A fallback to
+  `LoadURI()` is now tried automatically when `Load()` returns False.
+- **Multi-line list items broken in HTML documentation** - The custom Markdown converter
+  did not collect continuation lines for list items. Lines that wrapped past the first
+  line were split into separate paragraphs, breaking screen reader reading. Fixed by
+  collecting continuation lines before emitting each `<li>`.
+- **Ctrl+Alt+S removed** - Conflicts with AltGr on international keyboards and with
+  screen reader keyboard commands. Save As is now Ctrl+Shift+A.
 
 ## [1.82] - 2026-06-05
 
@@ -340,7 +434,7 @@ First public release.
 - **Run watcher at sign-in** (per-user) toggle.
 - **Packaging** — PyInstaller one-folder build (GUI + CLI exes, ffmpeg bundled)
   and an Inno Setup installer.
-- **About window** crediting **Blind Information Technology Specialists
+- **About window** crediting **Blind Information Technology Solutions
   (BITS)**, showing the version and a 2026 copyright, with buttons linking to
   Join BITS, Let It Glow and Community Access.
 - Documentation: README, User Guide, Deployment guide, third-party notices,

@@ -1,7 +1,7 @@
-# Contributing to ChapterForge
+﻿# Contributing to ChapterForge
 
 Thanks for your interest in improving ChapterForge! This project is developed by
-**Blind Information Technology Specialists (BITS)** and we welcome contributions
+**Blind Information Technology Solutions (BITS)** and we welcome contributions
 of all kinds: bug reports, accessibility feedback, documentation, and code.
 
 ## Code of conduct

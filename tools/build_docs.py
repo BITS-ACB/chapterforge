@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """Generate accessible, self-contained HTML documentation from the project's
 Markdown files.
 
@@ -28,19 +28,21 @@ import sys
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT_DIR = os.path.join(REPO_ROOT, "docs", "html")
 
-FOOTER = ("\u00a9 2026 Blind Information Technology Specialists (BITS). "
+FOOTER = ("\u00a9 2026 Blind Information Technology Solutions (BITS). "
           "ChapterForge documentation, generated from Markdown.")
 
-# (source markdown path, output html filename, nav label, page title)
+# (source markdown path, output html filename, nav label, page title, show_in_nav)
+# Set show_in_nav=False for developer-only pages (DEPLOYMENT). The HTML is
+# still generated so direct links work, but it is excluded from user-facing nav.
 PAGES = [
-    ("README.md", "index.html", "Home", "ChapterForge"),
+    ("README.md", "index.html", "Home", "ChapterForge", True),
     (os.path.join("docs", "USER_GUIDE.md"), "USER_GUIDE.html",
-     "User Guide", "ChapterForge \u2014 User Guide"),
+     "User Guide", "ChapterForge \u2014 User Guide", True),
     (os.path.join("docs", "DEPLOYMENT.md"), "DEPLOYMENT.html",
-     "Deployment", "ChapterForge \u2014 Deployment Guide"),
-    ("CHANGELOG.md", "CHANGELOG.html", "Changelog", "ChapterForge \u2014 Changelog"),
+     "Deployment", "ChapterForge \u2014 Deployment Guide", False),
+    ("CHANGELOG.md", "CHANGELOG.html", "Changelog", "ChapterForge \u2014 Changelog", True),
     ("THIRD_PARTY.md", "THIRD_PARTY.html", "Third-Party Notices",
-     "ChapterForge \u2014 Third-Party Notices"),
+     "ChapterForge \u2014 Third-Party Notices", True),
 ]
 
 # Map known local markdown targets to their generated HTML page.
@@ -198,6 +200,14 @@ def convert(md: str):
                 close_list(list_stack)
                 out.append("<ul>")
                 list_stack.append("ul")
+            i += 1
+            # Collect wrapped continuation lines (indented, not a new list/heading/code)
+            while i < n and lines[i].strip() and not re.match(
+                    r"^(\s*[-*]\s|\s*\d+\.\s|#{1,6}\s|```|\s*---+\s*$)", lines[i]) \
+                    and not ("|" in lines[i] and i + 1 < n
+                             and _is_table_sep(lines[i + 1])):
+                text += " " + lines[i].strip()
+                i += 1
             task = re.match(r"^\[([ xX])\]\s+(.*)$", text)
             if task:
                 checked = " checked" if task.group(1).lower() == "x" else ""
@@ -206,18 +216,25 @@ def convert(md: str):
                     f"{render_inline(task.group(2))}</li>")
             else:
                 out.append(f"<li>{render_inline(text)}</li>")
-            i += 1
             continue
 
         # Ordered list
         m = re.match(r"^(\s*)\d+\.\s+(.*)$", line)
         if m:
+            text = m.group(2)
             if "ol" not in list_stack[-1:]:
                 close_list(list_stack)
                 out.append("<ol>")
                 list_stack.append("ol")
-            out.append(f"<li>{render_inline(m.group(2))}</li>")
             i += 1
+            # Collect wrapped continuation lines
+            while i < n and lines[i].strip() and not re.match(
+                    r"^(\s*[-*]\s|\s*\d+\.\s|#{1,6}\s|```|\s*---+\s*$)", lines[i]) \
+                    and not ("|" in lines[i] and i + 1 < n
+                             and _is_table_sep(lines[i + 1])):
+                text += " " + lines[i].strip()
+                i += 1
+            out.append(f"<li>{render_inline(text)}</li>")
             continue
 
         # Blank line ends a list / paragraph
@@ -304,7 +321,9 @@ footer.site { color: var(--muted); border-top: 1px solid var(--border);
 
 def build_nav(current: str) -> str:
     items = []
-    for _src, out_name, label, _title in PAGES:
+    for _src, out_name, label, _title, in_nav in PAGES:
+        if not in_nav:
+            continue
         cur = ' aria-current="page"' if out_name == current else ""
         items.append(f'<li><a href="{out_name}"{cur}>{html.escape(label)}</a></li>')
     return ('<header class="site"><nav aria-label="Documentation"><ul>'
@@ -349,7 +368,7 @@ def page_html(title: str, nav: str, toc_html: str, body: str) -> str:
 def main() -> int:
     os.makedirs(OUT_DIR, exist_ok=True)
     built = []
-    for src, out_name, _label, title in PAGES:
+    for src, out_name, _label, title, _nav in PAGES:
         src_path = os.path.join(REPO_ROOT, src)
         if not os.path.isfile(src_path):
             print(f"  skip (missing): {src}")

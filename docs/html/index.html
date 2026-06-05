@@ -64,97 +64,41 @@ footer.site { color: var(--muted); border-top: 1px solid var(--border);
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
-<header class="site"><nav aria-label="Documentation"><ul><li><a href="index.html" aria-current="page">Home</a></li><li><a href="USER_GUIDE.html">User Guide</a></li><li><a href="DEPLOYMENT.html">Deployment</a></li><li><a href="CHANGELOG.html">Changelog</a></li><li><a href="THIRD_PARTY.html">Third-Party Notices</a></li></ul></nav></header>
+<header class="site"><nav aria-label="Documentation"><ul><li><a href="index.html" aria-current="page">Home</a></li><li><a href="USER_GUIDE.html">User Guide</a></li><li><a href="CHANGELOG.html">Changelog</a></li><li><a href="THIRD_PARTY.html">Third-Party Notices</a></li></ul></nav></header>
 <div class="wrap">
 <main id="main" tabindex="-1">
 <nav class="toc" aria-label="On this page"><p>On this page</p><ul><li><a href="#highlights">Highlights</a></li><li><a href="#requirements">Requirements</a></li><li><a href="#run-from-source">Run from source</a></li><li><a href="#graphical-app">Graphical app</a></li><li><a href="#command-line">Command line</a></li><li><a href="#job-files-cfjob">Job files (`.cfjob`)</a></li><li><a href="#background-watcher">Background watcher</a></li><li><a href="#packaging-deployment">Packaging &amp; deployment</a></li><li><a href="#accessibility">Accessibility</a></li><li><a href="#project-layout">Project layout</a></li><li><a href="#testing">Testing</a></li><li><a href="#how-chapters-are-written">How chapters are written</a></li><li><a href="#credits">Credits</a></li><li><a href="#license">License</a></li></ul></nav>
-<h1>ChapterForge</h1>
+<p>﻿# ChapterForge</p>
 <p>An accessible Windows desktop app (with a full command line and a background folder watcher) that turns a <strong>folder of MP3 files</strong> into a single <strong>master MP3 with embedded chapter markers</strong> — one chapter per source file, titled from the filename. Review and edit the chapter list, set the master&#x27;s ID3 tags and cover art, and save. Built with wxPython, FFmpeg and Mutagen.</p>
 <p>&gt; A ready-made example built from real audio lives in &gt; <a href="samples/README.md"><code>samples/test.mp3</code></a> — drop it into any chapter-aware &gt; player to see the chapter menu.</p>
 <h2 id="highlights">Highlights</h2>
 <ul>
-<li>📁 Point at a folder; files are discovered and <strong>natural-sorted</strong></li>
-</ul>
-<p>(<code>track2</code> before <code>track10</code>).</p>
-<ul>
-<li>🔖 One <strong>ID3v2 CHAP</strong> chapter per file plus a top-level <strong>CTOC</strong>, recognised</li>
-</ul>
-<p>by podcast/audiobook players (Apple Podcasts, Overcast, Pocket Casts, AntennaPod, VLC, foobar2000, AIMP, …).</p>
-<ul>
-<li>✏️ <strong>Chapter titles come from the filenames</strong>; rename, reorder or remove</li>
-</ul>
-<p>chapters before building. Titles can also be read from each file&#x27;s embedded ID3 title instead.</p>
-<ul>
-<li>🏷️ Set the master&#x27;s **Title, Artist, Album, Album artist, Genre, Year,</li>
-</ul>
-<p>Comment<strong> and an optional </strong>cover image** (auto-detected from the folder).</p>
-<ul>
-<li>🎧 <strong>MP3 or M4B</strong> output — an MP3 with CHAP/CTOC, or an AAC <strong>audiobook</strong></li>
-</ul>
-<p>with native MP4 chapters and an attached cover.</p>
-<ul>
-<li>▶️ <strong>Built-in accessible player</strong> — preview the result with Play/Pause, Stop,</li>
-</ul>
-<p>Previous/Next chapter, Rewind/Forward (configurable step), volume and a position slider, with the current chapter announced as it plays.</p>
-<ul>
-<li>🛠️ <strong>Edit existing chaptered files</strong> — open a finished MP3 (or M4B) to fix its</li>
-</ul>
-<p>tags and chapter titles; <strong>merge</strong>, <strong>split at the playhead</strong> or adjust a chapter&#x27;s <strong>start time</strong>; save MP3s in place or any file with <strong>Save As</strong>.</p>
-<ul>
-<li>🔁 <strong>Import / export chapter lists</strong> — Audacity labels, CUE sheets, plain</li>
-</ul>
-<p>timestamps or Podcasting 2.0 JSON.</p>
-<ul>
-<li>⏱️ <strong>Inter-chapter gaps</strong>, a live <strong>output size estimate</strong>, and **post-build</li>
-</ul>
-<p>verification** that re-reads the file and confirms the chapter count.</p>
-<ul>
-<li>🤫 <strong>Auto-chapter by silence</strong> and 📚 <strong>batch-build</strong> an entire library of book</li>
-</ul>
-<p>sub-folders in one pass.</p>
-<ul>
-<li>🌐 <strong>Podcasting 2.0 chapters</strong> sidecar (<code>…chapters.json</code>) with optional</li>
-</ul>
-<p>per-chapter link URLs and images.</p>
-<ul>
-<li>⚡ <strong>Lossless</strong> concatenation (<code>ffmpeg -c copy</code>) when every file shares the</li>
-</ul>
-<p>same format; automatic clean <strong>re-encode</strong> (with optional <strong>loudness normalization</strong>) when they don&#x27;t.</p>
-<ul>
-<li>🚦 <strong>Pre-flight checks</strong> warn about mixed sample rates / channels before a</li>
-</ul>
-<p>long build.</p>
-<ul>
-<li>🧰 <strong>Job files</strong> (<code>.cfjob</code>): a tiny, hand-editable text file that pins the</li>
-</ul>
-<p>order, titles and tags. Generate one from the GUI, edit in Notepad, reload or run from the CLI.</p>
-<ul>
-<li>👀 <strong>Background watcher</strong>: lives in the system tray, watches folders you</li>
-</ul>
-<p>configure, and <strong>builds any new sub-folder of MP3s automatically</strong> with Windows toast + screen-reader notifications.</p>
-<ul>
+<li>📁 Point at a folder; files are discovered and <strong>natural-sorted</strong> (<code>track2</code> before <code>track10</code>).</li>
+<li>🔖 One <strong>ID3v2 CHAP</strong> chapter per file plus a top-level <strong>CTOC</strong>, recognised by podcast/audiobook players (Apple Podcasts, Overcast, Pocket Casts, AntennaPod, VLC, foobar2000, AIMP, …).</li>
+<li>✏️ <strong>Chapter titles come from the filenames</strong>; rename, reorder or remove chapters before building. Titles can also be read from each file&#x27;s embedded ID3 title instead.</li>
+<li>🏷️ Set the master&#x27;s <strong>Title, Artist, Album, Album artist, Genre, Year, Comment</strong> and an optional <strong>cover image</strong> (auto-detected from the folder).</li>
+<li>🎧 <strong>MP3 or M4B</strong> output — an MP3 with CHAP/CTOC, or an AAC <strong>audiobook</strong> with native MP4 chapters and an attached cover.</li>
+<li>▶️ <strong>Built-in accessible player</strong> — preview the result with Play/Pause, Stop, Previous/Next chapter, Rewind/Forward (configurable step), volume and a position slider, with the current chapter announced as it plays.</li>
+<li>🛠️ <strong>Edit existing chaptered files</strong> — open a finished MP3 (or M4B) to fix its tags and chapter titles; <strong>merge</strong>, <strong>split at the playhead</strong> or adjust a chapter&#x27;s <strong>start time</strong>; save MP3s in place or any file with <strong>Save As</strong>.</li>
+<li>🔁 <strong>Import / export chapter lists</strong> — Audacity labels, CUE sheets, plain timestamps or Podcasting 2.0 JSON.</li>
+<li>⏱️ <strong>Inter-chapter gaps</strong>, a live <strong>output size estimate</strong>, and <strong>post-build verification</strong> that re-reads the file and confirms the chapter count.</li>
+<li>🤫 <strong>Auto-chapter by silence</strong> and 📚 <strong>batch-build</strong> an entire library of book sub-folders in one pass.</li>
+<li>🌐 <strong>Podcasting 2.0 chapters</strong> sidecar (<code>…chapters.json</code>) with optional per-chapter link URLs and images.</li>
+<li>⚡ <strong>Lossless</strong> concatenation (<code>ffmpeg -c copy</code>) when every file shares the same format; automatic clean <strong>re-encode</strong> (with optional <strong>loudness normalization</strong>) when they don&#x27;t.</li>
+<li>🚦 <strong>Pre-flight checks</strong> warn about mixed sample rates / channels before a long build.</li>
+<li>🧰 <strong>Job files</strong> (<code>.cfjob</code>): a tiny, hand-editable text file that pins the order, titles and tags. Generate one from the GUI, edit in Notepad, reload or run from the CLI.</li>
+<li>👀 <strong>Background watcher</strong>: lives in the system tray, watches folders you configure, and <strong>builds any new sub-folder of MP3s automatically</strong> with Windows toast + screen-reader notifications.</li>
 <li>💻 <strong>Rich CLI</strong> with <code>--help</code>, a chapter plan table and a live progress bar.</li>
-<li>♿ <strong>Fully keyboard accessible</strong>, with screen-reader announcements borrowed</li>
+<li>♿ <strong>Fully keyboard accessible</strong>, with screen-reader announcements borrowed from the QUILL project (graceful fallback when no reader is present), plus adjustable <strong>text size</strong>, an optional <strong>high-contrast theme</strong>, and <strong>Save Diagnostics</strong> for support.</li>
+<li>🔄 <strong>Check for updates</strong> built in (GitHub Releases) — download and launch the right installer for your platform in one click, and a one-click installer.</li>
 </ul>
-<p>from the QUILL project (graceful fallback when no reader is present), plus adjustable <strong>text size</strong>, an optional <strong>high-contrast theme</strong>, and <strong>Save Diagnostics</strong> for support.</p>
-<ul>
-<li>🔄 <strong>Check for updates</strong> built in (GitHub Releases) — download and launch the</li>
-</ul>
-<p>right installer for your platform in one click, and a one-click installer.</p>
 <h2 id="requirements">Requirements</h2>
 <ul>
-<li>Windows 10/11 (the tray watcher, toasts and installer are Windows-specific;</li>
-</ul>
-<p>the core and CLI are cross-platform).</p>
-<ul>
+<li>Windows 10/11 (the tray watcher, toasts and installer are Windows-specific; the core and CLI are cross-platform).</li>
 <li>Python 3.10+</li>
-<li><a href="https://ffmpeg.org/">FFmpeg</a> (<code>ffmpeg</code> and <code>ffprobe</code>) on your <code>PATH</code> — or use</li>
+<li><a href="https://ffmpeg.org/">FFmpeg</a> (<code>ffmpeg</code> and <code>ffprobe</code>) on your <code>PATH</code> — or use the packaged build, which bundles them.</li>
+<li>Python packages: <code>wxPython</code>, <code>mutagen</code> (plus optional <code>prismatoid</code> on Windows for richer screen-reader output).</li>
 </ul>
-<p>the packaged build, which bundles them.</p>
-<ul>
-<li>Python packages: <code>wxPython</code>, <code>mutagen</code> (plus optional <code>prismatoid</code> on Windows</li>
-</ul>
-<p>for richer screen-reader output).</p>
 <pre><code>pip install -r requirements.txt</code></pre>
 <h2 id="run-from-source">Run from source</h2>
 <pre><code>python main.py            # graphical app
@@ -163,21 +107,12 @@ python main.py --watch    # background tray watcher</code></pre>
 <h2 id="graphical-app">Graphical app</h2>
 <ol>
 <li><strong>Open Folder…</strong> (<code>Ctrl+O</code>) and pick a folder of MP3s.</li>
-<li>Review the <strong>Chapters</strong> list. Use <strong>Edit Title</strong>, <strong>Move Up/Down</strong> or</li>
-</ol>
-<p><strong>Remove</strong>. The <em>Selected chapter title</em> field edits the highlighted row.</p>
-<ol>
-<li>Fill in the <strong>Master MP3 tags</strong> (Title/Album are pre-filled from the folder</li>
-</ol>
-<p>name) and optionally choose a <strong>cover image</strong>.</p>
-<ol>
-<li>Pick <strong>Options</strong>: title source (filename / embedded), re-encode quality and</li>
-</ol>
-<p>loudness normalization.</p>
-<ol>
+<li>Review the <strong>Chapters</strong> list. Use <strong>Edit Title</strong>, <strong>Move Up/Down</strong> or <strong>Remove</strong>. The <em>Selected chapter title</em> field edits the highlighted row.</li>
+<li>Fill in the <strong>Master MP3 tags</strong> (Title/Album are pre-filled from the folder name) and optionally choose a <strong>cover image</strong>.</li>
+<li>Pick <strong>Options</strong>: title source (filename / embedded), re-encode quality and loudness normalization.</li>
 <li><strong>Set Output File…</strong> (<code>Ctrl+S</code>), then <strong>Build Master MP3</strong> (<code>Ctrl+B</code>).</li>
 </ol>
-<p>See <strong>Help → User Guide</strong> and <strong>Help → Keyboard Shortcuts</strong> in the app, or <a href="USER_GUIDE.html"><code>docs/USER_GUIDE.md</code></a>. The <strong>Help</strong> menu also opens the Deployment Guide, Release Notes and the full documentation set as HTML in your browser (generate it with <code>python tools/build_docs.py</code>).</p>
+<p>See <strong>Help → User Guide</strong> and <strong>Help → Keyboard Shortcuts</strong> in the app, or <a href="USER_GUIDE.html"><code>docs/USER_GUIDE.md</code></a>. The <strong>Help</strong> menu also opens Release Notes and the full documentation set as HTML in your browser (generate it with <code>python tools/build_docs.py</code>).</p>
 <h2 id="command-line">Command line</h2>
 <pre><code>chapterforge &quot;C:\Audiobooks\My Book&quot;
 chapterforge -i .\chapters -o book.mp3 --title &quot;My Book&quot; --artist &quot;Jane Doe&quot; --normalize
@@ -203,14 +138,8 @@ chapterforge --check-updates</code></pre>
 <p>The line order is the chapter order; the title after <code>|</code> is optional. Filenames are resolved relative to the job file and must stay inside its folder. Generate one from <strong>File → Generate Job File…</strong>, or drop a <code>chapters.cfjob</code> into a watched folder to control the automatic build.</p>
 <h2 id="background-watcher">Background watcher</h2>
 <ul>
-<li><strong>Tools → Watch Folders…</strong> manages reusable <em>processes</em>: each pairs a watched</li>
-</ul>
-<p>folder with naming templates (<code>{folder}</code>, <code>{parent}</code>, <code>{date}</code>) and tag defaults.</p>
-<ul>
-<li><strong>Tools → Start Background Watcher</strong> minimises to the system tray and builds</li>
-</ul>
-<p>any new, <em>stable</em> sub-folder of MP3s automatically. Generated masters go into an excluded <code>_ChapterForge</code> sub-folder; each folder is built once.</p>
-<ul>
+<li><strong>Tools → Watch Folders…</strong> manages reusable <em>processes</em>: each pairs a watched folder with naming templates (<code>{folder}</code>, <code>{parent}</code>, <code>{date}</code>) and tag defaults.</li>
+<li><strong>Tools → Start Background Watcher</strong> minimises to the system tray and builds any new, <em>stable</em> sub-folder of MP3s automatically. Generated masters go into an excluded <code>_ChapterForge</code> sub-folder; each folder is built once.</li>
 <li><strong>Tools → Start Watcher at Sign-in</strong> registers a per-user startup entry.</li>
 <li><code>chapterforge --watch</code> runs the watcher standalone from the tray.</li>
 </ul>
@@ -222,17 +151,10 @@ pyinstaller ChapterForge.spec
 iscc installer\ChapterForge.iss</code></pre>
 <h2 id="accessibility">Accessibility</h2>
 <ul>
-<li>Every control has a visible label with a mnemonic and an explicit accessible</li>
+<li>Every control has a visible label with a mnemonic and an explicit accessible name, so NVDA and Narrator announce them clearly.</li>
+<li>Status, progress and completion are announced; the screen-reader bridge and announcement grammar are adapted from the QUILL project (see <a href="THIRD_PARTY.html"><code>THIRD_PARTY.md</code></a>) and degrade gracefully when no reader or <code>prismatoid</code> backend is present.</li>
+<li>Long work runs on a background thread; the UI never blocks and a failed/cancelled build never leaves a half-written file behind.</li>
 </ul>
-<p>name, so NVDA and Narrator announce them clearly.</p>
-<ul>
-<li>Status, progress and completion are announced; the screen-reader bridge and</li>
-</ul>
-<p>announcement grammar are adapted from the QUILL project (see <a href="THIRD_PARTY.html"><code>THIRD_PARTY.md</code></a>) and degrade gracefully when no reader or <code>prismatoid</code> backend is present.</p>
-<ul>
-<li>Long work runs on a background thread; the UI never blocks and a</li>
-</ul>
-<p>failed/cancelled build never leaves a half-written file behind.</p>
 <h2 id="project-layout">Project layout</h2>
 <pre><code>chapterforge/
   core.py            # UI-free: scan, probe, concat, tag + chapter writing
@@ -260,7 +182,7 @@ tests/</code></pre>
 <h2 id="how-chapters-are-written">How chapters are written</h2>
 <p>For each source file ChapterForge writes a <code>CHAP</code> frame whose <code>start_time</code> / <code>end_time</code> are the cumulative millisecond boundaries and whose <code>TIT2</code> sub-frame holds the chapter title. A single ordered, top-level <code>CTOC</code> frame lists every chapter. Boundaries are reconciled against the real encoded duration so the final chapter never overshoots the file. Tags are saved as ID3v2.3 for broad player compatibility.</p>
 <h2 id="credits">Credits</h2>
-<p>ChapterForge is developed by <strong>Blind Information Technology Specialists (BITS)</strong>, a community building accessible software. Explore our services:</p>
+<p>ChapterForge is developed by <strong>Blind Information Technology Solutions (BITS)</strong>, a community building accessible software. Explore our services:</p>
 <ul>
 <li><a href="https://www.joinbits.org">Join BITS</a></li>
 <li><a href="http://www.letitglow.app">Let It Glow</a></li>
@@ -268,10 +190,10 @@ tests/</code></pre>
 </ul>
 <p>FFmpeg, Mutagen and wxPython do the heavy lifting; the accessibility and update patterns are adapted from the <strong>QUILL</strong> project. See <a href="THIRD_PARTY.html"><code>THIRD_PARTY.md</code></a> for licenses and attributions.</p>
 <h2 id="license">License</h2>
-<p>ChapterForge&#x27;s own source code is released under the <strong>MIT License</strong> — see <a href="LICENSE.txt"><code>LICENSE</code></a>. © 2026 Blind Information Technology Specialists (BITS).</p>
+<p>ChapterForge&#x27;s own source code is released under the <strong>MIT License</strong> — see <a href="LICENSE.txt"><code>LICENSE</code></a>. © 2026 Blind Information Technology Solutions (BITS).</p>
 <p>Note that the packaged build bundles third-party programs (FFmpeg) and depends on libraries (Mutagen is GPL-licensed) that carry their own license terms. If you redistribute a packaged build, review <a href="THIRD_PARTY.html"><code>THIRD_PARTY.md</code></a> and comply with those licenses; the MIT license covers only ChapterForge&#x27;s own code.</p>
 </main>
 </div>
-<footer class="site">© 2026 Blind Information Technology Specialists (BITS). ChapterForge documentation, generated from Markdown.</footer>
+<footer class="site">© 2026 Blind Information Technology Solutions (BITS). ChapterForge documentation, generated from Markdown.</footer>
 </body>
 </html>

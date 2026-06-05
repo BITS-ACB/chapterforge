@@ -64,7 +64,7 @@ footer.site { color: var(--muted); border-top: 1px solid var(--border);
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
-<header class="site"><nav aria-label="Documentation"><ul><li><a href="index.html">Home</a></li><li><a href="USER_GUIDE.html">User Guide</a></li><li><a href="DEPLOYMENT.html" aria-current="page">Deployment</a></li><li><a href="CHANGELOG.html">Changelog</a></li><li><a href="THIRD_PARTY.html">Third-Party Notices</a></li></ul></nav></header>
+<header class="site"><nav aria-label="Documentation"><ul><li><a href="index.html">Home</a></li><li><a href="USER_GUIDE.html">User Guide</a></li><li><a href="CHANGELOG.html">Changelog</a></li><li><a href="THIRD_PARTY.html">Third-Party Notices</a></li></ul></nav></header>
 <div class="wrap">
 <main id="main" tabindex="-1">
 <nav class="toc" aria-label="On this page"><p>On this page</p><ul><li><a href="#1-prerequisites">1. Prerequisites</a></li><li><a href="#2-versioning">2. Versioning</a></li><li><a href="#3-run-the-tests">3. Run the tests</a></li><li><a href="#4-build-the-executables-pyinstaller">4. Build the executables (PyInstaller)</a></li><li><a href="#5-build-the-installer-inno-setup">5. Build the installer (Inno Setup)</a></li><li><a href="#6-publish-a-github-release">6. Publish a GitHub Release</a></li><li><a href="#7-the-update-feed">7. The update feed</a></li><li><a href="#8-release-checklist">8. Release checklist</a></li></ul></nav>
@@ -74,10 +74,7 @@ footer.site { color: var(--muted); border-top: 1px solid var(--border);
 <h2 id="1-prerequisites">1. Prerequisites</h2>
 <ul>
 <li><strong>Python 3.10+</strong> (developed on 3.12).</li>
-<li><strong>FFmpeg</strong> — Automatically downloaded by the build process if missing. The</li>
-</ul>
-<p>script <code>tools/get_ffmpeg.py</code> fetches prebuilt binaries from gyan.dev and places them in <code>bin/</code> at the repo root. For a self-contained build, PyInstaller bundles them and the app resolves them from <code>_internal\bin\</code> at runtime.</p>
-<ul>
+<li><strong>FFmpeg</strong> — Automatically downloaded by the build process if missing. The script <code>tools/get_ffmpeg.py</code> fetches prebuilt binaries from gyan.dev and places them in <code>bin/</code> at the repo root. For a self-contained build, PyInstaller bundles them and the app resolves them from <code>_internal\bin\</code> at runtime.</li>
 <li>Python build dependencies:</li>
 </ul>
 <p>``<code>bash pip install -r requirements.txt pip install pyinstaller </code>``</p>
@@ -113,9 +110,8 @@ footer.site { color: var(--muted); border-top: 1px solid var(--border);
 <ul>
 <li><code>ChapterForge.exe</code> — the GUI app (windowed, <code>console=False</code>).</li>
 <li><code>chapterforge-cli.exe</code> — the CLI (console, <code>console=True</code>).</li>
-<li><code>_internal\</code> — Python runtime, dependencies, and <code>_internal\bin\ffmpeg.exe</code> /</li>
+<li><code>_internal\</code> — Python runtime, dependencies, and <code>_internal\bin\ffmpeg.exe</code> / <code>ffprobe.exe</code>.</li>
 </ul>
-<p><code>ffprobe.exe</code>.</p>
 <p>The one-folder layout is deliberate: there is <strong>no per-launch temp extraction</strong>, which avoids the temp-folder cleanup problems of one-file builds when the app closes.</p>
 <p>Smoke-test the build before packaging:</p>
 <pre><code>dist\ChapterForge\chapterforge-cli.exe &quot;C:\path\to\sample\folder&quot; --list
@@ -141,10 +137,7 @@ GITHUB_REPO  = &quot;chapterforge&quot;</code></pre>
 <p>Notes on the implementation (adapted from QUILL):</p>
 <ul>
 <li>Versions are compared with a tuple ranking so finals outrank pre-releases.</li>
-<li>Only <strong>HTTPS</strong> URLs on trusted GitHub hosts are accepted for the download</li>
-</ul>
-<p>link.</p>
-<ul>
+<li>Only <strong>HTTPS</strong> URLs on trusted GitHub hosts are accepted for the download link.</li>
 <li>Network/parse failures are reported gracefully; they never crash the app.</li>
 </ul>
 <p>So each release is picked up automatically by existing installs once the tag is published — no separate update server is required.</p>
@@ -163,6 +156,6 @@ GITHUB_REPO  = &quot;chapterforge&quot;</code></pre>
 </ul>
 </main>
 </div>
-<footer class="site">© 2026 Blind Information Technology Specialists (BITS). ChapterForge documentation, generated from Markdown.</footer>
+<footer class="site">© 2026 Blind Information Technology Solutions (BITS). ChapterForge documentation, generated from Markdown.</footer>
 </body>
 </html>

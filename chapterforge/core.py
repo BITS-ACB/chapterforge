@@ -262,7 +262,9 @@ def title_from_filename(path: str) -> str:
         r"^\s*\d{1,3}\s*(?:[-._)]+\s*|\s+(?=[A-Za-zÀ-ɏ]))", "", stem)
     cleaned = cleaned.replace("_", " ").strip()
     cleaned = re.sub(r"\s{2,}", " ", cleaned).strip()
-    return cleaned or stem
+    # If nothing meaningful remains (e.g. file was named "01.mp3"), return ""
+    # so the caller can substitute a generated title like "Chapter N".
+    return cleaned
 
 
 # ---------------------------------------------------------------------------
@@ -1071,6 +1073,47 @@ def format_timestamp(ms: int) -> str:
     if hours:
         return f"{hours}:{minutes:02d}:{seconds:02d}"
     return f"{minutes}:{seconds:02d}"
+
+
+def _atempo_filter(speed: float) -> str:
+    """Build an FFmpeg atempo filter chain for *speed*.
+
+    atempo only accepts values in [0.5, 100], so for extreme ratios we
+    chain multiple filters.  For the speeds ChapterForge exposes (0.75-2.0)
+    a single filter is always sufficient.
+    """
+    filters: list[str] = []
+    s = speed
+    while s > 2.0 + 1e-9:
+        filters.append("atempo=2.0")
+        s /= 2.0
+    while s < 0.5 - 1e-9:
+        filters.append("atempo=0.5")
+        s /= 0.5
+    filters.append(f"atempo={s:.6f}")
+    return ",".join(filters)
+
+
+def apply_tempo(src_path: str, speed: float, dst_path: str) -> bool:
+    """Re-encode *src_path* at *speed* (preserving pitch) and write to *dst_path*.
+
+    Uses FFmpeg's ``atempo`` filter, which performs time-stretching without
+    the chipmunk / slow-motion pitch artefact.  Returns True on success.
+    The output is always MP3 at 192 k.
+    """
+    ffmpeg = _find_tool("ffmpeg")
+    cmd = [
+        ffmpeg, "-y", "-i", src_path,
+        "-filter:a", _atempo_filter(speed),
+        "-c:a", "libmp3lame", "-b:a", "192k",
+        "-vn",          # drop any cover-art video stream
+        dst_path,
+    ]
+    try:
+        result = subprocess.run(cmd, capture_output=True, timeout=600)
+        return result.returncode == 0 and os.path.isfile(dst_path)
+    except Exception:
+        return False
 
 
 def suggested_output_path(folder: str) -> str:

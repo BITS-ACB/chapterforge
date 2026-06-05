@@ -1,4 +1,4 @@
-"""Tests for organization/branding metadata used by the About window."""
+﻿"""Tests for organization/branding metadata used by the About window."""
 
 import os
 import sys
@@ -10,7 +10,7 @@ import chapterforge  # noqa: E402
 
 def test_org_and_copyright_metadata():
     assert chapterforge.__org_short__ == "BITS"
-    assert "Blind Information Technology Specialists" in chapterforge.__org__
+    assert "Blind Information Technology Solutions" in chapterforge.__org__
     assert "2026" in chapterforge.__copyright__
     assert "BITS" in chapterforge.__copyright__
 
