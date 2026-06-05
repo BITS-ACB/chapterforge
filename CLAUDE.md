@@ -52,8 +52,15 @@ Entry points: `main.py` (GUI/watcher), `cli_main.py` (CLI console).
 
 ## Key Constraints
 
-- **Accessibility is a first-class requirement.** All UI controls must have accessible names. Use `ctrl.SetName()` / `ctrl.SetLabel()`. Never remove keyboard access from any feature. Announce background-thread results via `a11y.announce()`.
-- **Worker thread model:** Long operations (build, probe, file I/O) must run on the background thread in `app.py`. Post results back to the main thread with wx events — never call wx UI methods from a worker thread.
+- **Accessibility is a first-class requirement.** This is a binding contract. Every interactive control MUST have:
+  - An accessible name via `ctrl.SetName("Clear description of what this control does")`. This is what screen readers announce.
+  - A visible label (via `wx.StaticText` for groups, or `label=` parameter for CheckBox).
+  - Keyboard access: never disable keyboard navigation, tabbing, or shortcuts.
+  - When a dialog opens, set focus on the first meaningful control via `ctrl.SetFocus()`.
+  - Announce background operations (start, progress, completion) via `a11y.announce()`.
+  - Test: launch with NVDA and verify all controls are announced clearly.
+- **No m-dashes or emojis in the product.** Use regular hyphens (-) and plain text. This ensures cross-platform compatibility and readability.
+- **Worker thread model:** Long operations (build, probe, file I/O, diagnostics) must run on the background thread in `app.py`. Post results back to the main thread with wx events — never call wx UI methods from a worker thread.
 - **Natural sort:** Track ordering uses natural sort (`track2` before `track10`). See `core.py` for the sort key used; don't swap in a lexicographic sort.
 - **FFmpeg is external.** In development FFmpeg must be on PATH. In releases it is bundled under `_internal/`. The `core.py` functions resolve the FFmpeg binary path via a helper — don't hardcode paths.
 - **Chapter format:** Chapters are written as ID3v2 CHAP + CTOC frames via Mutagen. The format must remain compatible with podcast apps (Overcast, Pocket Casts, AntennaPod). Don't change frame structure without testing playback.

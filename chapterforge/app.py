@@ -1509,7 +1509,6 @@ class MainFrame(wx.Frame):
     # Diagnostics
     # ------------------------------------------------------------------
     def _on_save_diagnostics(self, _evt):
-        report = self._build_diagnostics()
         dlg = wx.FileDialog(
             self, "Save diagnostics", defaultFile="chapterforge-diagnostics.txt",
             wildcard="Text files (*.txt)|*.txt",
@@ -1519,6 +1518,29 @@ class MainFrame(wx.Frame):
             return
         dest = dlg.GetPath()
         dlg.Destroy()
+        self._announce("Gathering diagnostic information...")
+        self.canceller = core.Canceller()
+        self.worker = threading.Thread(
+            target=self._gather_and_save_diagnostics,
+            args=(dest,),
+            daemon=True)
+        self.worker.start()
+
+    def _gather_and_save_diagnostics(self, dest: str):
+        """Background thread: build diagnostics and save to file."""
+        try:
+            report = self._build_diagnostics()
+            wx.CallAfter(self._finalize_diagnostics_save, dest, report, None)
+        except Exception as exc:
+            wx.CallAfter(self._finalize_diagnostics_save, dest, None, str(exc))
+
+    def _finalize_diagnostics_save(self, dest: str, report: Optional[str], error: Optional[str]):
+        """Called from main thread to finalize diagnostics save."""
+        self.worker = None
+        if error:
+            wx.MessageBox(error, "Could not gather diagnostics",
+                          wx.OK | wx.ICON_ERROR, self)
+            return
         try:
             with open(dest, "w", encoding="utf-8") as fh:
                 fh.write(report)
@@ -2447,11 +2469,20 @@ class AboutDialog(wx.Dialog):
                              "your browser.")
 
         for text, desc, url in SERVICES:
-            btn = wx.Button(self, label=f"{text} \u2014 {desc}")
+            btn = wx.Button(self, label=f"{text} - {desc}")
             btn.SetName(f"{text}. {desc}. Opens {url} in your browser.")
             btn.SetToolTip(url)
             btn.Bind(wx.EVT_BUTTON, lambda _e, u=url: wx.LaunchDefaultBrowser(u))
             outer.Add(btn, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 12)
+
+        outer.Add(wx.StaticLine(self), 0, wx.EXPAND | wx.ALL, 10)
+
+        website_btn = wx.Button(self, label="Visit Project Website")
+        website_btn.SetName("Visit ChapterForge project website on GitHub")
+        website_btn.SetToolTip("https://github.com/BITS-ACB/chapterforge")
+        website_btn.Bind(wx.EVT_BUTTON, lambda _e: wx.LaunchDefaultBrowser(
+            "https://github.com/BITS-ACB/chapterforge"))
+        outer.Add(website_btn, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 12)
 
         btns = self.CreateButtonSizer(wx.OK)
         outer.Add(btns, 0, wx.EXPAND | wx.ALL, 12)
@@ -2539,16 +2570,16 @@ class SettingsDialog(wx.Dialog):
 
         self.auto_cover = brow(
             "Auto-detect &cover image:",
-            lambda: wx.CheckBox(bp, label=""),
-            "Auto-detect cover image",
+            lambda: wx.CheckBox(bp, label="Enabled"),
+            "Auto-detect cover image enabled",
             "Automatically find cover.jpg or folder.jpg in the source folder "
             "and use it as the album art.")
         self.auto_cover.SetValue(bool(settings.get("auto_cover", True)))
 
         self.write_pod2 = brow(
             "Write chapters &JSON (Podcasting 2.0):",
-            lambda: wx.CheckBox(bp, label=""),
-            "Also write a Podcasting 2.0 chapters JSON sidecar",
+            lambda: wx.CheckBox(bp, label="Enabled"),
+            "Write Podcasting 2.0 chapters JSON sidecar enabled",
             "Save a .chapters.json file alongside the master.\n"
             "Required for chapter art and links in Podcasting 2.0 apps.")
         self.write_pod2.SetValue(bool(settings.get("write_pod2", False)))
@@ -2620,8 +2651,8 @@ class SettingsDialog(wx.Dialog):
 
         self.start_minimized = grow(
             "Start &minimized in system tray:",
-            lambda: wx.CheckBox(gp, label=""),
-            "Start minimized in system tray",
+            lambda: wx.CheckBox(gp, label="Enabled"),
+            "Start minimized in system tray enabled",
             "Hide the main window on launch and show a system tray icon instead.\n"
             "Double-click the icon to open ChapterForge. Takes effect at next launch.")
         self.start_minimized.SetValue(bool(settings.get("start_minimized", False)))
@@ -2674,6 +2705,7 @@ class SettingsDialog(wx.Dialog):
         self.SetSizerAndFit(outer)
         self.SetMinSize((480, -1))
         self.CentreOnParent()
+        self.fmt.SetFocus()  # Focus on first control
 
     def result(self) -> dict:
         """Return the edited settings as a dict (call after ShowModal == OK)."""
