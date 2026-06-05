@@ -198,9 +198,6 @@ class MainFrame(wx.Frame):
         self.mi_update = help_menu.Append(
             wx.ID_ANY, "&Look for Updates…",
             "Check online for a newer version of ChapterForge")
-        self.mi_website = help_menu.Append(
-            wx.ID_ANY, "Visit Project &Website",
-            "Open the ChapterForge project page in your browser")
         help_menu.AppendSeparator()
         help_menu.Append(wx.ID_ABOUT, "&About ChapterForge")
         menubar.Append(help_menu, "&Help")
@@ -233,7 +230,6 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self._on_docs_home, self.mi_docs_home)
         self.Bind(wx.EVT_MENU, self._on_save_diagnostics, self.mi_diagnostics)
         self.Bind(wx.EVT_MENU, self._on_check_updates, self.mi_update)
-        self.Bind(wx.EVT_MENU, self._on_website, self.mi_website)
         self.Bind(wx.EVT_MENU, self._on_about, id=wx.ID_ABOUT)
 
         # Ctrl+S = smart save: Build in build mode, Save Changes in edit mode.
@@ -2219,10 +2215,6 @@ class MainFrame(wx.Frame):
         ctrl.SetFocus()
         dlg.ShowModal()
         dlg.Destroy()
-
-    def _on_website(self, _evt):
-        from . import updates
-        wx.LaunchDefaultBrowser(updates.PROJECT_URL)
 
     def _on_check_updates(self, _evt):
         from . import updates
