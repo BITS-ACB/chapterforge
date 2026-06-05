@@ -4,6 +4,12 @@ All notable changes to ChapterForge are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.7.2] - 2026-06-04
+
+### Fixed
+- **Cover image browse button label** now reads "Browse for Cover Image" instead 
+  of just "Browse" for clearer accessibility.
+
 ## [1.7.1] - 2026-06-04
 
 ### Fixed
