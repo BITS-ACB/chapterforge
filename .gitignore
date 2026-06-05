@@ -17,9 +17,6 @@ installer/Output/
 installer_output/
 *.exe
 
-# Bundled binaries (large; fetched/placed locally for builds)
-bin/ffmpeg.exe
-bin/ffprobe.exe
 
 # Sample / source audio (large, not for distribution)
 samples/test.mp3
@@ -32,6 +29,10 @@ samples/test.mp3
 *.aac
 *.wav
 *.flac
+
+# Bundled binaries (large; fetched/placed locally for builds)
+bin/ffmpeg.exe
+bin/ffprobe.exe
 
 # Watcher output folders
 _ChapterForge/

@@ -4,6 +4,18 @@ All notable changes to ChapterForge are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.7.1] - 2026-06-04
+
+### Fixed
+- **Task mode selector no longer auto-opens dialogs.** Switching between "Build" 
+  and "Edit" modes now just changes the UI; users click Browse to open files/folders.
+- **Edit fields and chapter list are non-tabbable when empty.** The chapter list, 
+  title field, and tag fields are now disabled (and excluded from tab order) until 
+  there is content to edit.
+- **Browse button tooltip simplified** for clearer accessibility.
+- **Bundled FFmpeg binaries** in the repo so builds work out-of-the-box without 
+  manual FFmpeg download/setup.
+
 ## [1.7.0] - 2026-06-04
 
 A UI polish and accessibility release. The app now shows only what is relevant
