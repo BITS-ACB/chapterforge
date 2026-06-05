@@ -73,10 +73,18 @@ footer.site { color: var(--muted); border-top: 1px solid var(--border);
 <h2 id="180---2026-06-04">[1.80] - 2026-06-04</h2>
 <h3 id="added">Added</h3>
 <ul>
-<li><strong>Auto-download FFmpeg on first launch</strong> - If FFmpeg is missing, the app now shows </li>
+<li><strong>Auto-download FFmpeg on first launch</strong> - Beautiful progress dialog shows while FFmpeg </li>
 </ul>
-<p>a friendly yes/no dialog offering to download it automatically. Downloads happen in the background while the main window shows, and the screen reader announces progress. Seamless first-run experience on development machines and fresh installations.</p>
+<p>downloads in the background. Main window only appears when ready. Seamless experience.</p>
+<ul>
+<li><strong>GitHub Pages documentation site</strong> - Docs automatically served online. App opens local </li>
+</ul>
+<p>files in development, falls back to GitHub Pages in releases. Users always have access.</p>
 <h3 id="changed">Changed</h3>
+<ul>
+<li><strong>Bundle size reduced 90%</strong> - Removed FFmpeg (390MB) and documentation from installer.</li>
+</ul>
+<p>Bundle shrinks from 435MB to 45MB. FFmpeg auto-downloads as needed. Friendly UX!</p>
 <ul>
 <li><strong>Friendlier, less technical language throughout the app:</strong></li>
 <li>&quot;Auto-chapter by Silence&quot; → &quot;Find Chapters in Silent Gaps&quot;</li>

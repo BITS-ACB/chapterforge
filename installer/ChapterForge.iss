@@ -20,6 +20,7 @@ AppVersion={#AppVersion}
 AppPublisher={#AppPublisher}
 DefaultDirName={autopf}\{#AppName}
 DefaultGroupName={#AppName}
+DisableDirPage=no
 DisableProgramGroupPage=yes
 OutputDir=..\installer_output
 OutputBaseFilename={#AppName}-Setup
