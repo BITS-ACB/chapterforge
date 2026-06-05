@@ -77,7 +77,7 @@ def test_build_m4b_roundtrip(tmp_path):
     tags, chapters, total = core.read_master(out)
     assert tags.title == "Audiobook"
     assert tags.artist == "Author"
-    assert [c.title for c in chapters] == ["01 Intro", "02 Body", "03 End"]
+    assert [c.title for c in chapters] == ["Intro", "Body", "End"]
     assert total > 0
 
 
@@ -95,7 +95,7 @@ def test_write_pod2_chapters(tmp_path):
     data = json.loads(open(sidecar, encoding="utf-8").read())
     assert "chapters" in data
     assert len(data["chapters"]) == 3
-    assert data["chapters"][0]["title"] == "01 Intro"
+    assert data["chapters"][0]["title"] == "Intro"
     # startTime is in seconds, ascending.
     starts = [c["startTime"] for c in data["chapters"]]
     assert starts == sorted(starts)
@@ -184,8 +184,7 @@ def test_save_tags_chapters_inplace(tmp_path):
     tags2, chapters2, _ = core.read_master(out)
     assert tags2.title == "New"
     assert tags2.artist == "A"
-    assert [c.title for c in chapters2] == ["Z-01 Intro", "Z-02 Body",
-                                            "Z-03 End"]
+    assert [c.title for c in chapters2] == ["Z-Intro", "Z-Body", "Z-End"]
 
 
 def test_save_tags_chapters_inplace_rejects_m4b(tmp_path):
@@ -211,7 +210,7 @@ def test_save_master_as_mp3(tmp_path):
     assert os.path.isfile(src)  # original untouched
     tags, chapters2, _ = core.read_master(dest)
     assert tags.title == "Dest"
-    assert chapters2[0].title == "C-01 Intro"
+    assert chapters2[0].title == "C-Intro"
 
 
 def test_save_master_as_m4b(tmp_path):

@@ -4,6 +4,24 @@ All notable changes to ChapterForge are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.82] - 2026-06-05
+
+### Fixed
+- **Audio reorder crash** - `write_id3_chapters` was called instead of the
+  correct `write_tags_and_chapters`; would have crashed on first audio reorder.
+- **Command Palette entry** - selecting "Command Palette" from within the
+  palette itself raised `AttributeError` (called method on dialog, not frame).
+- **FFmpeg error messages** - segment extraction errors now show FFmpeg's
+  `stderr` output instead of the empty `stdout`.
+- **Page stays on Step 2 when opening a new file** - loading a file in edit
+  mode or switching to build mode now always resets back to the chapters page.
+- **Edit This Chapter uses focused item** - F2 / Edit Chapter now correctly
+  acts on the keyboard-focused item even when the list selection state lags.
+
+### Changed
+- **User Guide completely rewritten** to reflect the two-page workflow, Edit
+  menu, View menu, audio reorder, and all features added since 1.0.
+
 ## [1.81] - 2026-06-05
 
 ### Added

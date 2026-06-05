@@ -1435,6 +1435,8 @@ class MainFrame(wx.Frame):
     # ------------------------------------------------------------------
     def _on_edit_chapter(self, _evt):
         sel = self.list.GetFirstSelected()
+        if sel < 0:
+            sel = self.list.GetNextItem(-1, wx.LIST_NEXT_ALL, wx.LIST_STATE_FOCUSED)
         if sel < 0 or sel >= self._row_count():
             return
         if self.mode == "edit":
@@ -1887,6 +1889,11 @@ class MainFrame(wx.Frame):
         self.task_choice.SetSelection(1)
         self._update_source_box()
         self._show_build_sections(False)
+        # Always land on the chapter list page when opening a file.
+        if self._page_tags.IsShown():
+            self._page_tags.Hide()
+            self._page_ch.Show()
+            self.panel.Layout()
         self.edit_path = path
         self.edit_chapters = list(chapters)
         self.edit_total_ms = total_ms
@@ -1919,6 +1926,10 @@ class MainFrame(wx.Frame):
         self.edit_total_ms = 0
         self.edit_dirty = False
         self._audio_order = []
+        if self._page_tags.IsShown():
+            self._page_tags.Hide()
+            self._page_ch.Show()
+            self.panel.Layout()
         self.ch_list_label.SetLabel("Chapter &list (one per source file):")
         col4 = wx.ListItem()
         col4.SetText("Source file")
@@ -3229,7 +3240,7 @@ class CommandPaletteDialog:
             ("Delete",                        "Delete",         lambda: f._remove_selected(),             lambda: nb() and sel() >= 0 and (no_edit() or n() > 1)),
             ("Listen to This Chapter",        None,             lambda: f._on_play_selected(None),       lambda: nb() and sel() >= 0),
             ("Split Here",                    None,             lambda: f._on_split_chapter(None),       lambda: nb() and edit() and f.player.has_media()),
-            ("Command Palette",               "Ctrl+Shift+P",   lambda: self._open_command_palette(),    lambda: True),
+            ("Command Palette",               "Ctrl+Shift+P",   lambda: f._open_command_palette(),       lambda: True),
             ("User Guide",                    "F1",             lambda: f._on_guide(None),               lambda: True),
             ("Keyboard Shortcuts",            "Ctrl+/",         lambda: f._on_keys(None),                lambda: True),
             ("Get Help Information…",         None,             lambda: f._on_save_diagnostics(None),    lambda: True),

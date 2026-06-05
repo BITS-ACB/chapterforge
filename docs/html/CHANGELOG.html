@@ -67,9 +67,57 @@ footer.site { color: var(--muted); border-top: 1px solid var(--border);
 <header class="site"><nav aria-label="Documentation"><ul><li><a href="index.html">Home</a></li><li><a href="USER_GUIDE.html">User Guide</a></li><li><a href="DEPLOYMENT.html">Deployment</a></li><li><a href="CHANGELOG.html" aria-current="page">Changelog</a></li><li><a href="THIRD_PARTY.html">Third-Party Notices</a></li></ul></nav></header>
 <div class="wrap">
 <main id="main" tabindex="-1">
-<nav class="toc" aria-label="On this page"><p>On this page</p><ul><li><a href="#180---2026-06-04">[1.80] - 2026-06-04</a></li><li class="lvl3"><a href="#added">Added</a></li><li class="lvl3"><a href="#changed">Changed</a></li><li><a href="#173---2026-06-04">[1.7.3] - 2026-06-04</a></li><li class="lvl3"><a href="#fixed">Fixed</a></li><li><a href="#172---2026-06-04">[1.7.2] - 2026-06-04</a></li><li class="lvl3"><a href="#fixed">Fixed</a></li><li><a href="#171---2026-06-04">[1.7.1] - 2026-06-04</a></li><li class="lvl3"><a href="#fixed">Fixed</a></li><li><a href="#170---2026-06-04">[1.7.0] - 2026-06-04</a></li><li class="lvl3"><a href="#added">Added</a></li><li class="lvl3"><a href="#changed">Changed</a></li><li><a href="#160---2026-06-04">[1.6.0] - 2026-06-04</a></li><li class="lvl3"><a href="#added">Added</a></li><li class="lvl3"><a href="#fixed">Fixed</a></li><li><a href="#150---2026-06-04">[1.5.0] - 2026-06-04</a></li><li class="lvl3"><a href="#added">Added</a></li><li class="lvl3"><a href="#changed">Changed</a></li><li><a href="#120---2026-06-20">[1.2.0] - 2026-06-20</a></li><li class="lvl3"><a href="#added">Added</a></li><li class="lvl3"><a href="#changed">Changed</a></li><li><a href="#110---2026-06-15">[1.1.0] - 2026-06-15</a></li><li class="lvl3"><a href="#added">Added</a></li><li class="lvl3"><a href="#changed">Changed</a></li><li><a href="#100---2026-06-01">[1.0.0] - 2026-06-01</a></li><li class="lvl3"><a href="#added">Added</a></li></ul></nav>
+<nav class="toc" aria-label="On this page"><p>On this page</p><ul><li><a href="#182---2026-06-05">[1.82] - 2026-06-05</a></li><li class="lvl3"><a href="#fixed">Fixed</a></li><li class="lvl3"><a href="#changed">Changed</a></li><li><a href="#181---2026-06-05">[1.81] - 2026-06-05</a></li><li class="lvl3"><a href="#added">Added</a></li><li><a href="#180---2026-06-04">[1.80] - 2026-06-04</a></li><li class="lvl3"><a href="#added">Added</a></li><li class="lvl3"><a href="#changed">Changed</a></li><li><a href="#173---2026-06-04">[1.7.3] - 2026-06-04</a></li><li class="lvl3"><a href="#fixed">Fixed</a></li><li><a href="#172---2026-06-04">[1.7.2] - 2026-06-04</a></li><li class="lvl3"><a href="#fixed">Fixed</a></li><li><a href="#171---2026-06-04">[1.7.1] - 2026-06-04</a></li><li class="lvl3"><a href="#fixed">Fixed</a></li><li><a href="#170---2026-06-04">[1.7.0] - 2026-06-04</a></li><li class="lvl3"><a href="#added">Added</a></li><li class="lvl3"><a href="#changed">Changed</a></li><li><a href="#160---2026-06-04">[1.6.0] - 2026-06-04</a></li><li class="lvl3"><a href="#added">Added</a></li><li class="lvl3"><a href="#fixed">Fixed</a></li><li><a href="#150---2026-06-04">[1.5.0] - 2026-06-04</a></li><li class="lvl3"><a href="#added">Added</a></li><li class="lvl3"><a href="#changed">Changed</a></li><li><a href="#120---2026-06-20">[1.2.0] - 2026-06-20</a></li><li class="lvl3"><a href="#added">Added</a></li><li class="lvl3"><a href="#changed">Changed</a></li><li><a href="#110---2026-06-15">[1.1.0] - 2026-06-15</a></li><li class="lvl3"><a href="#added">Added</a></li><li class="lvl3"><a href="#changed">Changed</a></li><li><a href="#100---2026-06-01">[1.0.0] - 2026-06-01</a></li><li class="lvl3"><a href="#added">Added</a></li></ul></nav>
 <h1>Changelog</h1>
 <p>All notable changes to ChapterForge are documented here. The format is based on <a href="https://keepachangelog.com/">Keep a Changelog</a>, and this project adheres to <a href="https://semver.org/">Semantic Versioning</a>.</p>
+<h2 id="182---2026-06-05">[1.82] - 2026-06-05</h2>
+<h3 id="fixed">Fixed</h3>
+<ul>
+<li><strong>Audio reorder crash</strong> - <code>write_id3_chapters</code> was called instead of the</li>
+</ul>
+<p>correct <code>write_tags_and_chapters</code>; would have crashed on first audio reorder.</p>
+<ul>
+<li><strong>Command Palette entry</strong> - selecting &quot;Command Palette&quot; from within the</li>
+</ul>
+<p>palette itself raised <code>AttributeError</code> (called method on dialog, not frame).</p>
+<ul>
+<li><strong>FFmpeg error messages</strong> - segment extraction errors now show FFmpeg&#x27;s</li>
+</ul>
+<p><code>stderr</code> output instead of the empty <code>stdout</code>.</p>
+<ul>
+<li><strong>Page stays on Step 2 when opening a new file</strong> - loading a file in edit</li>
+</ul>
+<p>mode or switching to build mode now always resets back to the chapters page.</p>
+<ul>
+<li><strong>Edit This Chapter uses focused item</strong> - F2 / Edit Chapter now correctly</li>
+</ul>
+<p>acts on the keyboard-focused item even when the list selection state lags.</p>
+<h3 id="changed">Changed</h3>
+<ul>
+<li><strong>User Guide completely rewritten</strong> to reflect the two-page workflow, Edit</li>
+</ul>
+<p>menu, View menu, audio reorder, and all features added since 1.0.</p>
+<h2 id="181---2026-06-05">[1.81] - 2026-06-05</h2>
+<h3 id="added">Added</h3>
+<ul>
+<li><strong>Edit menu</strong> - Dedicated Edit menu with chapter operations: Edit This Chapter (F2),</li>
+</ul>
+<p>Move Up, Move Down, Remove/Merge Up, Load Chapter List, Save Chapter List. Chapter import/export moved here from the File menu where they belong logically.</p>
+<ul>
+<li><strong>View menu</strong> - New View menu with live theme switching (Follow System, Light, Dark,</li>
+</ul>
+<p>High Contrast), text size controls (Larger Ctrl+=, Smaller Ctrl+-, Reset Ctrl+0), and Show/Hide Player toggle. Theme changes apply instantly without opening Settings.</p>
+<ul>
+<li><strong>Quick Actions dropdown</strong> - A &quot;Quick Actions...&quot; combo in the source bar gives</li>
+</ul>
+<p>one-click access to Command Palette, Look for Updates, Settings, and Get Help.</p>
+<ul>
+<li><strong>Portable installation mode</strong> - The single installer now lets you choose Standard</li>
+</ul>
+<p>(installs to Program Files with Start Menu) or Portable (extracts to any folder - USB drive, network share, no registry writes, no uninstaller).</p>
+<ul>
+<li><strong>GitHub Pages documentation</strong> - https://bits-acb.github.io/chapterforge/ is now live.</li>
+</ul>
 <h2 id="180---2026-06-04">[1.80] - 2026-06-04</h2>
 <h3 id="added">Added</h3>
 <ul>

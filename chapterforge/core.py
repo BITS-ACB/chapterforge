@@ -1486,7 +1486,7 @@ def reorder_audio_chapters(
             if result.returncode != 0:
                 raise ChapterForgeError(
                     f"Could not extract segment {pos + 1}: "
-                    + result.stdout.decode("utf-8", "replace")[-400:])
+                    + result.stderr.decode("utf-8", "replace")[-400:])
             segments.append(seg)
             if progress:
                 progress((pos + 1) / n * 0.75)
@@ -1544,7 +1544,7 @@ def reorder_audio_chapters(
 
     actual_ms = _probe_duration_ms(output_path) or total_ms
     clamped = _clamp_chapters(new_chapters, actual_ms, scale=False)
-    write_id3_chapters(output_path, clamped, tags)
+    write_tags_and_chapters(output_path, clamped, tags, actual_ms)
     if progress:
         progress(1.0)
     return BuildResult(
