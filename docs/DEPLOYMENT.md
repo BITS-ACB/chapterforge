@@ -8,9 +8,12 @@ on Windows.
 ## 1. Prerequisites
 
 - **Python 3.10+** (developed on 3.12).
-- **FFmpeg** — `ffmpeg.exe` and `ffprobe.exe`. For a self-contained build, place
-  them in `bin\` at the repo root; the PyInstaller spec bundles them and the app
-  resolves them from `_internal\bin\` at runtime.
+- **FFmpeg** — Download a build of FFmpeg from https://ffmpeg.org/download.html
+  (Windows → gyan.dev static build is recommended). Extract the ZIP, then copy
+  `ffmpeg.exe` and `ffprobe.exe` from the extracted `bin\` folder into the
+  `bin\` folder at the repo root. (If `bin\` doesn't exist, create it.)
+  For a self-contained build, PyInstaller bundles them and the app resolves them
+  from `_internal\bin\` at runtime.
 - Python build dependencies:
 
   ```bash

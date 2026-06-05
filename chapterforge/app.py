@@ -577,14 +577,19 @@ class MainFrame(wx.Frame):
         count = self._row_count()
         sel = self.list.GetFirstSelected() if count else -1
         for ctrl in (self.btn_browse, self.btn_output, self.btn_build,
-                     self.btn_cover, self.btn_cover_clear, self.list,
-                     self.title_ctrl, self.tag_title, self.tag_artist,
-                     self.tag_album, self.tag_album_artist, self.tag_genre,
-                     self.tag_year, self.tag_comment,
+                     self.btn_cover, self.btn_cover_clear,
                      self.title_source, self.bitrate_choice, self.normalize_chk,
                      self.format_choice, self.pod2_chk, self.gap_ctrl,
                      self.task_choice):
             ctrl.Enable(not building)
+        # List and chapter controls are only tabbable when there's content
+        self.list.Enable(not building and count > 0)
+        self.title_ctrl.Enable(not building and sel >= 0)
+        # Tag fields are only tabbable when in build mode with items or edit mode with content
+        for ctrl in (self.tag_title, self.tag_artist, self.tag_album,
+                     self.tag_album_artist, self.tag_genre, self.tag_year,
+                     self.tag_comment):
+            ctrl.Enable(not building and count > 0)
         # Build-only widgets are hidden in edit mode; also disable them for safety.
         for ctrl in (self.btn_output, self.btn_build,
                      self.title_source, self.bitrate_choice, self.normalize_chk,
@@ -2312,15 +2317,18 @@ class MainFrame(wx.Frame):
             self._on_open(evt)
 
     def _on_task_choice(self, _evt) -> None:
-        """Task combo changed: switch mode or open the appropriate dialog."""
+        """Task combo changed: switch mode (user will then use Browse to open a file/folder)."""
         if self._is_building():
             self.task_choice.SetSelection(0 if self.mode == "build" else 1)
             return
         sel = self.task_choice.GetSelection()
         if sel == 1:  # Edit existing file
-            self._on_open_master(None)
-            if self.mode != "edit":
-                self.task_choice.SetSelection(0)  # dialog was cancelled
+            # Just switch to edit mode; user will click Browse to open a file
+            self.mode = "edit"
+            self._show_build_sections(False)
+            self._update_source_box()
+            self._update_command_state()
+            self._announce("Switched to edit mode. Click Browse to open a chaptered file.")
         else:  # Build new master
             if self.mode == "edit":
                 if not self._confirm_discard_edits():
@@ -2347,10 +2355,10 @@ class MainFrame(wx.Frame):
         self.btn_browse.SetLabel("&Open File…" if edit else "&Browse…")
         self.btn_browse.SetName(
             "Open a chaptered MP3 or M4B file to edit" if edit
-            else "Browse for source folder of MP3 files")
+            else "Browse for a folder of MP3 files")
         self.btn_browse.SetToolTip(
             "Choose a chaptered MP3 or M4B file to open for editing." if edit
-            else "Open a folder whose MP3 files will become the chapters.")
+            else "Browse for a folder of MP3 files to build from.")
         self.folder_ctrl.SetHint(
             "No file open yet" if edit else "No folder chosen yet")
 
