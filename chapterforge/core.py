@@ -2449,11 +2449,11 @@ def parse_chapter_text(text: str, total_ms: int) -> List[Chapter]:
                 pairs.append((int(round(float(cols[0]) * 1000)),
                               cols[2].strip() or f"Chapter {len(pairs) + 1}"))
                 continue
-            m = re.match(r"^(\d{1,2}:\d{2}(?::\d{2})?(?:\.\d+)?$", s)
+            m = re.match(r"^(\d{1,2}:\d{2}(?::\d{2})?(?:\.\d+)?)\s*(.*)", s)
             if m:
                 ms = _ts_to_ms(m.group(1))
                 if ms is not None:
-                    title = m.group(2).strip() or f"Chapter {len(pairs) + 1}"
+                    title = m.group(2).strip().lstrip("- ").strip() or f"Chapter {len(pairs) + 1}"
                     pairs.append((ms, title))
     pairs = [(ms, t) for ms, t in pairs if 0 <= ms < total_ms]
     if not pairs:
