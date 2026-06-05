@@ -4,6 +4,32 @@ All notable changes to ChapterForge are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.80] - 2026-06-04
+
+### Added
+- **Auto-download FFmpeg on first launch** - If FFmpeg is missing, the app now shows 
+  a friendly yes/no dialog offering to download it automatically. Downloads happen in 
+  the background while the main window shows, and the screen reader announces progress.
+  Seamless first-run experience on development machines and fresh installations.
+
+### Changed
+- **Friendlier, less technical language throughout the app:**
+  * "Auto-chapter by Silence" → "Find Chapters in Silent Gaps"
+  * "Batch Build Folder" → "Build Multiple Books"
+  * "Watch Folders" → "Set Up Automatic Building"
+  * "Start Background Watcher" → "Auto-Build in Background"
+  * "Start Watcher at Sign-in" → "Auto-Build When I Sign In"
+  * "Load Job File" → "Load a Saved Setup"
+  * "Generate Job File" → "Save This Setup as a Template"
+  * "Import/Export Chapters" → "Load/Save Chapter List"
+  * "Edit Selected Chapter" → "Edit This Chapter"
+  * "Play Selected Chapter" → "Listen to This Chapter"
+  * "Split Chapter at Playhead" → "Split Here"
+  * "Choose Output File" → "Save Master As"
+  * "Check for Updates" → "Look for Updates"
+  * "Save Diagnostics" → "Get Help Information"
+- Makes ChapterForge feel more accessible and less technical for new users.
+
 ## [1.7.3] - 2026-06-04
 
 ### Fixed
