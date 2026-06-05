@@ -115,7 +115,7 @@ class MainFrame(wx.Frame):
         self.mi_recent = file_menu.AppendSubMenu(
             self.recent_menu, "Open &Recent",
             "Re-open a recently used folder, master or job file")
-        self.mi_output = file_menu.Append(wx.ID_ANY, "Choose Out&put File…",
+        self.mi_output = file_menu.Append(wx.ID_ANY, "&Save Master As…",
                                           "Choose where the master file is saved")
         file_menu.AppendSeparator()
         self.mi_build = file_menu.Append(wx.ID_ANY, "&Build Master MP3\tCtrl+B",
@@ -130,17 +130,17 @@ class MainFrame(wx.Frame):
                                           "Cancel a build in progress")
         file_menu.AppendSeparator()
         self.mi_load_job = file_menu.Append(
-            wx.ID_ANY, "&Load Job File…\tCtrl+L",
+            wx.ID_ANY, "&Load a Saved Setup…\tCtrl+L",
             "Load a .cfjob file that defines order, titles and tags")
         self.mi_gen_job = file_menu.Append(
-            wx.ID_ANY, "&Generate Job File…\tCtrl+G",
+            wx.ID_ANY, "Sa&ve This Setup as a Template…\tCtrl+G",
             "Save the current chapters and tags as a reusable .cfjob file")
         file_menu.AppendSeparator()
         self.mi_import_ch = file_menu.Append(
-            wx.ID_ANY, "&Import Chapters…",
+            wx.ID_ANY, "&Load Chapter List From File…",
             "Replace the chapter markers of the open master from a label file")
         self.mi_export_ch = file_menu.Append(
-            wx.ID_ANY, "E&xport Chapters…",
+            wx.ID_ANY, "Sa&ve Chapter List…",
             "Save the current chapter list as labels, a CUE sheet or JSON")
         file_menu.AppendSeparator()
         file_menu.Append(wx.ID_EXIT, "E&xit\tAlt+F4", "Close ChapterForge")
@@ -148,21 +148,21 @@ class MainFrame(wx.Frame):
 
         tools_menu = wx.Menu()
         self.mi_silence = tools_menu.Append(
-            wx.ID_ANY, "Auto-chapter by &Silence…",
+            wx.ID_ANY, "Find Chapters in Silent &Gaps…",
             "Detect chapters in an audio file from silent gaps")
         self.mi_batch = tools_menu.Append(
-            wx.ID_ANY, "&Batch Build Folder…",
+            wx.ID_ANY, "Build &Multiple Books…",
             "Build a master for every sub-folder of books at once")
         tools_menu.AppendSeparator()
         self.mi_watch = tools_menu.Append(
-            wx.ID_ANY, "&Watch Folders…\tCtrl+W",
+            wx.ID_ANY, "Set Up &Automatic Building…\tCtrl+W",
             "Manage reusable watch-folder processes")
         self.mi_start_watch = tools_menu.Append(
-            wx.ID_ANY, "Start &Background Watcher",
+            wx.ID_ANY, "&Auto-Build in Background",
             "Minimize to the system tray and watch folders automatically")
         from . import autostart
         self.mi_autostart = tools_menu.AppendCheckItem(
-            wx.ID_ANY, "Start Watcher at Sign-&in",
+            wx.ID_ANY, "Auto-Build When I &Sign In",
             "Run the background watcher automatically when you sign in")
         self.mi_autostart.Enable(autostart.is_supported())
         if autostart.is_supported():
@@ -193,10 +193,10 @@ class MainFrame(wx.Frame):
             "Open the documentation home page")
         help_menu.AppendSeparator()
         self.mi_diagnostics = help_menu.Append(
-            wx.ID_ANY, "Save &Diagnostics…",
+            wx.ID_ANY, "Get &Help Information…",
             "Save a text report of versions and settings for support")
         self.mi_update = help_menu.Append(
-            wx.ID_ANY, "Check for &Updates…",
+            wx.ID_ANY, "&Look for Updates…",
             "Check online for a newer version of ChapterForge")
         self.mi_website = help_menu.Append(
             wx.ID_ANY, "Visit Project &Website",
@@ -2899,29 +2899,31 @@ class CommandPaletteDialog:
         return [
             ("Open Folder…",                 "Ctrl+Shift+O",   lambda: f._on_open(None),               lambda: nb()),
             ("Open Existing Master…",         "Ctrl+O",         lambda: f._on_open_master(None),         lambda: nb()),
-            ("Choose Output File…",           None,             lambda: f._on_set_output(None),          lambda: nb() and no_edit()),
+            ("Save Master As…",               None,             lambda: f._on_set_output(None),          lambda: nb() and no_edit()),
             ("Build Master MP3",              "Ctrl+B",         lambda: f._on_build(None),               lambda: nb() and no_edit() and has_items() and has_out()),
             ("Save Changes",                  "Ctrl+S",         lambda: f._on_save_edit(None),           lambda: edit() and nb() and f._edit_is_mp3()),
             ("Save As…",                      "Ctrl+Alt+S",     lambda: f._on_save_as(None),             lambda: nb() and n() > 0),
             ("Cancel Build",                  "Esc",            lambda: f._on_cancel(None),              lambda: f._is_building()),
-            ("Load Job File…",                "Ctrl+L",         lambda: f._on_load_job(None),            lambda: nb()),
-            ("Generate Job File…",            "Ctrl+G",         lambda: f._on_generate_job(None),        lambda: nb() and no_edit() and has_items()),
-            ("Import Chapters…",              None,             lambda: f._on_import_chapters(None),     lambda: nb() and edit()),
-            ("Export Chapters…",              None,             lambda: f._on_export_chapters(None),     lambda: nb() and n() > 0),
-            ("Auto-chapter by Silence…",      None,             lambda: f._on_silence(None),             lambda: nb()),
-            ("Batch Build Folder…",           None,             lambda: f._on_batch(None),               lambda: nb()),
-            ("Watch Folders…",                "Ctrl+W",         lambda: f._on_watch_folders(None),       lambda: True),
-            ("Start Background Watcher",      None,             lambda: f._on_start_watcher(None),       lambda: True),
+            ("Load a Saved Setup…",           "Ctrl+L",         lambda: f._on_load_job(None),            lambda: nb()),
+            ("Save This Setup as a Template…", "Ctrl+G",         lambda: f._on_generate_job(None),        lambda: nb() and no_edit() and has_items()),
+            ("Load Chapter List From File…",  None,             lambda: f._on_import_chapters(None),     lambda: nb() and edit()),
+            ("Save Chapter List…",            None,             lambda: f._on_export_chapters(None),     lambda: nb() and n() > 0),
+            ("Find Chapters in Silent Gaps…", None,             lambda: f._on_silence(None),             lambda: nb()),
+            ("Build Multiple Books…",        None,             lambda: f._on_batch(None),               lambda: nb()),
+            ("Set Up Automatic Building…",    "Ctrl+W",         lambda: f._on_watch_folders(None),       lambda: True),
+            ("Auto-Build in Background",      None,             lambda: f._on_start_watcher(None),       lambda: True),
             ("Settings…",                     "Ctrl+,",         lambda: f._on_settings(None),            lambda: True),
-            ("Edit Selected Chapter…",        "F2",             lambda: f._on_edit_chapter(None),        lambda: nb() and sel() >= 0),
-            ("Move Chapter Up",               "Alt+Up",         lambda: f._move(-1),                     lambda: nb() and no_edit() and sel() > 0),
-            ("Move Chapter Down",             "Alt+Down",       lambda: f._move(1),                      lambda: nb() and no_edit() and 0 <= sel() < n() - 1),
-            ("Remove Chapter",                "Delete",         lambda: f._remove_selected(),             lambda: nb() and sel() >= 0 and (no_edit() or n() > 1)),
-            ("Play Selected Chapter",         None,             lambda: f._on_play_selected(None),       lambda: nb() and sel() >= 0),
-            ("Split Chapter at Playhead",     None,             lambda: f._on_split_chapter(None),       lambda: nb() and edit() and f.player.has_media()),
+            ("Edit This Chapter…",            "F2",             lambda: f._on_edit_chapter(None),        lambda: nb() and sel() >= 0),
+            ("Move Up",                       "Alt+Up",         lambda: f._move(-1),                     lambda: nb() and no_edit() and sel() > 0),
+            ("Move Down",                     "Alt+Down",       lambda: f._move(1),                      lambda: nb() and no_edit() and 0 <= sel() < n() - 1),
+            ("Delete",                        "Delete",         lambda: f._remove_selected(),             lambda: nb() and sel() >= 0 and (no_edit() or n() > 1)),
+            ("Listen to This Chapter",        None,             lambda: f._on_play_selected(None),       lambda: nb() and sel() >= 0),
+            ("Split Here",                    None,             lambda: f._on_split_chapter(None),       lambda: nb() and edit() and f.player.has_media()),
+            ("Command Palette",               "Ctrl+Shift+P",   lambda: self._open_command_palette(),    lambda: True),
             ("User Guide",                    "F1",             lambda: f._on_guide(None),               lambda: True),
             ("Keyboard Shortcuts",            "Ctrl+/",         lambda: f._on_keys(None),                lambda: True),
-            ("Check for Updates…",            None,             lambda: f._on_check_updates(None),       lambda: True),
+            ("Get Help Information…",         None,             lambda: f._on_save_diagnostics(None),    lambda: True),
+            ("Look for Updates…",             None,             lambda: f._on_check_updates(None),       lambda: True),
             ("About ChapterForge",            None,             lambda: f._on_about(None),               lambda: True),
         ]
 
