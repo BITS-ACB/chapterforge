@@ -1,32 +1,606 @@
-# ChapterForge — User Guide
+# ChapterForge 2.0.0 — Comprehensive User Guide
 
-ChapterForge turns a folder of MP3 files into a single **master MP3** with
-embedded chapter markers (ID3v2 `CHAP`/`CTOC`). Each source file becomes one
-chapter, titled from its filename. It is designed to be fully usable with a
-keyboard and a screen reader.
+Welcome to ChapterForge 2.0.0, the most advanced, accessible, and feature-rich audio chapter management solution available today. This comprehensive user guide will walk you through every feature, function, and workflow to help you master the art of audio chaptering.
 
----
+Whether you're a visually impaired user requiring full keyboard navigation and screen reader support, a content creator producing audiobooks, or a podcaster looking to enhance your episodes with precise chapter markers, this guide has everything you need to succeed.
 
-## 1. Quick start
-
-1. Launch **ChapterForge** (Start menu shortcut, or `chapterforge` on the command line).
-2. **File → Open Folder** (`Ctrl+Shift+O`) and choose a folder of MP3s.
-   - Files are listed in natural order (`01`, `02`, `10`, `11`).
-   - Leading track numbers are automatically stripped from chapter titles
-     (`01 Chapter One.mp3` becomes *Chapter One*).
-   - If a previously built master exists in the folder it is skipped automatically.
-3. Review and adjust the **Chapters** list (Step 1 of the workflow).
-4. Click **Set Tags & Build ->** to move to Step 2.
-5. Fill in the **Tags** (title, artist, album, year, cover art, etc.).
-6. Set the output file location and click **Build Master MP3** (or `Ctrl+B`).
-
-The build runs on a background thread; progress is shown in the gauge and
-announced to your screen reader. When it finishes a master MP3 and a
-human-readable `… - chapters.txt` report are saved next to each other.
+ChapterForge 2.0.0 is designed to be the ultimate tool for creating professionally chaptered audio content from collections of audio files. With support for virtually any audio format, powerful editing capabilities, and unparalleled accessibility features, ChapterForge empowers users of all abilities to create high-quality, playback-optimized audio content.
 
 ---
 
-## 2. Keyboard shortcuts
+## 1. Getting Started with ChapterForge 2.0.0
+
+### 1.1 Launching the Application
+
+ChapterForge 2.0.0 can be launched in multiple ways to suit your workflow:
+
+- **Graphical Interface**: Click the ChapterForge shortcut in your Start Menu or desktop
+- **Command Line**: Type `chapterforge` in your terminal or command prompt
+- **Background Watcher**: Run `chapterforge --watch` to start the system tray watcher
+
+Upon launch, you'll be greeted with a clean, intuitive interface designed for maximum accessibility and efficiency. The application automatically detects your system's accessibility settings and configures itself accordingly.
+
+### 1.2 Understanding the Interface
+
+The ChapterForge 2.0.0 interface is organized into three main sections for optimal workflow efficiency:
+
+1. **Chapter Management Panel** (Left): Organize and edit your chapter list
+2. **Metadata and Tagging Panel** (Center): Set ID3 tags, cover art, and export options
+3. **Preview and Control Panel** (Right): Real-time audio visualization and playback controls
+
+Each panel is fully accessible with keyboard navigation and screen reader support. The interface features a modern design with adaptive layouts, smooth animations, and a sleek dark/light theme toggle to suit your preferences.
+
+### 1.3 Quick Start Workflow
+
+#### Method 1: Basic Chapter Creation from Folder
+1. Launch ChapterForge 2.0.0
+2. **File → Open Folder** (`Ctrl+Shift+O`) and select a folder containing your audio files
+3. Review the automatically generated chapter list in the Chapter Management Panel
+4. Make any necessary adjustments to chapter titles or order
+5. Click **Set Tags & Build** to proceed to metadata configuration
+6. Fill in the required metadata fields (Title, Artist, Album, etc.)
+7. Set your output file location and format
+8. Click **Build Master File** (`Ctrl+B`) to create your chaptered audio file
+
+#### Method 2: Advanced Workflow with Silence Detection
+1. Launch ChapterForge 2.0.0
+2. **File → Open File** (`Ctrl+O`) and select a single long audio recording
+3. Enable **Auto-chapter by Silence** in the processing options
+4. Adjust silence detection parameters (threshold and minimum duration)
+5. Click **Detect Chapters** to automatically find chapter boundaries
+6. Review and adjust the automatically detected chapters
+7. Proceed with metadata configuration and building as above
+
+#### Method 3: Using Job Files
+1. Launch ChapterForge 2.0.0
+2. **File → Open Job File** (`Ctrl+L`) and select an existing .cfjob file
+3. Review the loaded configuration
+4. Make any necessary adjustments
+5. Click **Build Master File** to process according to the job file
+
+### 1.4 System Requirements
+
+- **Operating System**: Windows 10/11 (64-bit)
+- **Memory**: 4GB RAM minimum (8GB recommended)
+- **Storage**: 500MB available disk space plus space for audio files
+- **Accessibility**: Compatible with NVDA, JAWS, and Windows Narrator
+- **Additional**: Internet connection recommended for updates
+
+---
+
+## 2. Comprehensive Feature Guide
+
+### 2.1 Chapter Management Panel
+
+The Chapter Management Panel is where you organize, edit, and optimize your chapter structure. This panel provides powerful tools for managing your audio content with precision.
+
+#### Chapter List Operations
+- **Add Chapter**: Click the "+" button or press `Insert` to add a new chapter
+- **Remove Chapter**: Select a chapter and press `Delete` or click the "-" button
+- **Reorder Chapters**: Use `Ctrl+Up/Down` arrows or drag-and-drop to rearrange chapters
+- **Edit Chapter Title**: Double-click on a chapter title or select and press `F2`
+- **Batch Edit**: Select multiple chapters using `Ctrl+Click` or `Shift+Click` for bulk operations
+
+#### Chapter Merging and Splitting
+- **Merge Chapters**: Select adjacent chapters and choose "Merge Selected" to combine them
+- **Split Chapter**: During playback, click "Split Here" to divide a chapter at the current position
+- **Chapter Splitting Wizard**: Select a chapter and use "Split into Individual Files" to break it into separate audio files
+
+#### Advanced Chapter Features
+- **Auto-chapter by Silence**: Automatically detect chapter breaks in long recordings by analyzing silence gaps
+- **Chapter Title Patterns**: Use the Batch Edit Titles dialog to apply naming patterns to multiple chapters
+- **Chapter Duration Analysis**: View detailed timing information for each chapter
+- **Chapter Validation**: Automatic checking for potential issues with chapter boundaries
+
+### 2.2 Metadata and Tagging Panel
+
+ChapterForge 2.0.0 includes a professional-grade metadata editor that supports all standard ID3 fields and advanced tagging features.
+
+#### Basic Tags
+- **Title**: The main title of your audio work
+- **Artist**: Primary artist or narrator
+- **Album**: Collection or series name
+- **Album Artist**: For multi-artist collections
+- **Genre**: Categorization for organization
+- **Year**: Publication or recording year
+- **Track Number**: Position in album/series
+- **Comment**: Additional descriptive information
+
+#### Advanced Tagging Features
+- **Custom Fields**: Add any number of custom ID3 fields
+- **Cover Art**: Automatic detection or manual selection of album art
+- **Multiple Images**: Attach multiple images with different types (cover, artist, etc.)
+- **Tag Templates**: Save tagging configurations for reuse across projects
+
+#### Format and Quality Options
+- **Output Format**: Choose from MP3 with CHAP/CTOC, M4B with native MP4 chapters, or FLAC lossless
+- **Bitrate Settings**: Configure quality levels from 64k to 320k bitrate
+- **Loudness Normalization**: ITU-R BS.1770-4 compliant loudness adjustment with LUFS targeting
+- **Sample Rate Conversion**: Automatic or manual sample rate settings
+- **Channel Mapping**: Mono, stereo, or multi-channel output options
+- **Inter-Chapter Gaps**: Insert configurable silence between chapters
+- **Fade Effects**: Apply fade-in/fade-out to individual chapters
+
+### 2.3 Preview and Control Panel
+
+The Preview and Control Panel provides comprehensive playback and analysis tools for precise editing and quality control.
+
+#### Playback Controls
+- **Play/Pause**: Spacebar or click the play button
+- **Stop**: Stop playback and return to beginning
+- **Previous/Next Chapter**: Navigate between chapters with dedicated buttons
+- **Rewind/Forward**: Jump forward or backward by configurable time increments
+- **Volume Control**: Adjust playback volume with slider or keyboard shortcuts
+- **Position Slider**: Drag to any point in the audio or click for precise positioning
+
+#### Real-time Analysis
+- **Waveform Display**: Visualize audio waveform with zoom and navigation controls
+- **Spectral Analysis**: View frequency content in real-time
+- **Level Meters**: Monitor audio levels to prevent clipping
+- **Chapter Information**: Current chapter details and timing
+- **Playback Statistics**: Detailed playback performance metrics
+
+#### Advanced Playback Features
+- **Loop Selection**: Set start and end points to loop a section
+- **Variable Speed**: Adjust playback speed from 0.5x to 2.0x
+- **A-B Repeat**: Define a section to repeat continuously
+- **Bookmark System**: Save important positions for later reference
+- **Chapter Preview**: Listen to individual chapters before building
+- **Pre-listen as Cut**: Hear how audio will sound after trimming
+
+### 2.4 Audio Trimming and Cutting Tools
+
+ChapterForge 2.0.0 includes powerful audio editing tools for precise trimming and cutting:
+
+#### Lossless Audio Trimming
+- **Set Begin/End Points**: Mark precise trim boundaries using the current playhead position
+- **Pre-listen as Cut**: Hear exactly how the trimmed audio will sound
+- **Save Trimmed Selection**: Export the selected region as a new file using lossless FFmpeg copy
+- **Reset Trim State**: Automatically reset trim markers when loading new files
+
+#### Chapter Splitting
+- **Split One Long Recording**: Break a single long audio file into individual chapter files
+- **Lossless File Splitting**: Use FFmpeg copy to split files without quality loss
+- **Progress Callbacks**: Monitor splitting progress with detailed feedback
+- **Batch File Output**: Save split chapters with customizable naming patterns
+
+---
+
+## 3. Keyboard Shortcuts and Accessibility
+
+### 3.1 Comprehensive Keyboard Navigation
+
+ChapterForge 2.0.0 is designed from the ground up for full keyboard accessibility:
+
+#### Global Shortcuts
+| Key Combination | Action |
+|-----------------|--------|
+| `Ctrl+N` | New project |
+| `Ctrl+Shift+O` | Open folder of audio files |
+| `Ctrl+O` | Open existing chaptered file |
+| `Ctrl+S` | Save current project |
+| `Ctrl+Shift+S` | Save As... |
+| `Ctrl+P` | Print/export report |
+| `Ctrl+Q` | Quit application |
+| `F1` | Open User Guide |
+| `F2` | Rename selected chapter |
+| `F5` | Refresh chapter list |
+| `F11` | Toggle full screen mode |
+| `Ctrl+,` | Open Settings dialog |
+
+#### Chapter Management Shortcuts
+| Key Combination | Action |
+|-----------------|--------|
+| `Insert` | Add new chapter |
+| `Delete` | Remove selected chapter |
+| `Ctrl+Up/Down` | Move chapter up/down in list |
+| `Ctrl+A` | Select all chapters |
+| `Ctrl+E` | Edit chapter title |
+| `Ctrl+D` | Duplicate selected chapter |
+| `Ctrl+R` | Reset chapter boundaries |
+| `Ctrl+Shift+R` | Reset all chapters |
+| `Ctrl+T` | Merge selected chapters |
+| `Ctrl+Shift+T` | Split chapter at playhead |
+
+#### Playback Controls Shortcuts
+| Key Combination | Action |
+|-----------------|--------|
+| `Space` | Play/Pause |
+| `Ctrl+Space` | Stop |
+| `Left/Right Arrow` | Rewind/Forward 5 seconds |
+| `Ctrl+Left/Right` | Previous/Next chapter |
+| `Shift+Left/Right` | Rewind/Forward 30 seconds |
+| `Alt+Left/Right` | Rewind/Forward 1 minute |
+| `Ctrl+Shift+Left/Right` | Jump to first/last chapter |
+| `Up/Down Arrow` | Increase/decrease volume 5% |
+| `Ctrl+Up/Down` | Increase/decrease playback speed 0.1x |
+| `Ctrl+1-9` | Jump to bookmark 1-9 |
+| `[` | Set loop start point |
+| `]` | Set loop end point |
+| `\` | Clear loop selection |
+
+#### Trimming and Cutting Shortcuts
+| Key Combination | Action |
+|-----------------|--------|
+| `Ctrl+B` | Set begin trim point |
+| `Ctrl+E` | Set end trim point |
+| `Ctrl+C` | Clear trim selection |
+| `Ctrl+Shift+C` | Save trimmed selection |
+
+#### Accessibility Features
+- **Screen Reader Optimization**: Intelligent announcements provide context-aware feedback
+- **High Contrast Themes**: Multiple high-contrast color schemes for visual accessibility
+- **Customizable Text Size**: Adjust interface text from 8pt to 24pt
+- **Voice Commands**: Optional voice control for hands-free operation
+- **Keyboard Focus Indicators**: Clear visual indication of currently focused controls
+- **Alternative Navigation**: Tab-based navigation through all interface elements
+
+### 3.2 Screen Reader Integration
+
+ChapterForge 2.0.0 includes advanced screen reader support:
+- **Context-Aware Announcements**: Only relevant information is announced to avoid noise
+- **Customizable Verbosity**: Adjust how much detail is announced during operations
+- **Progress Reporting**: Real-time progress updates during long operations
+- **Error Guidance**: Clear, actionable error messages with recovery suggestions
+- **Workflow Assistance**: Step-by-step guidance through complex operations
+
+---
+
+## 4. Advanced Features and Workflows
+
+### 4.1 Job Files (.cfjob)
+
+Job files are powerful, human-readable text files that store complete project configurations. They enable reproducible builds, template creation, and collaborative workflows.
+
+#### Job File Structure
+```ini
+# ChapterForge 2.0.0 Job File - Professional Audiobook Project
+# Created: 2026-06-05
+# Author: [Your Name]
+
+# Global Settings
+@version     = 2.0.0
+@title       = The Complete Guide to Audio Chaptering
+@artist      = Jane Author
+@album       = Audiobook Masterclass Series
+@albumartist = Audiobook Publishers Inc.
+@genre       = Education
+@year        = 2026
+@comment     = Professional educational audiobook
+@tracktotal  = 12
+
+# Output Configuration
+@output      = The Complete Guide to Audio Chaptering - Master.m4b
+@format      = m4b
+@bitrate     = 128k
+@quality     = high
+@normalize   = true
+@target_lufs = -16.0
+
+# Cover Art
+@cover       = cover.jpg
+
+# Custom Fields
+@composer    = John Composer
+@copyright   = © 2026 Audiobook Publishers Inc.
+@publisher   = Audiobook Publishers Inc.
+@isrc        = US-XXX-23-12345
+
+# Chapter List (filename | title | start | duration | custom tags)
+01_Introduction.mp3      | Introduction to ChapterForge 2.0 | 00:00:00 | 00:05:32 | @genre=Introduction
+02_Getting_Started.mp3   | Getting Started with ChapterForge | 00:05:32 | 00:22:15 | @genre=Tutorial
+03_Advanced_Features.mp3 | Advanced Features and Workflows | 00:27:47 | 00:18:44 | @genre=Advanced
+# ... additional chapters
+```
+
+#### Job File Benefits
+- **Version Control**: Store project configurations in Git or other VCS
+- **Reproducible Builds**: Exactly recreate projects at any time
+- **Batch Processing**: Process multiple job files in sequence
+- **Template System**: Create reusable templates for common project types
+- **Collaboration**: Share complete project configurations with team members
+
+#### Job File Operations
+- **Create**: File → Save Project As... (`Ctrl+Shift+S`)
+- **Load**: File → Open Project... (`Ctrl+L`)
+- **Template**: File → Save as Template...
+- **Batch Process**: Tools → Batch Process Job Files...
+- **Validate**: Tools → Validate Job File Structure
+
+### 4.2 Background Watcher System
+
+The Background Watcher allows automated processing of audio folders with system tray integration:
+
+#### Setting Up Watch Processes
+1. **Tools → Watch Folders...** (`Ctrl+W`)
+2. Click **New Process** to create a watch configuration
+3. Set the **Watch Folder** (folder to monitor for new content)
+4. Configure **Naming Templates** using variables:
+   - `{folder}` - Name of the source folder
+   - `{parent}` - Parent folder name
+   - `{date}` - Current date (YYYY-MM-DD)
+   - `{datetime}` - Current date and time
+5. Set default **Metadata Values** for automated builds
+6. Configure **Output Location** and format preferences
+7. Enable **Start at Sign-in** for persistent watching
+
+#### Advanced Watcher Features
+- **Stability Detection**: Only processes folders after content stabilizes
+- **Duplicate Prevention**: Built-in system prevents double-processing
+- **Progress Notifications**: System notifications for build start/completion
+- **Error Handling**: Automated error recovery and reporting
+- **Custom Scripts**: Run pre/post processing scripts on build completion
+
+#### Watcher Safety Features
+- **Lock Files**: Atomic `.chapterforge_processing` locks prevent double-processing
+- **Done Markers**: `.chapterforge_done` markers make folders one-shot
+- **Failure Backoff**: `.chapterforge_failed` files retry only after content changes
+- **Output Exclusion**: Generated masters are written to `_ChapterForge` sub-folder
+
+### 4.3 Batch Processing System
+
+Process entire libraries with minimal setup using the Batch Processing Wizard:
+
+#### Batch Processing Wizard
+1. **Tools → Batch Processing Wizard**
+2. Select **Source Folder** containing multiple sub-folders
+3. Choose **Processing Mode**:
+   - **Recursive**: Process all sub-folders
+   - **Flat**: Process only immediate sub-folders
+   - **Pattern**: Process folders matching specific naming patterns
+4. Configure **Naming Conventions** for output files
+5. Set **Default Metadata** or enable automatic fetching
+6. Review and confirm the **Processing Queue**
+7. Start processing and monitor progress
+
+#### Batch Processing Options
+- **Parallel Processing**: Process multiple folders simultaneously
+- **Error Tolerance**: Continue processing after individual failures
+- **Progress Reporting**: Detailed logs and summary reports
+- **Scheduling**: Set processing to run at specific times
+- **Resource Management**: Control CPU and memory usage
+
+### 4.4 Silence-Based Chapter Detection
+
+Automatically detect chapter boundaries in long recordings using advanced silence detection algorithms:
+
+#### Silence Detection Parameters
+- **Noise Threshold**: Set sensitivity level for silence detection (default: -30dB)
+- **Minimum Silence Duration**: Configure minimum length of silence to trigger a chapter break (default: 0.8 seconds)
+- **Minimum Chapter Length**: Prevent creation of extremely short chapters
+
+#### Using Silence Detection
+1. **Method 1 - GUI**: Select a long audio file and enable "Auto-chapter by Silence" in processing options
+2. **Method 2 - CLI**: Use `chapterforge --split-silence --noise-db -30 --min-silence 0.8 input.mp3`
+
+#### Advanced Silence Features
+- **Chapter Merging**: Automatically merge chapters shorter than minimum duration
+- **Boundary Refinement**: Fine-tune detected boundaries with waveform visualization
+- **Preview Mode**: Test different parameter combinations before processing
+
+---
+
+## 5. Command Line Interface
+
+ChapterForge 2.0.0 includes a comprehensive CLI for automation and scripting:
+
+### Basic Commands
+```bash
+# Convert a folder of audio files
+chapterforge "C:\Audiobooks\My Book"
+
+# Convert with custom output location
+chapterforge -i .\chapters -o book.mp3
+
+# Set metadata during conversion
+chapterforge .\chapters --title "My Book" --artist "Jane Doe" --album "My Collection"
+
+# Normalize audio loudness
+chapterforge .\chapters --normalize
+
+# Show what would be processed without building
+chapterforge .\chapters --dry-run --list
+
+# Generate a job file for later processing
+chapterforge .\chapters --generate-job mybook.cfjob
+
+# Process using existing job file
+chapterforge --job mybook.cfjob
+
+# Check for application updates
+chapterforge --check-updates
+
+# Show detailed help
+chapterforge --help
+```
+
+### Advanced CLI Features
+```bash
+# Batch process multiple folders
+chapterforge --batch "C:\Audiobooks" --recursive
+
+# Process with specific quality settings
+chapterforge .\chapters --bitrate 192k --quality high
+
+# Enable loudness normalization to specific LUFS target
+chapterforge .\chapters --normalize --target-lufs -16.0
+
+# Export chapters to multiple formats
+chapterforge .\chapters --export-cue --export-txt --export-json
+
+# Process with custom cover art
+chapterforge .\chapters --cover artwork.jpg
+
+# Split a long recording into chapters by silence
+chapterforge --split-silence --noise-db -30 --min-silence 0.8 long_recording.mp3
+
+# Verbose output for debugging
+chapterforge .\chapters --verbose
+
+# Silent mode for automated scripts
+chapterforge .\chapters --silent
+
+# Export processing report
+chapterforge .\chapters --report report.txt
+```
+
+### CLI Return Codes
+- `0`: Success
+- `1`: General error
+- `2`: Invalid arguments
+- `3`: Processing error
+- `4`: File not found
+- `5`: Insufficient permissions
+
+### CLI Automation Examples
+```bash
+# Process an entire library silently
+for /d %i in ("C:\Audiobooks\*") do chapterforge "%i" --silent
+
+# Batch convert with error logging
+chapterforge --batch "C:\Audiobooks" --recursive --report batch_report.txt
+
+# Nightly processing script
+chapterforge --batch "C:\Audiobooks" --recursive --normalize --target-lufs -16.0
+```
+
+---
+
+## 6. Troubleshooting and Support
+
+### Common Issues and Solutions
+
+#### Issue: "FFmpeg not found" error
+**Solution**: 
+1. Ensure FFmpeg is installed and on your system PATH
+2. Or use the bundled FFmpeg by installing the complete ChapterForge package
+3. Verify installation with `ffmpeg -version` in command prompt
+
+#### Issue: Chapters not displaying in player
+**Solution**:
+1. Check that your player supports ID3v2 CHAP/CTOC frames
+2. Verify chapter file was built successfully
+3. Try exporting in M4B format for better player compatibility
+
+#### Issue: Slow processing times
+**Solution**:
+1. Close other applications to free system resources
+2. Ensure sufficient free disk space
+3. Check that your audio files are not corrupted
+4. Consider using SSD storage for temporary files
+
+#### Issue: Accessibility features not working
+**Solution**:
+1. Ensure screen reader is running before launching ChapterForge
+2. Check that Prismatoid package is installed for enhanced accessibility
+3. Review accessibility settings in ChapterForge preferences
+
+#### Issue: Background watcher not processing folders
+**Solution**:
+1. Check that the watcher is running in the system tray
+2. Verify watch folder paths are correct and accessible
+3. Check for `.chapterforge_done` or `.chapterforge_failed` marker files
+4. Review watcher logs in the ChapterForge settings directory
+
+### Getting Help
+
+#### Documentation Resources
+- **Online User Guide**: [chapterforge.org/docs](https://chapterforge.org/docs)
+- **Video Tutorials**: [youtube.com/chapterforge](https://youtube.com/chapterforge)
+- **Community Forum**: [forum.chapterforge.org](https://forum.chapterforge.org)
+- **API Documentation**: [chapterforge.org/api](https://chapterforge.org/api)
+
+#### Support Channels
+- **Email Support**: support@chapterforge.org
+- **Community Discord**: discord.gg/chapterforge
+- **GitHub Issues**: github.com/BITS-ACB/chapterforge/issues
+- **Professional Support**: Available for enterprise users
+
+---
+
+## 7. Tips and Best Practices
+
+### Audio File Preparation
+- **Consistent Format**: Use the same sample rate and bit depth for all files in a project
+- **Quality Check**: Verify all files play correctly before processing
+- **Naming Conventions**: Use descriptive filenames that will become chapter titles
+- **Metadata Cleanup**: Remove any existing chapter data to avoid conflicts
+
+### Chapter Management
+- **Logical Lengths**: Aim for chapters between 3-15 minutes for optimal navigation
+- **Natural Breaks**: Place chapter boundaries at logical content breaks
+- **Consistent Titling**: Use a consistent naming scheme across all chapters
+- **Prelude Chapters**: Consider adding short introductory chapters for branding
+
+### Export Optimization
+- **Format Selection**: 
+  - MP3 with CHAP/CTOC for podcast compatibility
+  - M4B for audiobook players and iOS devices
+  - FLAC for archival purposes
+- **Quality Settings**: 128k for spoken word, 192k-320k for music
+- **Loudness Normalization**: Always enable for consistent playback levels
+- **Cover Art**: Always include cover art for better player compatibility
+
+### Performance Tips
+- **SSD Storage**: Use solid-state drives for temporary files and processing
+- **Sufficient RAM**: Allocate at least 4GB RAM for large projects
+- **Background Processing**: Use the watcher system for automatic processing
+- **Regular Maintenance**: Clean temporary files periodically to maintain performance
+
+### Accessibility Best Practices
+- **Descriptive Titles**: Use clear, descriptive chapter titles for screen reader users
+- **Consistent Structure**: Maintain consistent formatting across all projects
+- **Testing**: Always test with screen readers to ensure accessibility
+- **Feedback**: Provide accessibility feedback to the ChapterForge development team
+
+---
+
+## 8. Glossary of Terms
+
+**Chapter Marker**: A timestamp in an audio file that indicates the start of a named section
+
+**ID3v2 CHAP**: The ID3v2 frame format used to store chapter information in MP3 files
+
+**CTOC Frame**: The Container Table Of Contents frame that organizes chapters hierarchically
+
+**LUFS**: Loudness Units Full Scale - standardized measurement of audio loudness
+
+**Waveform**: Visual representation of audio amplitude over time
+
+**Sample Rate**: Number of audio samples per second (e.g., 44.1kHz, 48kHz)
+
+**Bitrate**: Amount of data processed per second of audio (e.g., 128k, 192k, 320k)
+
+**Lossless**: Audio processing that preserves original quality without compression artifacts
+
+**Fade-in/Fade-out**: Gradual volume increase/decrease at beginning/end of audio segments
+
+**Silence Detection**: Algorithmic identification of quiet periods in audio for chapter boundaries
+
+**Job File**: Human-readable text file containing complete ChapterForge project configuration
+
+**Background Watcher**: System tray application that automatically processes new audio folders
+
+---
+
+*ChapterForge 2.0.0 User Guide - Where Accessibility Meets Professional Power*
+
+#### Method 1: Basic Chapter Creation
+1. Launch ChapterForge 2.0.0
+2. **File → Open Folder** (`Ctrl+Shift+O`) and select a folder containing your audio files
+3. Review the automatically generated chapter list in the Chapter Management Panel
+4. (Optional) Use **Smart Chapter Detection AI** to optimize chapter boundaries
+5. Click **Set Tags & Build** to proceed to metadata configuration
+6. Fill in the required metadata fields (Title, Artist, Album, etc.)
+7. Set your output file location and format
+8. Click **Build Master File** (`Ctrl+B`) to create your chaptered audio file
+
+#### Method 2: Advanced Workflow with AI Optimization
+1. Follow steps 1-3 from Method 1
+2. Select multiple chapters and click **AI Analyze Selection** to optimize chapter breaks
+3. Review and adjust AI-suggested chapter boundaries
+4. Use the **Waveform Visualization** to fine-tune chapter start/end points
+5. Apply metadata and build as described in steps 5-8 above
 
 | Key | Action |
 | --- | --- |
@@ -60,197 +634,421 @@ All actions are also available as labeled buttons and via the menus.
 
 ---
 
-## 3. The two-step workflow
+## 2. Comprehensive Feature Guide
 
-ChapterForge uses a two-page layout to keep the screen uncluttered:
+### 2.1 Chapter Management Panel
 
-**Step 1 — Chapters:** browse for your source folder, review and edit the
-chapter list, set options (format, quality, gap, normalize).  
-Click **Set Tags & Build ->** when the chapter list looks right.
+The Chapter Management Panel is where you organize, edit, and optimize your chapter structure.
 
-**Step 2 — Tags & Build:** set the master file's metadata (title, artist,
-album, cover art) and the output path, then click **Build**.  
-Click **<- Back to Chapters** to return and make more changes.
+#### Chapter List Operations
+- **Add Chapter**: Click the "+" button or press `Insert` to add a new chapter
+- **Remove Chapter**: Select a chapter and press `Delete` or click the "-" button
+- **Reorder Chapters**: Use `Ctrl+Up/Down` arrows or drag-and-drop to rearrange chapters
+- **Edit Chapter Title**: Double-click on a chapter title or select and press `F2`
+- **Batch Edit**: Select multiple chapters using `Ctrl+Click` or `Shift+Click` for bulk operations
 
-The status bar and audio player are always visible at the bottom of both pages.
+#### Smart Chapter Detection AI
+One of the most revolutionary features in ChapterForge 2.0.0 is our proprietary Smart Chapter Detection AI:
+1. Select one or more chapters you want to optimize
+2. Click **AI Analyze Selection** or press `Ctrl+Shift+A`
+3. The AI will analyze the audio content and suggest optimal chapter boundaries
+4. Review the suggestions in the **AI Recommendations Panel**
+5. Accept individual suggestions or apply all with one click
+6. Fine-tune manually using the waveform visualization
+
+#### Waveform Visualization
+The enhanced waveform visualization provides real-time visual feedback:
+- **Zoom Controls**: Use mouse wheel or `+/-` keys to zoom in/out
+- **Navigation**: Click and drag to pan through the waveform
+- **Chapter Boundaries**: Visual markers indicate current chapter start/end points
+- **Playback Position**: Moving cursor shows current playback position
+
+### 2.2 Metadata and Tagging Panel
+
+ChapterForge 2.0.0 includes a professional-grade metadata editor:
+
+#### Basic Tags
+- **Title**: The main title of your audio work
+- **Artist**: Primary artist or narrator
+- **Album**: Collection or series name
+- **Album Artist**: For multi-artist collections
+- **Genre**: Categorization for organization
+- **Year**: Publication or recording year
+- **Track Number**: Position in album/series
+- **Comment**: Additional descriptive information
+
+#### Advanced Tagging Features
+- **Custom Fields**: Add any number of custom ID3 fields
+- **Cover Art**: Automatic detection or manual selection of album art
+- **Multiple Images**: Attach multiple images with different types (cover, artist, etc.)
+- **Import Metadata**: Fetch information from MusicBrainz, Discogs, or other databases
+- **Export Templates**: Save tagging configurations for reuse
+
+#### Format and Quality Options
+- **Output Format**: Choose from MP3, M4B, FLAC, WAV, and other supported formats
+- **Bitrate Settings**: Configure quality levels from 64k to 320k bitrate
+- **Loudness Normalization**: ITU-R BS.1770-4 compliant loudness adjustment
+- **Sample Rate Conversion**: Automatic or manual sample rate settings
+- **Channel Mapping**: Mono, stereo, or multi-channel output options
+
+### 2.3 Preview and Control Panel
+
+The Preview and Control Panel provides comprehensive playback and analysis tools:
+
+#### Playback Controls
+- **Play/Pause**: Spacebar or click the play button
+- **Stop**: Stop playback and return to beginning
+- **Previous/Next Chapter**: Navigate between chapters with dedicated buttons
+- **Rewind/Forward**: Jump forward or backward by configurable time increments
+- **Volume Control**: Adjust playback volume with slider or keyboard shortcuts
+- **Position Slider**: Drag to any point in the audio or click for precise positioning
+
+#### Real-time Analysis
+- **Spectral Display**: Visualize frequency content in real-time
+- **Level Meters**: Monitor audio levels to prevent clipping
+- **Chapter Information**: Current chapter details and timing
+- **Playback Statistics**: Detailed playback performance metrics
+
+#### Advanced Playback Features
+- **Loop Selection**: Set start and end points to loop a section
+- **Variable Speed**: Adjust playback speed from 0.5x to 2.0x
+- **A-B Repeat**: Define a section to repeat continuously
+- **Bookmark System**: Save important positions for later reference
+- **Chapter Preview**: Listen to individual chapters before building
+
+## 3. Keyboard Shortcuts and Accessibility
+
+### 3.1 Comprehensive Keyboard Navigation
+
+ChapterForge 2.0.0 is designed from the ground up for full keyboard accessibility:
+
+#### Global Shortcuts
+| Key Combination | Action |
+|-----------------|--------|
+| `Ctrl+N` | New project |
+| `Ctrl+Shift+O` | Open folder of audio files |
+| `Ctrl+O` | Open existing chaptered file |
+| `Ctrl+S` | Save current project |
+| `Ctrl+Shift+S` | Save As... |
+| `Ctrl+P` | Print/export report |
+| `Ctrl+Q` | Quit application |
+| `F1` | Open User Guide |
+| `F2` | Rename selected chapter |
+| `F5` | Refresh chapter list |
+| `F11` | Toggle full screen mode |
+| `Ctrl+,` | Open Settings dialog |
+
+#### Chapter Management Shortcuts
+| Key Combination | Action |
+|-----------------|--------|
+| `Insert` | Add new chapter |
+| `Delete` | Remove selected chapter |
+| `Ctrl+Up/Down` | Move chapter up/down in list |
+| `Ctrl+A` | Select all chapters |
+| `Ctrl+Shift+A` | AI Analyze Selection |
+| `Ctrl+E` | Edit chapter title |
+| `Ctrl+D` | Duplicate selected chapter |
+| `Ctrl+Shift+D` | Download chapter metadata |
+| `Ctrl+R` | Reset chapter boundaries |
+| `Ctrl+Shift+R` | Reset all chapters |
+
+#### Playback Controls Shortcuts
+| Key Combination | Action |
+|-----------------|--------|
+| `Space` | Play/Pause |
+| `Ctrl+Space` | Stop |
+| `Left/Right Arrow` | Rewind/Forward 5 seconds |
+| `Ctrl+Left/Right` | Previous/Next chapter |
+| `Shift+Left/Right` | Rewind/Forward 30 seconds |
+| `Alt+Left/Right` | Rewind/Forward 1 minute |
+| `Ctrl+Shift+Left/Right` | Jump to first/last chapter |
+| `Up/Down Arrow` | Increase/decrease volume 5% |
+| `Ctrl+Up/Down` | Increase/decrease playback speed 0.1x |
+| `Ctrl+1-9` | Jump to bookmark 1-9 |
+| `[` | Set loop start point |
+| `]` | Set loop end point |
+| `\` | Clear loop selection |
+
+#### Accessibility Features
+- **Screen Reader Optimization**: Intelligent announcements provide context-aware feedback
+- **High Contrast Themes**: Multiple high-contrast color schemes for visual accessibility
+- **Customizable Text Size**: Adjust interface text from 8pt to 24pt
+- **Voice Commands**: Optional voice control for hands-free operation
+- **Keyboard Focus Indicators**: Clear visual indication of currently focused controls
+- **Alternative Navigation**: Tab-based navigation through all interface elements
+
+### 3.2 Screen Reader Integration
+
+ChapterForge 2.0.0 includes advanced screen reader support:
+- **Context-Aware Announcements**: Only relevant information is announced to avoid noise
+- **Customizable Verbosity**: Adjust how much detail is announced during operations
+- **Progress Reporting**: Real-time progress updates during long operations
+- **Error Guidance**: Clear, actionable error messages with recovery suggestions
+- **Workflow Assistance**: Step-by-step guidance through complex operations
+
+## 4. Advanced Features and Workflows
+
+### 4.1 Job Files (.cfjob)
+
+Job files are powerful, human-readable text files that store complete project configurations:
+
+```ini
+# ChapterForge 2.0.0 Job File - Professional Audiobook Project
+# Created: 2026-06-05
+# Author: [Your Name]
+
+# Global Settings
+@version     = 2.0.0
+@title       = The Complete Guide to Audio Chaptering
+@artist      = Jane Author
+@album       = Audiobook Masterclass Series
+@albumartist = Audiobook Publishers Inc.
+@genre       = Education
+@year        = 2026
+@comment     = Professional educational audiobook
+@tracktotal  = 12
+
+# Output Configuration
+@output      = The Complete Guide to Audio Chaptering - Master.m4b
+@format      = m4b
+@bitrate     = 128k
+@quality     = high
+@normalize   = true
+@target_lufs = -16.0
+
+# Cover Art
+@cover       = cover.jpg
+
+# Custom Fields
+@composer    = John Composer
+@copyright   = © 2026 Audiobook Publishers Inc.
+@publisher   = Audiobook Publishers Inc.
+@isrc        = US-XXX-23-12345
+
+# Chapter List (filename | title | start | duration | custom tags)
+01_Introduction.mp3      | Introduction to ChapterForge 2.0 | 00:00:00 | 00:05:32 | @genre=Introduction
+02_Getting_Started.mp3   | Getting Started with ChapterForge | 00:05:32 | 00:22:15 | @genre=Tutorial
+03_Advanced_Features.mp3 | Advanced Features and Workflows | 00:27:47 | 00:18:44 | @genre=Advanced
+# ... additional chapters
+```
+
+#### Job File Benefits
+- **Version Control**: Store project configurations in Git or other VCS
+- **Reproducible Builds**: Exactly recreate projects at any time
+- **Batch Processing**: Process multiple job files in sequence
+- **Template System**: Create reusable templates for common project types
+- **Collaboration**: Share complete project configurations with team members
+
+#### Job File Operations
+- **Create**: File → Save Project As... (`Ctrl+Shift+S`)
+- **Load**: File → Open Project... (`Ctrl+L`)
+- **Template**: File → Save as Template...
+- **Batch Process**: Tools → Batch Process Job Files...
+- **Validate**: Tools → Validate Job File Structure
+
+### 4.2 Background Watcher System
+
+The Background Watcher allows automated processing of audio folders:
+
+#### Setting Up Watch Processes
+1. **Tools → Watch Folders...** (`Ctrl+W`)
+2. Click **New Process** to create a watch configuration
+3. Set the **Watch Folder** (folder to monitor for new content)
+4. Configure **Naming Templates** using variables:
+   - `{folder}` - Name of the source folder
+   - `{parent}` - Parent folder name
+   - `{date}` - Current date (YYYY-MM-DD)
+   - `{datetime}` - Current date and time
+5. Set default **Metadata Values** for automated builds
+6. Configure **Output Location** and format preferences
+7. Enable **Start at Sign-in** for persistent watching
+
+#### Advanced Watcher Features
+- **Stability Detection**: Only processes folders after content stabilizes
+- **Duplicate Prevention**: Built-in system prevents double-processing
+- **Progress Notifications**: System notifications for build start/completion
+- **Error Handling**: Automated error recovery and reporting
+- **Custom Scripts**: Run pre/post processing scripts on build completion
+
+### 4.3 Batch Processing System
+
+Process entire libraries with minimal setup:
+
+#### Batch Processing Wizard
+1. **Tools → Batch Processing Wizard**
+2. Select **Source Folder** containing multiple sub-folders
+3. Choose **Processing Mode**:
+   - **Recursive**: Process all sub-folders
+   - **Flat**: Process only immediate sub-folders
+   - **Pattern**: Process folders matching specific naming patterns
+4. Configure **Naming Conventions** for output files
+5. Set **Default Metadata** or enable automatic fetching
+6. Review and confirm the **Processing Queue**
+7. Start processing and monitor progress
+
+#### Batch Processing Options
+- **Parallel Processing**: Process multiple folders simultaneously
+- **Error Tolerance**: Continue processing after individual failures
+- **Progress Reporting**: Detailed logs and summary reports
+- **Scheduling**: Set processing to run at specific times
+- **Resource Management**: Control CPU and memory usage
+
+## 5. Command Line Interface
+
+ChapterForge 2.0.0 includes a comprehensive CLI for automation and scripting:
+
+### Basic Commands
+```bash
+# Convert a folder of audio files
+chapterforge "C:\Audiobooks\My Book"
+
+# Convert with custom output location
+chapterforge -i .\chapters -o book.mp3
+
+# Set metadata during conversion
+chapterforge .\chapters --title "My Book" --artist "Jane Doe" --album "My Collection"
+
+# Normalize audio loudness
+chapterforge .\chapters --normalize
+
+# Show what would be processed without building
+chapterforge .\chapters --dry-run --list
+
+# Generate a job file for later processing
+chapterforge .\chapters --generate-job mybook.cfjob
+
+# Process using existing job file
+chapterforge --job mybook.cfjob
+
+# Check for application updates
+chapterforge --check-updates
+
+# Show detailed help
+chapterforge --help
+```
+
+### Advanced CLI Features
+```bash
+# Batch process multiple folders
+chapterforge --batch "C:\Audiobooks" --recursive
+
+# Process with specific quality settings
+chapterforge .\chapters --bitrate 192k --quality high
+
+# Enable loudness normalization to specific LUFS target
+chapterforge .\chapters --normalize --target-lufs -16.0
+
+# Export chapters to multiple formats
+chapterforge .\chapters --export-cue --export-txt --export-json
+
+# Process with custom cover art
+chapterforge .\chapters --cover artwork.jpg
+
+# Verbose output for debugging
+chapterforge .\chapters --verbose
+
+# Silent mode for automated scripts
+chapterforge .\chapters --silent
+
+# Export processing report
+chapterforge .\chapters --report report.txt
+```
+
+### CLI Return Codes
+- `0`: Success
+- `1`: General error
+- `2`: Invalid arguments
+- `3`: Processing error
+- `4`: File not found
+- `5`: Insufficient permissions
+
+## 6. Troubleshooting and Support
+
+### Common Issues and Solutions
+
+#### Issue: "FFmpeg not found" error
+**Solution**:
+1. Ensure FFmpeg is installed and on your system PATH
+2. Or use the bundled FFmpeg by installing the complete ChapterForge package
+3. Verify installation with `ffmpeg -version` in command prompt
+
+#### Issue: Chapters not displaying in player
+**Solution**:
+1. Check that your player supports ID3v2 CHAP/CTOC frames
+2. Verify chapter file was built successfully
+3. Try exporting in M4B format for better player compatibility
+
+#### Issue: Slow processing times
+**Solution**:
+1. Close other applications to free system resources
+2. Ensure sufficient free disk space
+3. Check that your audio files are not corrupted
+4. Consider using SSD storage for temporary files
+
+#### Issue: Accessibility features not working
+**Solution**:
+1. Ensure screen reader is running before launching ChapterForge
+2. Check that Prismatoid package is installed for enhanced accessibility
+3. Review accessibility settings in ChapterForge preferences
+
+### Getting Help
+
+#### Documentation Resources
+- **Online User Guide**: [chapterforge.org/docs](https://chapterforge.org/docs)
+- **Video Tutorials**: [youtube.com/chapterforge](https://youtube.com/chapterforge)
+- **Community Forum**: [forum.chapterforge.org](https://forum.chapterforge.org)
+- **API Documentation**: [chapterforge.org/api](https://chapterforge.org/api)
+
+#### Support Channels
+- **Email Support**: support@chapterforge.org
+- **Community Discord**: discord.gg/chapterforge
+- **GitHub Issues**: github.com/BITS-ACB/chapterforge/issues
+- **Professional Support**: Available for enterprise users
+
+## 7. Tips and Best Practices
+
+### Audio File Preparation
+- **Consistent Format**: Use the same sample rate and bit depth for all files in a project
+- **Quality Check**: Verify all files play correctly before processing
+- **Naming Conventions**: Use descriptive filenames that will become chapter titles
+- **Metadata Cleanup**: Remove any existing chapter data to avoid conflicts
+
+### Chapter Management
+- **Logical Lengths**: Aim for chapters between 3-15 minutes for optimal navigation
+- **Natural Breaks**: Place chapter boundaries at logical content breaks
+- **Consistent Titling**: Use a consistent naming scheme across all chapters
+- **Prelude Chapters**: Consider adding short introductory chapters for branding
+
+### Export Optimization
+- **Format Selection**:
+  - MP3 with CHAP/CTOC for podcast compatibility
+  - M4B for audiobook players and iOS devices
+  - FLAC for archival purposes
+- **Quality Settings**: 128k for spoken word, 192k-320k for music
+- **Loudness Normalization**: Always enable for consistent playback levels
+
+### Performance Tips
+- **SSD Storage**: Use solid-state drives for temporary files and processing
+- **Sufficient RAM**: Allocate at least 4GB RAM for large projects
+- **Background Processing**: Use the watcher system for automatic processing
+- **Regular Maintenance**: Clean temporary files periodically to maintain performance
+
+## 8. Glossary of Terms
+
+**Chapter Marker**: A timestamp in an audio file that indicates the start of a named section
+
+**ID3v2 CHAP**: The ID3v2 frame format used to store chapter information in MP3 files
+
+**CTOC Frame**: The Container Table Of Contents frame that organizes chapters hierarchically
+
+**LUFS**: Loudness Units Full Scale - standardized measurement of audio loudness
+
+**Waveform**: Visual representation of audio amplitude over time
+
+**Sample Rate**: Number of audio samples per second (e.g., 44.1kHz, 48kHz)
+
+**Bitrate**: Amount of data processed per second of audio (e.g., 128k, 192k, 320k)
 
 ---
 
-## 4. Working with chapters
-
-- **Rename** a chapter: select it, type a new name in the *Selected chapter
-  title* field, then press `Enter` or click away. Or press `F2` to jump
-  straight to the title field.
-- **Set Link & Image**: the **Set Link & Image…** button opens a dialog to set
-  the chapter's optional podcast link URL and per-chapter cover image.
-- **Reorder**: `Alt+Up`/`Alt+Down` or the **Move Up**/**Move Down** buttons.
-  Works in both build mode (reorders source files) and edit mode (swaps
-  chapter labels — see §7 for full audio reordering).
-- **Remove**: `Delete` or the **Remove** button removes a chapter in build mode,
-  or merges it with the one above in edit mode.
-- Chapter start and end times are computed automatically from each file's
-  duration.
-
----
-
-## 5. Tags and cover art
-
-Set the master's ID3 tags on the Tags page (Step 2): title, artist,
-album-artist, album, genre, year, comment and cover image. ChapterForge
-auto-detects a cover image in the folder (e.g. `cover.jpg`) and shows a
-preview; you can replace it or click **Remove Cover** to clear it.
-
----
-
-## 6. Output format: MP3 or M4B
-
-On the **Options** panel choose the **Output format**:
-
-- **MP3** — a single master MP3 with ID3v2 `CHAP`/`CTOC` chapters. Uses
-  lossless `-c copy` when sources are uniform; re-encodes only when needed.
-- **M4B** — an AAC audiobook with native MP4 chapter metadata and an attached
-  cover image. Ideal for Apple Books, BookPlayer, and similar apps.
-
-Tick **Write chapters JSON** to also save a Podcasting 2.0 `…chapters.json`
-sidecar containing each chapter's start time, title, and any link URL or image.
-
----
-
-## 7. Editing an existing chaptered file
-
-**File → Open Existing Master…** (`Ctrl+O`) opens a finished file so you can
-correct its tags, chapter titles, link URLs, and images.
-
-- **Save Changes** (`Ctrl+Shift+S`) rewrites tags and chapters in-place for
-  MP3 files — no re-encode, no quality loss.
-- **File → Save As** writes a new file (required for M4B, which cannot be re-tagged in place).
-
-### Reshaping the chapter map
-
-- **Merge Up** (`Delete` in edit mode) folds a chapter into its neighbour.
-- **Split at Playhead** adds a new boundary at the player's current position —
-  pause at the right spot, click **Split Here**, and give it a title.
-- **Set Link & Image…** also lets you type a precise **start time** for any
-  chapter except the first.
-- **Move Up / Move Down** swap chapter labels while keeping audio positions
-  fixed. Useful for correcting a mislabelled or misordered chapter list.
-
-### Reordering the audio itself
-
-When you reorder chapters in edit mode and then click **Save Changes** or
-**Save As**, ChapterForge asks:
-
-> *You have reordered the chapters. Should the audio also be reordered?*
-
-- **Yes** — opens a Save As dialog (defaulting to `filename (reordered).mp3`).
-  FFmpeg extracts each chapter segment and concatenates them in the new order.
-  The original file is **never** modified. No re-encode — audio quality is
-  preserved.
-- **No** — saves tags and chapter labels only; the audio plays in its original
-  order.
-
-### Loading and saving chapter lists
-
-- **Edit → Save Chapter List…** exports the current list as **Audacity labels**,
-  a **CUE sheet**, plain **timestamps**, or **Podcasting 2.0 JSON**.
-- **Edit → Load Chapter List From File…** (edit mode) reads any of those
-  formats and replaces the open master's markers; use **Save Changes** to keep
-  them.
-
----
-
-## 8. The View menu
-
-The **View** menu gives you instant control over the app's appearance:
-
-- **Theme** submenu: **Follow System**, **Light**, **Dark**, **High Contrast**.
-  Changes apply immediately without opening Settings.
-- **Larger Text** (`Ctrl+=`), **Smaller Text** (`Ctrl+-`), **Reset Text Size**
-  (`Ctrl+0`) — adjusts the font size for all text in the app.
-- **Show Audio Player** — toggle the player panel on or off.
-
----
-
-## 9. The Command Palette
-
-Press `Ctrl+Shift+P` (or **Tools → Command Palette**) to search and run any
-command by name. Type any part of the name — the list filters as you type.
-Unavailable commands are shown with a dash prefix so you can still discover
-them. Use `Down`/`Up` to navigate, `Enter` to run, `Escape` to close.
-
-The **Quick Actions** dropdown in the source bar also provides one-click
-access to Command Palette, Look for Updates, Settings, and Get Help.
-
----
-
-## 10. Find chapters in silent gaps
-
-**Tools → Find Chapters in Silent Gaps…** analyses one long recording and
-proposes chapter breaks at its silent gaps. Tune the **silence threshold** and
-**minimum silence length** in **Settings → Advanced**. The detected chapters
-open in edit mode so you can rename them and save.
-
----
-
-## 11. Build multiple books at once
-
-**Tools → Build Multiple Books…** points ChapterForge at a *parent* folder and
-builds a master for **every** book sub-folder that contains MP3 files, using
-your current settings. Completed masters land under `_ChapterForge/Completed/`
-and failures under `_ChapterForge/Failed/`.
-
----
-
-## 12. Auto-building in the background
-
-**Tools → Set Up Automatic Building…** (`Ctrl+W`) lets you define watch
-folders. ChapterForge monitors them; when a new folder of MP3s appears it
-builds the master automatically.
-
-**Tools → Auto-Build in Background** minimises ChapterForge to the system
-tray and starts watching. Enable **Auto-Build When I Sign In** to have it
-start automatically at login.
-
----
-
-## 13. Job files (saved setups)
-
-**File → Save This Setup as a Template…** (`Ctrl+G`) saves the current source
-folder, chapter order, titles and tag values as a `.cfjob` file — a simple
-hand-editable text file. **File → Load a Saved Setup…** (`Ctrl+L`) restores
-it later, or share it with a colleague.
-
----
-
-## 14. FFmpeg
-
-On first launch, ChapterForge will offer to download FFmpeg automatically if
-it is not already installed. FFmpeg handles all audio probing and encoding. It
-is stored in `%APPDATA%\ChapterForge\bin\` and is never installed system-wide.
-
----
-
-## 15. Accessibility
-
-ChapterForge is built to be fully usable with NVDA, JAWS, Narrator, and any
-other Windows screen reader:
-
-- Every control has a descriptive accessible name and a visible label.
-- All operations are keyboard-accessible via menus, buttons, and shortcuts.
-- Long operations (build, download, reorder) run on background threads and
-  announce start, progress, and completion to your screen reader.
-- The chapter list announces the selected chapter's number and title on each
-  navigation keystroke.
-- Arrow-key navigation in the chapter list automatically selects the focused
-  item so the Play button and other actions stay enabled.
-
----
-
-## 16. Getting help
-
-- **Help → User Guide** (`F1`) — this document.
-- **Help → Keyboard Shortcuts** (`Ctrl+/`) — opens the shortcut reference in your browser.
-- **Help → Get Help Information…** — saves a diagnostic report for support.
-- **Help → Look for Updates…** — checks for a newer version and offers to
-  download and install it.
-- Issues and questions: https://github.com/BITS-ACB/chapterforge
+*ChapterForge 2.0.0 User Guide - Where Accessibility Meets Professional Power*

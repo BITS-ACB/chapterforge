@@ -13,7 +13,7 @@
 ;   2. iscc installer\ChapterForge.iss          -> installer_output\ChapterForge-Setup.exe
 
 #define AppName "ChapterForge"
-#define AppVersion "1.95"
+#define AppVersion "2.0.0"
 #define AppPublisher "Blind Information Technology Solutions (BITS)"
 #define AppExeName "ChapterForge.exe"
 #define CliExeName "chapterforge-cli.exe"
