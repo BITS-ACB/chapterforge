@@ -1811,24 +1811,36 @@ class MainFrame(wx.Frame):
         dlg.Destroy()
         noise = float(self.settings.get("silence_noise_db", -30.0))
         min_sil = float(self.settings.get("silence_min_seconds", 0.8))
-        self._announce("Detecting chapters from silence…")
-        wx.BeginBusyCursor()
+        self._announce("Analyzing audio for silent gaps...")
+        self.canceller = core.Canceller()
+        self.worker = threading.Thread(
+            target=self._analyze_silence,
+            args=(path, noise, min_sil),
+            daemon=True)
+        self.worker.start()
+
+    def _analyze_silence(self, path: str, noise_db: float, min_silence: float):
+        """Background thread: analyze audio for silent gaps."""
         try:
             tags, _, total_ms = core.read_master(path)
             chapters = core.detect_silence_chapters(
-                path, noise_db=noise, min_silence=min_sil)
-        except core.ChapterForgeError as exc:
-            wx.MessageBox(str(exc), "Could not analyse file",
+                path, noise_db=noise_db, min_silence=min_silence)
+            wx.CallAfter(self._silence_analysis_done, path, tags, total_ms, chapters, None)
+        except Exception as exc:
+            wx.CallAfter(self._silence_analysis_done, path, None, None, None, str(exc))
+
+    def _silence_analysis_done(self, path: str, tags, total_ms: int, chapters, error: Optional[str]):
+        """Called from main thread with silence analysis results."""
+        self.worker = None
+        if error:
+            wx.MessageBox(str(error), "Could not analyze file",
                           wx.OK | wx.ICON_ERROR, self)
             return
-        finally:
-            if wx.IsBusy():
-                wx.EndBusyCursor()
         if not chapters:
             wx.MessageBox(
                 "No silent gaps long enough to split on were found.\n\n"
                 "Try lowering the minimum silence length or raising the "
-                "threshold in Tools → Settings.",
+                "threshold in Tools - Settings.",
                 "No chapters detected", wx.OK | wx.ICON_INFORMATION, self)
             return
         self._enter_edit_mode(path, tags or core.Tags(), chapters, total_ms)
@@ -1972,12 +1984,29 @@ class MainFrame(wx.Frame):
             wx.MessageBox("The job file lists no usable tracks.",
                           "Empty job file", wx.OK | wx.ICON_ERROR, self)
             return
-        self._announce("Loading job file…")
-        wx.BeginBusyCursor()
+        self._announce("Loading job file and probing audio...")
+        self.canceller = core.Canceller()
+        self.worker = threading.Thread(
+            target=self._probe_job_entries,
+            args=(path, folder, entries, manifest),
+            daemon=True)
+        self.worker.start()
+
+    def _probe_job_entries(self, path: str, folder: str, entries, manifest):
+        """Background thread: probe files from job manifest."""
         try:
             items = core.items_from_entries(entries)
-        finally:
-            wx.EndBusyCursor()
+            wx.CallAfter(self._job_loaded, path, folder, items, manifest, None)
+        except Exception as exc:
+            wx.CallAfter(self._job_loaded, path, folder, None, manifest, str(exc))
+
+    def _job_loaded(self, path: str, folder: str, items, manifest, error: Optional[str]):
+        """Called from main thread with probed job file data."""
+        self.worker = None
+        if error:
+            wx.MessageBox(str(error), "Could not load job file",
+                          wx.OK | wx.ICON_ERROR, self)
+            return
         self.items = items
         self.folder = folder
         self.player.release(recreate=True)
