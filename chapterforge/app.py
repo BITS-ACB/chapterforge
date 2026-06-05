@@ -3022,13 +3022,42 @@ class CommandPaletteDialog:
 
 class ChapterForgeApp(wx.App):
     def OnInit(self):
+        # Check if FFmpeg exists
         try:
             core._find_tool("ffmpeg")
             core._find_tool("ffprobe")
-        except core.FFmpegNotFoundError as exc:
-            wx.MessageBox(str(exc), "FFmpeg required",
-                          wx.OK | wx.ICON_ERROR)
-            return False
+        except core.FFmpegNotFoundError:
+            # FFmpeg missing - ask user if they want to download it
+            result = wx.MessageBox(
+                "FFmpeg is needed to build audiobooks. Would you like to download it now?\n\n"
+                "This will happen in the background and won't affect ChapterForge.",
+                "Set Up FFmpeg",
+                wx.YES_NO | wx.ICON_INFORMATION)
+
+            if result != wx.YES:
+                wx.MessageBox(
+                    "You can download FFmpeg later from ffmpeg.org or run: "
+                    "python tools/get_ffmpeg.py",
+                    "FFmpeg Required to Build",
+                    wx.OK | wx.ICON_INFORMATION)
+                return False
+
+            # Show frame with a status message while downloading
+            frame = MainFrame()
+            frame.Show()
+            self.SetTopWindow(frame)
+
+            # Download FFmpeg on background thread
+            frame._announce("Downloading FFmpeg (this may take a minute)...")
+            frame.canceller = core.Canceller()
+            frame.worker = threading.Thread(
+                target=self._download_ffmpeg,
+                args=(frame,),
+                daemon=True)
+            frame.worker.start()
+            return True
+
+        # FFmpeg found, show frame normally
         frame = MainFrame()
         if frame.settings.get("start_minimized", False):
             frame._setup_startup_tray()
@@ -3036,6 +3065,28 @@ class ChapterForgeApp(wx.App):
             frame.Show()
         self.SetTopWindow(frame)
         return True
+
+    def _download_ffmpeg(self, frame):
+        """Background thread: download FFmpeg."""
+        try:
+            from . import tools
+            # Import the get_ffmpeg module
+            import sys
+            import importlib.util
+            spec = importlib.util.spec_from_file_location(
+                "get_ffmpeg",
+                os.path.join(os.path.dirname(__file__), "..", "tools", "get_ffmpeg.py"))
+            get_ffmpeg = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(get_ffmpeg)
+
+            # Run the download
+            if get_ffmpeg.download_ffmpeg():
+                wx.CallAfter(frame._announce, "FFmpeg ready! You can now build audiobooks.")
+                wx.CallAfter(frame._update_command_state)
+            else:
+                wx.CallAfter(frame._announce, "Failed to download FFmpeg. Please download manually.")
+        except Exception as exc:
+            wx.CallAfter(frame._announce, f"Error downloading FFmpeg: {exc}")
 
 
 def main():

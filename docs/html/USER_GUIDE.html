@@ -77,18 +77,18 @@ footer.site { color: var(--muted); border-top: 1px solid var(--border);
 </ol>
 <p>arguments).</p>
 <ol>
-<li><strong>File → Open Folder…</strong> (<code>Ctrl+O</code>) and choose the folder of MP3s.</li>
+<li><strong>File → Open Folder…</strong> (<code>Ctrl+Shift+O</code>) and choose the folder of MP3s.</li>
 </ol>
 <ul>
-<li>Files are listed in natural order (<code>01</code>, <code>02</code>, … <code>10</code>, <code>11</code>).</li>
+<li>Files are listed in natural order (<code>01</code>, <code>02</code>, <code>10</code>, <code>11</code>).</li>
 <li>If a previously built master is found in the folder, it is skipped</li>
 </ul>
 <p>automatically and reported in the status line.</p>
 <ol>
 <li>Review the <strong>Chapters</strong> list. Adjust as needed (see §3).</li>
-<li>Fill in the <strong>Tags</strong> (title, artist, album, year, cover, …).</li>
+<li>Fill in the <strong>Tags</strong> (title, artist, album, year, cover, etc.).</li>
 <li><strong>File → Build Master MP3</strong> (<code>Ctrl+B</code>).</li>
-<li>Choose/confirm the output file (<code>Ctrl+S</code> sets it explicitly).</li>
+<li>Choose/confirm the output file, then Build (<code>Ctrl+S</code> is smart save).</li>
 </ol>
 <p>The build runs on a background thread; progress and status are announced to your screen reader. When it finishes, a master MP3 and a readable <code>… - chapters.txt</code> report are written next to each other.</p>
 <hr>
@@ -96,11 +96,11 @@ footer.site { color: var(--muted); border-top: 1px solid var(--border);
 <table>
 <thead><tr><th>Key</th><th>Action</th></tr></thead>
 <tbody>
-<tr><td><code>Ctrl+O</code></td><td>Open folder</td></tr>
-<tr><td><code>Ctrl+E</code></td><td>Open an existing chaptered file to edit</td></tr>
-<tr><td><code>Ctrl+S</code></td><td>Set output file</td></tr>
-<tr><td><code>Ctrl+B</code></td><td>Build master (MP3 or M4B)</td></tr>
-<tr><td><code>Ctrl+Shift+S</code></td><td>Save changes to the open master</td></tr>
+<tr><td><code>Ctrl+Shift+O</code></td><td>Open folder (build mode)</td></tr>
+<tr><td><code>Ctrl+O</code></td><td>Open an existing chaptered file to edit</td></tr>
+<tr><td><code>Ctrl+S</code></td><td>Build (build mode) or Save Changes (edit mode)</td></tr>
+<tr><td><code>Ctrl+B</code></td><td>Build master (MP3 or M4B) - explicit</td></tr>
+<tr><td><code>Ctrl+Shift+S</code></td><td>Save changes to the open master - explicit</td></tr>
 <tr><td><code>Ctrl+Alt+S</code></td><td>Save As (a new file)</td></tr>
 <tr><td><code>Ctrl+L</code></td><td>Load job file (<code>.cfjob</code>)</td></tr>
 <tr><td><code>Ctrl+G</code></td><td>Generate job file</td></tr>
@@ -161,7 +161,7 @@ footer.site { color: var(--muted); border-top: 1px solid var(--border);
 <p>The current chapter is announced to your screen reader as playback crosses each boundary, and seeks/skip announce the new time.</p>
 <hr>
 <h2 id="7-editing-an-existing-chaptered-file">7. Editing an existing chaptered file</h2>
-<p><strong>File → Open Existing Master…</strong> (<code>Ctrl+E</code>) loads a finished file so you can fix its ID3 tags and chapter titles (and link URLs/images).</p>
+<p><strong>File → Open Existing Master…</strong> (<code>Ctrl+O</code>) loads a finished file so you can fix its ID3 tags and chapter titles (and link URLs/images).</p>
 <ul>
 <li>For <strong>MP3</strong>, <strong>Save Changes</strong> (<code>Ctrl+Shift+S</code>) rewrites the tags and chapters</li>
 </ul>
