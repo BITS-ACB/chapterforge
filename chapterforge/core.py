@@ -706,7 +706,10 @@ def build_master(items: Sequence[Mp3Item], output_path: str, tags: Tags,
                  canceller: Optional[Canceller] = None,
                  progress: Optional[Callable[[float], None]] = None,
                  per_file_normalize: bool = False,
-                 normalize_lufs: float = -16.0) -> BuildResult:
+                 normalize_lufs: float = -16.0,
+                 fade_in_ms: int = 0,
+                 fade_out_ms: int = 0,
+                 on_chapter_level: Optional[Callable[[int, float], None]] = None) -> BuildResult:
     """Build a master file with tags and chapter markers.
 
     Dispatches on *output_path*'s extension: ``.m4b``/``.m4a``/``.mp4`` produce
@@ -722,6 +725,9 @@ def build_master(items: Sequence[Mp3Item], output_path: str, tags: Tags,
     milliseconds of silence between chapters (forces a re-encode).
     *per_file_normalize* applies loudnorm to each source file individually before
     concatenation (MP3 output only; ignored for M4B/FLAC which always re-encode).
+    *fade_in_ms* / *fade_out_ms* apply fade-in / fade-out to each source file
+    before concatenation (MP3 output only). *on_chapter_level* is called with
+    (chapter_index, peak_db) after probing each source file's peak level.
     """
     fmt = output_format(output_path)
     if fmt == "m4b":
@@ -738,7 +744,10 @@ def build_master(items: Sequence[Mp3Item], output_path: str, tags: Tags,
                      scale_chapters=scale_chapters, gap_ms=gap_ms,
                      canceller=canceller, progress=progress,
                      per_file_normalize=per_file_normalize,
-                     normalize_lufs=normalize_lufs)
+                     normalize_lufs=normalize_lufs,
+                     fade_in_ms=fade_in_ms,
+                     fade_out_ms=fade_out_ms,
+                     on_chapter_level=on_chapter_level)
 
 
 def build_mp3(items: Sequence[Mp3Item], output_path: str, tags: Tags,
@@ -750,7 +759,10 @@ def build_mp3(items: Sequence[Mp3Item], output_path: str, tags: Tags,
               canceller: Optional[Canceller] = None,
               progress: Optional[Callable[[float], None]] = None,
               per_file_normalize: bool = False,
-              normalize_lufs: float = -16.0) -> BuildResult:
+              normalize_lufs: float = -16.0,
+              fade_in_ms: int = 0,
+              fade_out_ms: int = 0,
+              on_chapter_level: Optional[Callable[[int, float], None]] = None) -> BuildResult:
     """Concatenate *items* into an MP3 master with ID3v2 chapter markers."""
     items = list(items)
     canceller = canceller or Canceller()
@@ -763,6 +775,14 @@ def build_mp3(items: Sequence[Mp3Item], output_path: str, tags: Tags,
         raise ChapterForgeError(f"Some files could not be used: {names}")
 
     canceller._check()
+
+    # Per-chapter peak level detection (before any processing).
+    if on_chapter_level:
+        for i, it in enumerate(items):
+            canceller._check()
+            peak = get_file_peak_db(it.path)
+            if peak is not None:
+                on_chapter_level(i, peak)
 
     # Per-file normalization: process each source file through loudnorm into a
     # temp file, then build from those temps.
@@ -793,6 +813,35 @@ def build_mp3(items: Sequence[Mp3Item], output_path: str, tags: Tags,
             import shutil as _shutil
             _shutil.rmtree(_tmp_norm_dir, ignore_errors=True)
             _tmp_norm_dir = None
+            raise
+
+    # Per-file fade: apply fade-in/fade-out to each source file into a temp,
+    # then build from those temps.
+    _tmp_fade_dir: Optional[str] = None
+    if fade_in_ms > 0 or fade_out_ms > 0:
+        _tmp_fade_dir = tempfile.mkdtemp(prefix="chapterforge_fade_")
+        fade_items: List[Mp3Item] = []
+        try:
+            for i, it in enumerate(items):
+                canceller._check()
+                dst = os.path.join(_tmp_fade_dir, f"fade_{i:04d}.mp3")
+                if apply_fades(it.path, dst, fade_in_ms=fade_in_ms,
+                               fade_out_ms=fade_out_ms):
+                    faded = probe_file(dst)
+                    faded.title = it.title
+                    faded.file_title = it.file_title
+                    faded.embedded_title = it.embedded_title
+                    faded.edited = it.edited
+                    faded.url = it.url
+                    faded.img = it.img
+                    fade_items.append(faded)
+                else:
+                    fade_items.append(it)
+            items = fade_items
+        except Exception:
+            import shutil as _shutil
+            _shutil.rmtree(_tmp_fade_dir, ignore_errors=True)
+            _tmp_fade_dir = None
             raise
 
     if chapters is None:
@@ -858,6 +907,9 @@ def build_mp3(items: Sequence[Mp3Item], output_path: str, tags: Tags,
         if _tmp_norm_dir and os.path.isdir(_tmp_norm_dir):
             import shutil as _shutil
             _shutil.rmtree(_tmp_norm_dir, ignore_errors=True)
+        if _tmp_fade_dir and os.path.isdir(_tmp_fade_dir):
+            import shutil as _shutil
+            _shutil.rmtree(_tmp_fade_dir, ignore_errors=True)
 
     return BuildResult(
         output_path=output_path,
@@ -1350,6 +1402,110 @@ def apply_tempo(src_path: str, speed: float, dst_path: str) -> bool:
         return result.returncode == 0 and os.path.isfile(dst_path)
     except Exception:
         return False
+
+
+def trim_file(src_path: str, start_ms: int, end_ms: int, dst_path: str) -> bool:
+    """Losslessly extract [start_ms, end_ms] from src_path into dst_path.
+    Uses FFmpeg -c copy so quality is preserved. Returns True on success."""
+    ffmpeg = _find_tool("ffmpeg")
+    ss = start_ms / 1000.0
+    to = end_ms / 1000.0
+    cmd = [ffmpeg, "-y", "-i", src_path,
+           "-ss", f"{ss:.3f}", "-to", f"{to:.3f}",
+           "-c", "copy", "-avoid_negative_ts", "make_zero",
+           dst_path]
+    try:
+        r = subprocess.run(cmd, capture_output=True, timeout=300)
+        return r.returncode == 0 and os.path.isfile(dst_path)
+    except Exception:
+        return False
+
+
+def split_into_files(src_path: str, chapters: Sequence["Chapter"],
+                     output_dir: str,
+                     name_pattern: str = "{n:02d} - {title}",
+                     progress: Optional[Callable[[float], None]] = None) -> List[str]:
+    """Split src_path into one file per chapter using lossless FFmpeg copy.
+
+    name_pattern placeholders: {n} chapter number (1-based), {title} chapter title.
+    Returns list of output file paths. Raises ChapterForgeError on failure.
+    """
+    chapters = list(chapters)
+    if not chapters:
+        raise ChapterForgeError("No chapters to split.")
+    os.makedirs(output_dir, exist_ok=True)
+    ext = os.path.splitext(src_path)[1] or ".mp3"
+    ffmpeg = _find_tool("ffmpeg")
+    out_paths: List[str] = []
+    for i, ch in enumerate(chapters):
+        safe_title = re.sub(r'[\\/:*?"<>|]', "_", ch.title)
+        filename = name_pattern.format(n=i + 1, title=safe_title) + ext
+        dst = os.path.join(output_dir, filename)
+        ss = ch.start_ms / 1000.0
+        to = ch.end_ms / 1000.0
+        cmd = [ffmpeg, "-y", "-i", src_path,
+               "-ss", f"{ss:.3f}", "-to", f"{to:.3f}",
+               "-c", "copy", "-avoid_negative_ts", "make_zero",
+               dst]
+        try:
+            r = subprocess.run(cmd, capture_output=True, timeout=300)
+        except Exception as exc:
+            raise ChapterForgeError(f"FFmpeg error splitting chapter {i+1}: {exc}") from exc
+        if r.returncode != 0:
+            raise ChapterForgeError(
+                f"Could not split chapter {i+1}: "
+                + r.stderr.decode(errors="replace")[-200:])
+        out_paths.append(dst)
+        if progress:
+            progress((i + 1) / len(chapters))
+    return out_paths
+
+
+def apply_fades(src_path: str, dst_path: str,
+                fade_in_ms: int = 0, fade_out_ms: int = 0) -> bool:
+    """Apply fade-in and/or fade-out to src_path, writing to dst_path.
+    Uses FFmpeg afade filter (requires re-encode at fade boundaries).
+    fade_in_ms / fade_out_ms of 0 means no fade. Returns True on success."""
+    if fade_in_ms <= 0 and fade_out_ms <= 0:
+        import shutil as _shutil
+        _shutil.copy2(src_path, dst_path)
+        return True
+    ffmpeg = _find_tool("ffmpeg")
+    dur_ms = _probe_duration_ms(src_path)
+    filters = []
+    if fade_in_ms > 0:
+        filters.append(f"afade=t=in:st=0:d={fade_in_ms/1000:.3f}")
+    if fade_out_ms > 0 and dur_ms > 0:
+        st = max(0, (dur_ms - fade_out_ms)) / 1000.0
+        filters.append(f"afade=t=out:st={st:.3f}:d={fade_out_ms/1000:.3f}")
+    af = ",".join(filters)
+    cmd = [ffmpeg, "-y", "-i", src_path,
+           "-af", af, "-c:a", "libmp3lame", "-b:a", "192k", "-vn",
+           dst_path]
+    try:
+        r = subprocess.run(cmd, capture_output=True, timeout=300)
+        return r.returncode == 0
+    except Exception:
+        return False
+
+
+def get_file_peak_db(path: str) -> Optional[float]:
+    """Return the peak dB level of an audio file using FFmpeg astats.
+    Returns None if detection fails."""
+    ffmpeg = _find_tool("ffmpeg")
+    cmd = [ffmpeg, "-y", "-i", path,
+           "-af", "astats=metadata=1:reset=1",
+           "-f", "null", "-"]
+    try:
+        r = subprocess.run(cmd, capture_output=True, timeout=60)
+        output = r.stderr.decode(errors="replace")
+        # Look for "Peak level dB: -3.21" in astats output
+        m = re.search(r"Peak level dB:\s*(-?[\d.]+)", output)
+        if m:
+            return float(m.group(1))
+    except Exception:
+        pass
+    return None
 
 
 def suggested_output_path(folder: str) -> str:
@@ -2041,6 +2197,24 @@ def chapters_to_timestamps(chapters: Sequence[Chapter]) -> str:
                    for ch in chapters)
 
 
+def chapters_to_csv(chapters: Sequence["Chapter"]) -> str:
+    """Export chapters as CSV: number, title, start, duration, url, image."""
+    import io, csv as _csv
+    buf = io.StringIO()
+    w = _csv.writer(buf)
+    w.writerow(["#", "Title", "Start", "Duration", "Link URL", "Image"])
+    for i, ch in enumerate(chapters, start=1):
+        w.writerow([
+            i,
+            ch.title,
+            format_timestamp(ch.start_ms),
+            format_timestamp(ch.duration_ms),
+            ch.url or "",
+            ch.img or "",
+        ])
+    return buf.getvalue()
+
+
 def _ms_to_cue(ms: int) -> str:
     total_frames = int(round(ms / 1000.0 * 75))
     minutes, rem = divmod(total_frames, 75 * 60)
@@ -2066,7 +2240,7 @@ def chapters_to_cue(chapters: Sequence[Chapter], audio_filename: str,
     return "\n".join(lines) + "\n"
 
 
-CHAPTER_EXPORT_FORMATS = ("audacity", "timestamps", "cue", "pod2")
+CHAPTER_EXPORT_FORMATS = ("audacity", "timestamps", "cue", "pod2", "csv")
 
 
 def export_chapter_labels(out_path: str, chapters: Sequence[Chapter], fmt: str,
@@ -2087,6 +2261,8 @@ def export_chapter_labels(out_path: str, chapters: Sequence[Chapter], fmt: str,
         text = chapters_to_timestamps(chapters)
     elif fmt == "cue":
         text = chapters_to_cue(chapters, audio_filename or out_path, tags)
+    elif fmt == "csv":
+        text = chapters_to_csv(chapters)
     else:
         raise ChapterForgeError(f"Unknown chapter format: {fmt}")
     with open(out_path, "w", encoding="utf-8", newline="\n") as fh:

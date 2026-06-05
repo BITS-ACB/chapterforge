@@ -1,6 +1,6 @@
 ﻿"""ChapterForge - build a master MP3 with chapter markers from a folder of MP3s."""
 
-__version__ = "1.92"
+__version__ = "1.95"
 __app_name__ = "ChapterForge"
 
 # Organization & attribution -------------------------------------------------

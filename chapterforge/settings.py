@@ -63,6 +63,10 @@ DEFAULTS: Dict[str, Any] = {
     "list_columns": [True, True, True, True, True],
     # Keyboard shortcut overrides (Feature 13): maps command name -> key string
     "key_overrides": {},
+    # Reusable build presets (Feature 4): {name: {format, bitrate, normalize, ...}}
+    "presets": {},
+    # Chapter transition fade duration in milliseconds (0 = no fade).
+    "fade_ms": 0,
 }
 
 

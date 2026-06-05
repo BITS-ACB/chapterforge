@@ -4,6 +4,86 @@ All notable changes to ChapterForge are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.95] - 2026-06-05
+
+### Added
+
+- **Lossless MP3 Trim and Cut** - The player panel now includes a "Trim /
+  Cut Selection" section with Set Begin, Set End, and Clear Selection buttons
+  that mark a time range using the current playhead position. "Pre-Listen as
+  Cut" plays from just before the cut point so you can hear the edit in
+  context. "Save Trimmed..." saves the selected region to a new file using
+  FFmpeg lossless copy — no quality loss. The trim state resets automatically
+  when a new file is loaded. `core.trim_file()` implements the FFmpeg pass.
+
+- **Split One Long Recording into Chapters** - A new "Split one long
+  recording into chapters" task in the task dropdown. Opens a single long
+  audio file in edit mode. Use the player and the existing "Split Here" button
+  to mark chapter boundaries, then File - "Save as Individual Chapter Files"
+  to save each chapter as a separate file using lossless FFmpeg copy.
+  `core.split_into_files()` handles the splitting with an optional per-chapter
+  progress callback.
+
+- **File - Save as Individual Chapter Files** - Available in edit mode when
+  two or more chapters exist. Opens a folder picker, then splits the open
+  master into one file per chapter. Runs on a background thread with
+  announcement on completion. Accessible from the command palette.
+
+- **Chapter Transition Fades** - Settings - Build - "Chapter transition fade
+  (seconds)" sets a fade-out then fade-in duration applied at each chapter
+  boundary during the build. Range 0-5 seconds, default 0 (no fade).
+  Implemented via FFmpeg `afade` filter; forces re-encoding of the faded
+  boundary portions. `core.apply_fades()` is the per-file helper.
+
+- **Reusable Build Presets** - Settings dialog now opens with a preset bar
+  at the top. Three built-in presets are available immediately: Podcast MP3,
+  Audiobook M4B, and FLAC Archive. Users can save any combination of build
+  settings as a named preset and reload or delete it at any time. Presets are
+  stored in settings.json under "presets".
+
+- **CSV Chapter Export** - "Save Chapter List" now includes a CSV format
+  (comma-separated: chapter number, title, start, duration, link URL, image
+  path). Useful for importing into spreadsheets, databases, or generating
+  transcripts. `core.chapters_to_csv()` implements the export.
+
+- **File Renaming from Chapter Titles** - Edit menu - "Rename Source Files"
+  opens a dialog where a naming pattern (using `{n}`, `{n:02d}`, `{title}`,
+  `{ext}`) is applied to all source files. A two-column preview shows the
+  current and new filename for each item before applying. The rename is
+  undo-aware.
+
+- **Go to Time (Ctrl+G)** - A new View menu item and keyboard shortcut opens
+  a "Go to Time" dialog. Enter a timestamp in HH:MM:SS, MM:SS, or decimal
+  seconds format and the player jumps to that position. Available whenever
+  audio is loaded. The previous Ctrl+G shortcut (Save This Setup as Template)
+  has moved to Ctrl+Shift+G.
+
+- **Per-Chapter Audio Level Announcements During Build** - When a build is
+  running, the peak dB level of each source chapter is probed via FFmpeg
+  `astats` and announced to the screen reader as each chapter is processed.
+  Helps verify normalization is working correctly across chapters.
+  `core.get_file_peak_db()` implements the FFmpeg probe.
+
+- **GoToTimeDialog class** - Accessible dialog that accepts time in multiple
+  formats; parses via `core._ts_to_ms`.
+
+- **RenameSourceFilesDialog class** - Pattern-based rename with live preview
+  list showing old and new filenames.
+
+### Changed
+
+- **Ctrl+G** reassigned — Save This Setup as Template moved to Ctrl+Shift+G.
+  Ctrl+G is now Go to Time (player must have audio loaded).
+
+- **Task dropdown** — third option "Split one long recording into chapters"
+  added; no existing task indices changed.
+
+### Fixed
+
+- **CI failure: pyproject.toml BOM** — `sed -i` on Windows injected a
+  UTF-8 BOM into pyproject.toml, which TOML parsers reject. File rewritten
+  without BOM; all future version bumps use the Edit tool directly.
+
 ## [1.92] - 2026-06-05
 
 ### Added

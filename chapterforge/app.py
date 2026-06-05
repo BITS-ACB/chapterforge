@@ -204,6 +204,9 @@ class MainFrame(wx.Frame):
         self.mi_save_as = file_menu.Append(
             wx.ID_SAVEAS, "Save &As…\tCtrl+Shift+A",
             "Save the master (or edited master) to a new file")
+        self.mi_split_files = file_menu.Append(
+            wx.ID_ANY, "Save as Individual C&hapter Files…",
+            "Split the open audio into one file per chapter (lossless FFmpeg copy)")
         self.mi_cancel = file_menu.Append(wx.ID_ANY, "&Cancel Build\tEsc",
                                           "Cancel a build in progress")
         file_menu.AppendSeparator()
@@ -211,7 +214,7 @@ class MainFrame(wx.Frame):
             wx.ID_ANY, "&Load a Saved Setup…\tCtrl+L",
             "Load a .cfjob file that defines order, titles and tags")
         self.mi_gen_job = file_menu.Append(
-            wx.ID_ANY, "Sa&ve This Setup as a Template…\tCtrl+G",
+            wx.ID_ANY, "Sa&ve This Setup as a Template…\tCtrl+Shift+G",
             "Save the current chapters and tags as a reusable .cfjob file")
         file_menu.AppendSeparator()
         file_menu.Append(wx.ID_EXIT, "E&xit\tAlt+F4", "Close ChapterForge")
@@ -229,6 +232,9 @@ class MainFrame(wx.Frame):
         self.mi_batch_titles = edit_menu.Append(
             wx.ID_ANY, "Batch &Edit Titles…",
             "Apply a transformation to all chapter titles at once")
+        self.mi_rename_files = edit_menu.Append(
+            wx.ID_ANY, "Rename &Source Files…",
+            "Rename the source MP3 files using a pattern based on chapter titles")
         edit_menu.AppendSeparator()
         self.mi_play_chapter = edit_menu.Append(
             wx.ID_ANY, "&Play This Chapter",
@@ -308,6 +314,9 @@ class MainFrame(wx.Frame):
         self.mi_go_step2 = view_menu.Append(
             wx.ID_ANY, "Go to Tags && &Build (Step 2)\tCtrl+2",
             "Show the tags and build page — Step 2 of the two-step workflow")
+        self.mi_goto_time = view_menu.Append(
+            wx.ID_ANY, "&Go to Time…\tCtrl+G",
+            "Jump the player to a specific time position")
         view_menu.AppendSeparator()
         self.mi_text_larger = view_menu.Append(
             wx.ID_ANY, "Larger &Text\tCtrl+=",
@@ -380,11 +389,13 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self._on_build, self.mi_build)
         self.Bind(wx.EVT_MENU, self._on_save_edit, self.mi_save_edit)
         self.Bind(wx.EVT_MENU, self._on_save_as, self.mi_save_as)
+        self.Bind(wx.EVT_MENU, self._on_save_split_files, self.mi_split_files)
         self.Bind(wx.EVT_MENU, self._on_cancel, self.mi_cancel)
         self.Bind(wx.EVT_MENU, self._on_load_job, self.mi_load_job)
         self.Bind(wx.EVT_MENU, self._on_generate_job, self.mi_gen_job)
         self.Bind(wx.EVT_MENU, self._on_edit_chapter, self.mi_edit_chapter)
         self.Bind(wx.EVT_MENU, self._on_batch_edit_titles, self.mi_batch_titles)
+        self.Bind(wx.EVT_MENU, self._on_rename_source_files, self.mi_rename_files)
         self.Bind(wx.EVT_MENU, self._on_play_selected, self.mi_play_chapter)
         self.Bind(wx.EVT_MENU, self._on_split_chapter, self.mi_split_here)
         self.Bind(wx.EVT_MENU, lambda e: self._move(-1), self.mi_edit_up)
@@ -401,6 +412,7 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self._on_text_reset, self.mi_text_reset)
         self.Bind(wx.EVT_MENU, self._on_back_page, self.mi_go_step1)
         self.Bind(wx.EVT_MENU, self._on_next_page, self.mi_go_step2)
+        self.Bind(wx.EVT_MENU, self._on_goto_time, self.mi_goto_time)
         self.Bind(wx.EVT_MENU, self._on_view_player, self.mi_show_player)
         for _ci2, _mi_col in enumerate(self.mi_col):
             self.Bind(wx.EVT_MENU,
@@ -467,7 +479,8 @@ class MainFrame(wx.Frame):
         self.task_choice = wx.Choice(
             panel,
             choices=["Build new master from MP3 files",
-                     "Edit chapters in an existing file"])
+                     "Edit chapters in an existing file",
+                     "Split one long recording into chapters"])
         self.task_choice.SetName("Task - what you want to do")
         self.task_choice.SetToolTip(
             "Build: combine a folder of MP3 files into one chaptered master.\n"
@@ -822,6 +835,7 @@ class MainFrame(wx.Frame):
                              and bool(self.output_path))
         self.mi_save_edit.Enable(can_save_edit)
         self.mi_save_as.Enable(not building and count > 0)
+        self.mi_split_files.Enable(not building and edit and count > 1)
         self.mi_cancel.Enable(building)
         self.mi_open.Enable(not building)
         self.mi_open_master.Enable(not building)
@@ -835,6 +849,7 @@ class MainFrame(wx.Frame):
         # Edit menu
         self.mi_edit_chapter.Enable(not building and sel >= 0)
         self.mi_batch_titles.Enable(not building and count > 0)
+        self.mi_rename_files.Enable(not building and not edit and count > 0)
         self.mi_play_chapter.Enable(not building and sel >= 0)
         self.mi_split_here.Enable(not building and edit and self.player.has_media())
         self.mi_edit_up.Enable(not building and sel > 0)
@@ -850,6 +865,7 @@ class MainFrame(wx.Frame):
         on_step2 = self._page_tags.IsShown()
         self.mi_go_step1.Enable(on_step2)
         self.mi_go_step2.Enable(not building and not on_step2 and has_items)
+        self.mi_goto_time.Enable(self.player.has_media())
 
     def _update_undo_menu(self):
         self.mi_undo.SetItemLabel(f"{self._undo.undo_label()}\tCtrl+Z")
@@ -1527,6 +1543,7 @@ class MainFrame(wx.Frame):
         normalize = bool(self.settings.get("normalize", False))
         per_file_normalize = bool(self.settings.get("per_file_normalize", False))
         normalize_lufs = float(self.settings.get("normalize_lufs", -16.0))
+        fade_ms = int(self.settings.get("fade_ms", 0))
         gap_ms = self._gap_ms()
         self._save_settings()
         self._undo.clear()
@@ -1543,6 +1560,10 @@ class MainFrame(wx.Frame):
         def progress(frac):
             wx.PostEvent(self, _ThreadEvent(EVT_PROGRESS, frac))
 
+        def _on_chapter_level(idx: int, peak_db: float):
+            wx.CallAfter(self._announce,
+                         f"Chapter {idx + 1} peak level: {peak_db:.1f} dB.")
+
         def run():
             try:
                 result = core.build_master(
@@ -1550,7 +1571,9 @@ class MainFrame(wx.Frame):
                     bitrate=bitrate, normalize=normalize, gap_ms=gap_ms,
                     canceller=self.canceller, progress=progress,
                     per_file_normalize=per_file_normalize,
-                    normalize_lufs=normalize_lufs)
+                    normalize_lufs=normalize_lufs,
+                    fade_in_ms=fade_ms, fade_out_ms=fade_ms,
+                    on_chapter_level=_on_chapter_level)
                 try:
                     core.write_chapter_report(output, result, tags, items)
                 except OSError:
@@ -1727,6 +1750,33 @@ class MainFrame(wx.Frame):
             self._announce(f"Applied title edits to {len(new_titles)} chapter(s).")
         dlg.Destroy()
 
+    def _on_rename_source_files(self, _evt):
+        if self._is_building() or self.mode == "edit" or not self.items:
+            return
+        dlg = RenameSourceFilesDialog(self, self.items)
+        if dlg.ShowModal() == wx.ID_OK:
+            pairs = dlg.planned_renames()
+            errors = []
+            renamed = 0
+            for old, new in pairs:
+                if old == new:
+                    continue
+                try:
+                    os.rename(old, new)
+                    renamed += 1
+                except OSError as exc:
+                    errors.append(f"{os.path.basename(old)}: {exc}")
+            # Update item paths in memory
+            for i, (old, new) in enumerate(pairs):
+                if i < len(self.items):
+                    self.items[i].path = new
+            self._refresh_list()
+            msg = f"Renamed {renamed} file(s)."
+            if errors:
+                msg += f" {len(errors)} error(s): " + "; ".join(errors[:3])
+            self._announce(msg)
+        dlg.Destroy()
+
     def _on_edit_chapter(self, _evt):
         sel = self.list.GetFirstSelected()
         if sel < 0:
@@ -1888,6 +1938,21 @@ class MainFrame(wx.Frame):
                     f"Could not load chapter {sel + 1}. "
                     "Check that the file exists and is a valid MP3.")
 
+    def _on_goto_time(self, _evt):
+        if not self.player.has_media():
+            self._announce("No audio is loaded. Open a file and play it first.")
+            return
+        length_ms = self.player._length()
+        dlg = GoToTimeDialog(self, length_ms)
+        if dlg.ShowModal() == wx.ID_OK:
+            ms = dlg.time_ms()
+            if 0 <= ms <= length_ms:
+                self.player._seek(ms)
+                self._announce(f"Jumped to {core.format_timestamp(ms)}.")
+            else:
+                self._announce("That time is outside the audio length.")
+        dlg.Destroy()
+
     def _on_split_chapter(self, _evt):
         if self.mode != "edit" or not self.player.has_media():
             return
@@ -1969,9 +2034,10 @@ class MainFrame(wx.Frame):
         wildcard = ("Audacity labels (*.txt)|*.txt|"
                     "CUE sheet (*.cue)|*.cue|"
                     "Timestamps (*.txt)|*.txt|"
-                    "Podcasting 2.0 JSON (*.json)|*.json")
-        fmt_by_index = ["audacity", "cue", "timestamps", "pod2"]
-        ext_by_index = [".txt", ".cue", ".txt", ".json"]
+                    "Podcasting 2.0 JSON (*.json)|*.json|"
+                    "CSV spreadsheet (*.csv)|*.csv")
+        fmt_by_index = ["audacity", "cue", "timestamps", "pod2", "csv"]
+        ext_by_index = [".txt", ".cue", ".txt", ".json", ".csv"]
         default_dir = self.settings.get("last_output_dir", "") or self.folder
         dlg = wx.FileDialog(
             self, "Export chapters", defaultDir=default_dir,
@@ -2326,6 +2392,47 @@ class MainFrame(wx.Frame):
                       "Saved", wx.OK | wx.ICON_INFORMATION, self)
         # Reload so the player reflects the new tags/chapters.
         self.player.load(self.edit_path, self.edit_chapters)
+
+    def _on_save_split_files(self, _evt):
+        """Split the open master into one file per chapter using lossless FFmpeg copy."""
+        if self._is_building() or self.mode != "edit" or len(self.edit_chapters) < 2:
+            return
+        dlg = wx.DirDialog(
+            self, "Choose a folder to save the chapter files",
+            defaultPath=os.path.dirname(self.edit_path) if self.edit_path else "",
+            style=wx.DD_DEFAULT_STYLE | wx.DD_DIR_MUST_EXIST)
+        if dlg.ShowModal() != wx.ID_OK:
+            dlg.Destroy()
+            return
+        output_dir = dlg.GetPath()
+        dlg.Destroy()
+        chapters = list(self.edit_chapters)
+        src = self.edit_path
+        self._announce(f"Splitting {len(chapters)} chapter(s) into {output_dir}...")
+        self.canceller = core.Canceller()
+
+        def work():
+            try:
+                paths = core.split_into_files(src, chapters, output_dir,
+                                              progress=lambda f: None)
+                wx.CallAfter(self._split_files_done, paths, None)
+            except core.ChapterForgeError as exc:
+                wx.CallAfter(self._split_files_done, [], str(exc))
+
+        self.worker = threading.Thread(target=work, daemon=True)
+        self.worker.start()
+
+    def _split_files_done(self, paths: list, error):
+        self.worker = None
+        self.canceller = None
+        if error:
+            wx.MessageBox(str(error), "Split failed", wx.OK | wx.ICON_ERROR, self)
+            self._announce("Split failed.")
+        else:
+            self._announce(f"Saved {len(paths)} chapter file(s).")
+            wx.MessageBox(
+                f"Saved {len(paths)} chapter file(s) successfully.",
+                "Split complete", wx.OK | wx.ICON_INFORMATION, self)
 
     def _on_save_as(self, _evt):
         if self._is_building():
@@ -3016,16 +3123,39 @@ class MainFrame(wx.Frame):
             return
         sel = self.task_choice.GetSelection()
         if sel == 1:  # Edit existing file
-            # Just switch to edit mode; user will click Browse to open a file
             self.mode = "edit"
             self._show_build_sections(False)
             self._update_source_box()
             self._update_command_state()
             self._announce("Switched to edit mode. Click Browse to open a chaptered file.")
-        else:  # Build new master
+        elif sel == 2:  # Split one long recording
+            if self.mode == "edit" and not self._confirm_discard_edits():
+                self.task_choice.SetSelection(1)
+                return
+            # Split recording uses edit mode infrastructure:
+            # open the long file, use Split Here to mark boundaries,
+            # then File -> Save as Individual Chapter Files to split.
+            self.mode = "edit"
+            self._show_build_sections(False)
+            self.btn_browse.SetLabel("&Open Long Recording…")
+            self.btn_browse.SetName(
+                "Open a single long audio file to split into chapters")
+            self.btn_browse.SetToolTip(
+                "Open a long MP3, FLAC, or other audio file.\n"
+                "Use the player and Split Here to mark chapter boundaries,\n"
+                "then File - Save as Individual Chapter Files to save each chapter.")
+            self.src_label.SetLabel("Long recording to split:")
+            self.src_static_box.SetLabel("Source - Split Recording")
+            self.folder_ctrl.SetHint("No recording open yet")
+            self._update_command_state()
+            self._announce(
+                "Split Recording mode. Click 'Open Long Recording' to open a file. "
+                "Play it, use Split Here to mark chapter boundaries, "
+                "then use File - Save as Individual Chapter Files.")
+        else:  # Build new master (sel == 0)
             if self.mode == "edit":
                 if not self._confirm_discard_edits():
-                    self.task_choice.SetSelection(1)  # revert
+                    self.task_choice.SetSelection(1)
                     return
                 self.player.release(recreate=True)
                 self._enter_build_mode()
@@ -3175,6 +3305,25 @@ class AboutDialog(wx.Dialog):
         self.CentreOnParent()
 
 
+BUILT_IN_PRESETS = {
+    "Built-in: Podcast MP3": {
+        "output_format": "mp3", "bitrate": "192k", "normalize": False,
+        "gap_seconds": 0.5, "write_pod2": True, "per_file_normalize": False,
+        "normalize_lufs": -16.0,
+    },
+    "Built-in: Audiobook M4B": {
+        "output_format": "m4b", "bitrate": "192k", "normalize": True,
+        "gap_seconds": 0.0, "write_pod2": False, "per_file_normalize": True,
+        "normalize_lufs": -18.0,
+    },
+    "Built-in: FLAC Archive": {
+        "output_format": "flac", "bitrate": "192k", "normalize": True,
+        "gap_seconds": 0.0, "write_pod2": False, "per_file_normalize": False,
+        "normalize_lufs": -16.0,
+    },
+}
+
+
 class _NamedAccessible(wx.Accessible):
     """Supplies a custom accessible name for composite Win32 controls (e.g.
     SpinCtrl) whose inner edit field is what NVDA focuses but has no label."""
@@ -3197,6 +3346,34 @@ class SettingsDialog(wx.Dialog):
         outer = wx.BoxSizer(wx.VERTICAL)
         nb = wx.Notebook(self)
         nb.SetName("Settings categories")
+
+        # ----------------------------------------------------------------
+        # Preset bar (Feature 4)
+        # ----------------------------------------------------------------
+        preset_row = wx.BoxSizer(wx.HORIZONTAL)
+        preset_lbl = wx.StaticText(self, label="&Preset:")
+        preset_row.Add(preset_lbl, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
+
+        _built_in_names = sorted(BUILT_IN_PRESETS.keys())
+        self._preset_names = (["-- Select a preset --"] + _built_in_names
+                              + sorted(settings.get("presets", {}).keys()))
+        self._preset_choice = wx.Choice(self, choices=self._preset_names)
+        self._preset_choice.SetSelection(0)
+        self._preset_choice.SetName("Load a saved preset to restore all build settings at once")
+        self._preset_choice.Bind(wx.EVT_CHOICE, self._on_load_preset)
+        preset_row.Add(self._preset_choice, 1, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
+
+        btn_save_preset = wx.Button(self, label="&Save as Preset…")
+        btn_save_preset.SetName("Save the current settings as a named preset")
+        btn_save_preset.Bind(wx.EVT_BUTTON, self._on_save_preset)
+        preset_row.Add(btn_save_preset, 0, wx.RIGHT, 4)
+
+        btn_del_preset = wx.Button(self, label="&Delete Preset")
+        btn_del_preset.SetName("Delete the currently selected preset")
+        btn_del_preset.Bind(wx.EVT_BUTTON, self._on_delete_preset)
+        preset_row.Add(btn_del_preset, 0)
+
+        outer.Add(preset_row, 0, wx.EXPAND | wx.ALL, 8)
 
         def make_row(panel, grid, label_text, ctrl_factory, name, tip="",
                      use_accessible=False):
@@ -3399,6 +3576,17 @@ class SettingsDialog(wx.Dialog):
             use_accessible=True)
         self.lufs_target.SetDigits(1)
 
+        self.fade_dur = brow(
+            "Chapter transition &fade (seconds):",
+            lambda: wx.SpinCtrlDouble(bp, min=0.0, max=5.0, inc=0.25,
+                                      initial=float(settings.get("fade_ms", 0)) / 1000.0),
+            "Chapter transition fade duration in seconds",
+            "Add a fade-out then fade-in at each chapter boundary.\n"
+            "0 means no fade. 0.5 to 1 second is typical.\n"
+            "Forces re-encoding of the faded portions.",
+            use_accessible=True)
+        self.fade_dur.SetDigits(2)
+
         bp_sizer = wx.BoxSizer(wx.VERTICAL)
         bp_sizer.Add(bg, 1, wx.EXPAND | wx.ALL, 14)
         bp.SetSizer(bp_sizer)
@@ -3480,7 +3668,7 @@ class SettingsDialog(wx.Dialog):
             ("Save Changes",         "Ctrl+S"),
             ("Save As…",             "Ctrl+Shift+A"),
             ("Load a Saved Setup…",  "Ctrl+L"),
-            ("Save This Setup as a Template…", "Ctrl+G"),
+            ("Save This Setup as a Template…", "Ctrl+Shift+G"),
             ("Settings…",            "Ctrl+,"),
             ("Command Palette",      "Ctrl+Shift+P"),
             ("User Guide",           "F1"),
@@ -3506,6 +3694,89 @@ class SettingsDialog(wx.Dialog):
         self.SetMinSize((480, -1))
         self.CentreOnParent()
         self.skip.SetFocus()
+
+    def _on_load_preset(self, _evt):
+        """Load the selected preset and apply its values to the dialog controls."""
+        sel = self._preset_choice.GetSelection()
+        if sel <= 0:
+            return
+        name = self._preset_names[sel]
+        if name in BUILT_IN_PRESETS:
+            values = BUILT_IN_PRESETS[name]
+        else:
+            values = self.settings.get("presets", {}).get(name, {})
+        if not values:
+            return
+        fmt = values.get("output_format", "mp3")
+        self.fmt.SetSelection(1 if fmt == "m4b" else 2 if fmt == "flac" else 0)
+        br = str(values.get("bitrate", "192k"))
+        self.bitrate.SetStringSelection(br)
+        self.normalize.SetValue(bool(values.get("normalize", False)))
+        self.gap.SetValue(float(values.get("gap_seconds", 0.0)))
+        self.write_pod2.SetValue(bool(values.get("write_pod2", False)))
+        self.per_file_norm.SetValue(bool(values.get("per_file_normalize", False)))
+        self.lufs_target.SetValue(float(values.get("normalize_lufs", -16.0)))
+
+    def _on_save_preset(self, _evt):
+        """Save current control values as a named preset."""
+        name = wx.GetTextFromUser(
+            "Enter a name for this preset:", "Save Preset", "", self)
+        name = name.strip()
+        if not name:
+            return
+        if name.startswith("Built-in:"):
+            wx.MessageBox("Preset names cannot start with 'Built-in:'.",
+                          "Invalid name", wx.OK | wx.ICON_WARNING, self)
+            return
+        fmt = ("m4b" if self.fmt.GetSelection() == 1
+               else "flac" if self.fmt.GetSelection() == 2 else "mp3")
+        preset = {
+            "output_format": fmt,
+            "bitrate": self.bitrate.GetStringSelection() or "192k",
+            "normalize": self.normalize.GetValue(),
+            "gap_seconds": float(self.gap.GetValue()),
+            "write_pod2": self.write_pod2.GetValue(),
+            "per_file_normalize": self.per_file_norm.GetValue(),
+            "normalize_lufs": float(self.lufs_target.GetValue()),
+        }
+        if "presets" not in self.settings:
+            self.settings["presets"] = {}
+        self.settings["presets"][name] = preset
+        settings_mod.save(self.settings)
+        # Refresh choice list
+        _built_in_names = sorted(BUILT_IN_PRESETS.keys())
+        self._preset_names = (["-- Select a preset --"] + _built_in_names
+                              + sorted(self.settings["presets"].keys()))
+        self._preset_choice.Set(self._preset_names)
+        try:
+            idx = self._preset_names.index(name)
+            self._preset_choice.SetSelection(idx)
+        except ValueError:
+            self._preset_choice.SetSelection(0)
+
+    def _on_delete_preset(self, _evt):
+        """Delete the currently selected custom preset."""
+        sel = self._preset_choice.GetSelection()
+        if sel <= 0:
+            return
+        name = self._preset_names[sel]
+        if name in BUILT_IN_PRESETS:
+            wx.MessageBox("Built-in presets cannot be deleted.",
+                          "Cannot delete", wx.OK | wx.ICON_WARNING, self)
+            return
+        presets = self.settings.get("presets", {})
+        presets.pop(name, None)
+        self.settings["presets"] = presets
+        settings_mod.save(self.settings)
+        _built_in_names = sorted(BUILT_IN_PRESETS.keys())
+        self._preset_names = (["-- Select a preset --"] + _built_in_names
+                              + sorted(presets.keys()))
+        self._preset_choice.Set(self._preset_names)
+        self._preset_choice.SetSelection(0)
+
+    def _get_current_presets(self) -> dict:
+        """Return the current presets dict from settings."""
+        return dict(self.settings.get("presets", {}))
 
     def _on_sc_change(self, _evt):
         """Open key-capture dialog for selected shortcut (Feature 13)."""
@@ -3557,9 +3828,13 @@ class SettingsDialog(wx.Dialog):
             # Feature 8
             "per_file_normalize": self.per_file_norm.GetValue(),
             "normalize_lufs": float(self.lufs_target.GetValue()),
+            # Fades
+            "fade_ms": int(round(float(self.fade_dur.GetValue()) * 1000)),
             # Feature 13
             "key_overrides": {row: override
                               for row, override in self._key_overrides.items()},
+            # Feature 4
+            "presets": self._get_current_presets(),
         }
         return d
 
@@ -3809,6 +4084,113 @@ class ChapterEditDialog(wx.Dialog):
         return self.start_ctrl.GetValue().strip()
 
 
+class GoToTimeDialog(wx.Dialog):
+    """Enter a timestamp to jump the player to."""
+
+    def __init__(self, parent, length_ms: int):
+        super().__init__(parent, title="Go to Time",
+                         style=wx.DEFAULT_DIALOG_STYLE)
+        self._length_ms = length_ms
+        outer = wx.BoxSizer(wx.VERTICAL)
+
+        lbl = wx.StaticText(
+            self,
+            label=f"Enter a time to jump to (audio is {core.format_timestamp(length_ms)} long).\n"
+                  "Formats accepted: HH:MM:SS, MM:SS, or seconds (e.g. 90.5)")
+        outer.Add(lbl, 0, wx.ALL, 12)
+
+        self.time_ctrl = wx.TextCtrl(self, value="0:00")
+        self.time_ctrl.SetName("Time to jump to - enter as HH:MM:SS, MM:SS, or seconds")
+        outer.Add(self.time_ctrl, 0, wx.EXPAND | wx.LEFT | wx.RIGHT, 12)
+
+        outer.Add(self.CreateButtonSizer(wx.OK | wx.CANCEL), 0, wx.EXPAND | wx.ALL, 12)
+        self.SetSizer(outer)
+        self.Fit()
+        self.CentreOnParent()
+        self.time_ctrl.SetFocus()
+        self.time_ctrl.SelectAll()
+
+    def time_ms(self) -> int:
+        """Parse the entered time string and return milliseconds, or -1 on error."""
+        raw = self.time_ctrl.GetValue().strip()
+        ms = core._ts_to_ms(raw)
+        if ms is not None:
+            return ms
+        # Try plain seconds
+        try:
+            return int(float(raw) * 1000)
+        except ValueError:
+            return -1
+
+
+class RenameSourceFilesDialog(wx.Dialog):
+    """Rename source MP3 files using a pattern."""
+
+    def __init__(self, parent, items):
+        super().__init__(parent, title="Rename Source Files",
+                         style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
+        self._items = items
+        outer = wx.BoxSizer(wx.VERTICAL)
+
+        help_lbl = wx.StaticText(self,
+            label="Placeholders: {n} = chapter number, {n:02d} = zero-padded,\n"
+                  "{title} = chapter title, {ext} = original extension.")
+        outer.Add(help_lbl, 0, wx.ALL, 10)
+
+        pat_row = wx.BoxSizer(wx.HORIZONTAL)
+        pat_row.Add(wx.StaticText(self, label="&Pattern:"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
+        self.pattern = wx.TextCtrl(self, value="{n:02d} - {title}")
+        self.pattern.SetName("File naming pattern - use {n} for number, {title} for chapter title")
+        self.pattern.Bind(wx.EVT_TEXT, self._refresh)
+        pat_row.Add(self.pattern, 1)
+        outer.Add(pat_row, 0, wx.EXPAND | wx.ALL, 8)
+
+        # Preview list
+        self.preview = wx.ListCtrl(self, style=wx.LC_REPORT | wx.BORDER_SUNKEN, size=(-1, 200))
+        self.preview.SetName("Preview of file renames - current name and new name")
+        self.preview.InsertColumn(0, "Current filename", width=260)
+        self.preview.InsertColumn(1, "New filename", width=260)
+        outer.Add(self.preview, 1, wx.EXPAND | wx.ALL, 8)
+
+        outer.Add(self.CreateButtonSizer(wx.OK | wx.CANCEL), 0, wx.EXPAND | wx.ALL, 8)
+        self.SetSizer(outer)
+        self.SetMinSize((560, 400))
+        self.Fit()
+        self.CentreOnParent()
+        self._refresh(None)
+        self.pattern.SetFocus()
+
+    def _make_name(self, item, n: int) -> str:
+        import re as _re
+        ext = os.path.splitext(item.path)[1]
+        pat = self.pattern.GetValue()
+        try:
+            name = pat.format(n=n, title=item.title, ext=ext)
+        except (KeyError, ValueError):
+            name = pat
+        # Sanitise
+        name = _re.sub(r'[\\/:*?"<>|]', "_", name)
+        if not name.endswith(ext):
+            name += ext
+        return name
+
+    def _refresh(self, _evt):
+        self.preview.DeleteAllItems()
+        for i, it in enumerate(self._items, start=1):
+            new_name = self._make_name(it, i)
+            row = self.preview.InsertItem(i - 1, os.path.basename(it.path))
+            self.preview.SetItem(row, 1, new_name)
+
+    def planned_renames(self):
+        """Return list of (old_path, new_path) tuples."""
+        pairs = []
+        for i, it in enumerate(self._items, start=1):
+            new_name = self._make_name(it, i)
+            new_path = os.path.join(os.path.dirname(it.path), new_name)
+            pairs.append((it.path, new_path))
+        return pairs
+
+
 class CommandPaletteDialog:
     """Searchable command palette (Ctrl+Shift+P), modelled on Quill's palette.
 
@@ -3878,9 +4260,10 @@ class CommandPaletteDialog:
             ("Build Master MP3",              "Ctrl+B",         lambda: f._on_build(None),               lambda: nb() and no_edit() and has_items() and has_out()),
             ("Save Changes",                  "Ctrl+S",         lambda: f._on_save_edit(None),           lambda: edit() and nb() and f._edit_is_mp3()),
             ("Save As…",                      "Ctrl+Shift+A",   lambda: f._on_save_as(None),             lambda: nb() and n() > 0),
+            ("Save as Individual Chapter Files…", None,          lambda: f._on_save_split_files(None),    lambda: nb() and edit() and n() > 1),
             ("Cancel Build",                  "Esc",            lambda: f._on_cancel(None),              lambda: f._is_building()),
             ("Load a Saved Setup…",           "Ctrl+L",         lambda: f._on_load_job(None),            lambda: nb()),
-            ("Save This Setup as a Template…", "Ctrl+G",         lambda: f._on_generate_job(None),        lambda: nb() and no_edit() and has_items()),
+            ("Save This Setup as a Template…", "Ctrl+Shift+G",   lambda: f._on_generate_job(None),        lambda: nb() and no_edit() and has_items()),
             ("Load Chapter List From File…",  None,             lambda: f._on_import_chapters(None),     lambda: nb() and n() > 0),
             ("Save Chapter List…",            None,             lambda: f._on_export_chapters(None),     lambda: nb() and n() > 0),
             ("Find Chapters in Silent Gaps…", None,             lambda: f._on_silence(None),             lambda: nb()),
@@ -3890,6 +4273,7 @@ class CommandPaletteDialog:
             ("Settings…",                     "Ctrl+,",         lambda: f._on_settings(None),            lambda: True),
             ("Edit Chapter Details…",          "F2",             lambda: f._on_edit_chapter(None),        lambda: nb() and sel() >= 0),
             ("Batch Edit Titles…",             None,             lambda: f._on_batch_edit_titles(None),   lambda: nb() and n() > 0),
+            ("Rename Source Files…",           None,             lambda: f._on_rename_source_files(None), lambda: nb() and no_edit() and n() > 0),
             ("Play This Chapter",             None,             lambda: f._on_play_selected(None),       lambda: nb() and sel() >= 0),
             ("Split Here",                    None,             lambda: f._on_split_chapter(None),       lambda: nb() and edit() and f.player.has_media()),
             ("Move Up",                       "Alt+Up",         lambda: f._move(-1),                     lambda: nb() and sel() > 0),
@@ -3897,6 +4281,7 @@ class CommandPaletteDialog:
             ("Remove / Merge Up",             "Delete",         lambda: f._remove_selected(),             lambda: nb() and sel() >= 0 and (no_edit() or n() > 1)),
             ("Go to Chapters (Step 1)",       "Ctrl+1",         lambda: f._on_back_page(None),           lambda: f._page_tags.IsShown()),
             ("Go to Tags and Build (Step 2)", "Ctrl+2",         lambda: f._on_next_page(None),           lambda: nb() and not f._page_tags.IsShown() and has_items()),
+            ("Go to Time…",                   "Ctrl+G",         lambda: f._on_goto_time(None),           lambda: f.player.has_media()),
             ("Minimize to System Tray",       None,             lambda: f._on_minimize_to_tray(None),    lambda: True),
             ("Command Palette",               "Ctrl+Shift+P",   lambda: f._open_command_palette(),       lambda: True),
             ("Setup Wizard…",                 None,             lambda: f._on_wizard(None),              lambda: True),

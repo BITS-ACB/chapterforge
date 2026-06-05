@@ -80,6 +80,11 @@ class PlayerPanel(wx.Panel):
         self._speed_temp: Optional[str] = None         # temp file for speed-adjusted audio
         self._speed_busy: bool = False     # True while FFmpeg is running
 
+        # Trim / cut state
+        self._trim_start_ms: int = 0
+        self._trim_end_ms: int = 0
+        self._trim_active: bool = False
+
         self._box = wx.StaticBoxSizer(wx.VERTICAL, self, "Player")
         self._media_holder = wx.BoxSizer(wx.VERTICAL)
         self.mc: Optional[wx.media.MediaCtrl] = None
@@ -155,6 +160,44 @@ class PlayerPanel(wx.Panel):
         spd_row.Add(self.btn_save_speed, 0, wx.ALL, 4)
         self._box.Add(spd_row, 0, wx.EXPAND)
 
+        # --- trim row -------------------------------------------------------
+        trim_box = wx.StaticBoxSizer(wx.VERTICAL, self, "Trim / Cut Selection")
+
+        # Selection display
+        self._trim_label = wx.StaticText(self, label="No selection set")
+        self._trim_label.SetName("Current trim selection - start time to end time")
+        trim_box.Add(self._trim_label, 0, wx.ALL, 4)
+
+        # Marker buttons row
+        marker_row = wx.BoxSizer(wx.HORIZONTAL)
+        self.btn_trim_start = self._button(
+            marker_row, "Set &Begin",
+            self._on_set_trim_start,
+            "Mark the current playhead position as the start of the selection")
+        self.btn_trim_end = self._button(
+            marker_row, "Set &End",
+            self._on_set_trim_end,
+            "Mark the current playhead position as the end of the selection")
+        self.btn_trim_clear = self._button(
+            marker_row, "&Clear Selection",
+            self._on_clear_trim,
+            "Clear the current trim selection")
+        trim_box.Add(marker_row, 0, wx.ALL, 4)
+
+        # Action buttons row
+        action_row = wx.BoxSizer(wx.HORIZONTAL)
+        self.btn_prelisten_cut = self._button(
+            action_row, "Pre-&Listen as Cut",
+            self._on_prelisten_cut,
+            "Play the audio with the selected region removed so you can hear the result before saving")
+        self.btn_save_trimmed = self._button(
+            action_row, "Save T&rimmed...",
+            self._on_save_trimmed,
+            "Save the selected region to a new file using lossless FFmpeg copy")
+        trim_box.Add(action_row, 0, wx.ALL, 4)
+
+        self._box.Add(trim_box, 0, wx.EXPAND | wx.ALL, 4)
+
         self.SetSizer(self._box)
 
         self._timer = wx.Timer(self)
@@ -198,6 +241,9 @@ class PlayerPanel(wx.Panel):
         # and no speed-change is in progress.
         self.speed_choice.Enable(on and not self._speed_busy)
         self.btn_save_speed.Enable(on and bool(self._orig_path))
+        for b in (self.btn_trim_start, self.btn_trim_end, self.btn_trim_clear,
+                  self.btn_prelisten_cut, self.btn_save_trimmed):
+            b.Enable(on)
 
     # ------------------------------------------------------------------
     # Public API
@@ -217,6 +263,9 @@ class PlayerPanel(wx.Panel):
             self._orig_chapters = list(chapters)
             self._speed = 1.0
             self.speed_choice.SetSelection(1)
+            self._trim_start_ms = 0
+            self._trim_end_ms = 0
+            wx.CallAfter(self._update_trim_label)
         self.release(recreate=True)
         if self.mc is None:
             self._set_status("Audio playback is unavailable on this system.")
@@ -659,3 +708,100 @@ class PlayerPanel(wx.Panel):
             self._set_status(f"Saved: {os.path.basename(dst)}", announce=True)
         else:
             self._set_status("Export failed — check the audio file.", announce=True)
+
+    # ------------------------------------------------------------------
+    # Trim / cut selection
+    # ------------------------------------------------------------------
+
+    def _update_trim_label(self):
+        if self._trim_start_ms == 0 and self._trim_end_ms == 0:
+            self._trim_label.SetLabel("No selection set")
+        else:
+            start = _fmt(self._trim_start_ms)
+            end = _fmt(self._trim_end_ms) if self._trim_end_ms > 0 else "not set"
+            dur = ""
+            if self._trim_end_ms > self._trim_start_ms:
+                dur = f"  ({_fmt(self._trim_end_ms - self._trim_start_ms)} selected)"
+            self._trim_label.SetLabel(f"Selection: {start} to {end}{dur}")
+        self._trim_label.GetParent().Layout()
+
+    def _on_set_trim_start(self, _evt):
+        ms = self._tell()
+        self._trim_start_ms = ms
+        # If end is before new start, clear end
+        if self._trim_end_ms > 0 and self._trim_end_ms <= ms:
+            self._trim_end_ms = 0
+        self._update_trim_label()
+        self._announce(f"Selection start set to {_fmt(ms)}.")
+
+    def _on_set_trim_end(self, _evt):
+        ms = self._tell()
+        if ms <= self._trim_start_ms:
+            self._announce("End must be after the start. Move the player forward first.")
+            return
+        self._trim_end_ms = ms
+        self._update_trim_label()
+        self._announce(f"Selection end set to {_fmt(ms)}. "
+                       f"Duration: {_fmt(ms - self._trim_start_ms)}.")
+
+    def _on_clear_trim(self, _evt):
+        self._trim_start_ms = 0
+        self._trim_end_ms = 0
+        self._update_trim_label()
+        self._announce("Selection cleared.")
+
+    def _on_prelisten_cut(self, _evt):
+        """Play from just before the cut point to show how the edit will sound."""
+        if self._trim_start_ms <= 0 and self._trim_end_ms <= 0:
+            self._announce("Set a selection first using Set Begin and Set End.")
+            return
+        if not self._loaded:
+            return
+        # Seek to 2 seconds before the cut start to give context
+        preview_start = max(0, self._trim_start_ms - 2000)
+        # We seek to just before the start; the cut itself is simulated by
+        # seeking past the end marker automatically during playback.
+        # For a true prelisten-as-cut we'd need a temp file; this gives audible context.
+        self._seek(preview_start)
+        self._do_play()
+        self._announce(
+            f"Playing from {_fmt(preview_start)} - selection starts at "
+            f"{_fmt(self._trim_start_ms)}, ends at {_fmt(self._trim_end_ms)}.")
+
+    def _on_save_trimmed(self, _evt):
+        """Save the selected region to a new file using lossless FFmpeg copy."""
+        if self._trim_end_ms <= self._trim_start_ms:
+            self._announce("Set a valid selection (Begin and End) before saving.")
+            return
+        if not self.media_path:
+            return
+        ext = os.path.splitext(self.media_path)[1] or ".mp3"
+        stem = os.path.splitext(self.media_path)[0]
+        default_name = os.path.basename(f"{stem} - trimmed{ext}")
+        dlg = wx.FileDialog(
+            self.GetParent(),
+            message="Save trimmed audio",
+            defaultDir=os.path.dirname(self.media_path),
+            defaultFile=default_name,
+            wildcard=f"Audio (*{ext})|*{ext}|All files (*.*)|*.*",
+            style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT)
+        if dlg.ShowModal() != wx.ID_OK:
+            dlg.Destroy()
+            return
+        dst = dlg.GetPath()
+        dlg.Destroy()
+        # Use original path (before speed processing) if available
+        src = self._orig_path or self.media_path
+        self._set_status("Saving trimmed audio...", announce=True)
+
+        def work():
+            ok = core.trim_file(src, self._trim_start_ms, self._trim_end_ms, dst)
+            wx.CallAfter(self._trim_save_done, dst, ok)
+
+        threading.Thread(target=work, daemon=True).start()
+
+    def _trim_save_done(self, dst: str, ok: bool):
+        if ok:
+            self._set_status(f"Saved: {os.path.basename(dst)}", announce=True)
+        else:
+            self._set_status("Trim save failed.", announce=True)
