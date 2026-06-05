@@ -67,30 +67,55 @@ footer.site { color: var(--muted); border-top: 1px solid var(--border);
 <header class="site"><nav aria-label="Documentation"><ul><li><a href="index.html">Home</a></li><li><a href="USER_GUIDE.html">User Guide</a></li><li><a href="DEPLOYMENT.html">Deployment</a></li><li><a href="CHANGELOG.html">Changelog</a></li><li><a href="THIRD_PARTY.html" aria-current="page">Third-Party Notices</a></li></ul></nav></header>
 <div class="wrap">
 <main id="main" tabindex="-1">
-<nav class="toc" aria-label="On this page"><p>On this page</p><ul><li><a href="#ffmpeg-ffmpegexe-ffprobeexe">FFmpeg (ffmpeg.exe, ffprobe.exe)</a></li><li><a href="#mutagen">Mutagen</a></li><li><a href="#wxpython">wxPython</a></li><li><a href="#quill-accessibility-patterns">QUILL (accessibility patterns)</a></li></ul></nav>
+<nav class="toc" aria-label="On this page"><p>On this page</p><ul><li><a href="#ffmpeg-ffmpegexe-ffprobeexe">FFmpeg (`ffmpeg.exe`, `ffprobe.exe`)</a></li><li><a href="#mutagen">Mutagen</a></li><li><a href="#wxpython-wxwidgets">wxPython (wxWidgets)</a></li><li><a href="#prismatoid-optional-windows">Prismatoid (optional, Windows)</a></li><li><a href="#quill-accessibility-patterns">QUILL (accessibility patterns)</a></li><li><a href="#build-packaging-tools">Build &amp; packaging tools</a></li></ul></nav>
 <h1>Third-party software and attributions</h1>
-<p>ChapterForge bundles and/or adapts the following third-party components.</p>
-<h2 id="ffmpeg-ffmpegexe-ffprobeexe">FFmpeg (ffmpeg.exe, ffprobe.exe)</h2>
-<p>ChapterForge ships the FFmpeg command-line tools (<code>ffmpeg.exe</code>, <code>ffprobe.exe</code>) to decode, concatenate and re-encode audio. FFmpeg is licensed under the GNU LGPL/GPL depending on the build. See https://ffmpeg.org and the license of the specific build you ship. If you redistribute ChapterForge you must comply with the FFmpeg license terms (typically: provide the FFmpeg source or a written offer, and keep the license/notices intact).</p>
+<p>ChapterForge bundles and/or incorporates the following third-party components. Where applicable, license text and source code are provided alongside the distribution.</p>
+<h2 id="ffmpeg-ffmpegexe-ffprobeexe">FFmpeg (<code>ffmpeg.exe</code>, <code>ffprobe.exe</code>)</h2>
+<p><strong>License:</strong> GNU LGPL 2.1+ or GPL 2.0+ (depending on build configuration)</p>
+<p>ChapterForge ships the FFmpeg command-line tools to decode, concatenate, and re-encode audio files. FFmpeg is maintained by the FFmpeg project and is available at https://ffmpeg.org.</p>
+<p>The FFmpeg binaries included with ChapterForge use the GPL 2.0 license and are built with GPL-licensed components. If you redistribute ChapterForge, you must comply with the GPLv2 license terms:</p>
+<ul>
+<li>Provide the FFmpeg source code (or a written offer of the source)</li>
+<li>Keep the FFmpeg license notice intact</li>
+<li>Preserve all copyright and license notices in the binaries</li>
+</ul>
+<p>For detailed information about FFmpeg licensing and the specific configuration of your build, visit https://ffmpeg.org/legal.html.</p>
 <h2 id="mutagen">Mutagen</h2>
-<p>ID3v2 tags and CHAP/CTOC chapter frames are written with Mutagen, licensed under the GNU GPL v2 or later. https://mutagen.readthedocs.io</p>
-<h2 id="wxpython">wxPython</h2>
-<p>The graphical interface uses wxPython (wxWidgets), licensed under the wxWindows Library Licence. https://www.wxpython.org</p>
+<p><strong>License:</strong> GNU GPL v2.0 or later</p>
+<p>ID3v2 tags and chapter frames (CHAP/CTOC) are written using the Mutagen Python library, a pure-Python library for reading and writing audio metadata. Mutagen is maintained at https://mutagen.readthedocs.io.</p>
+<p>ChapterForge uses Mutagen to:</p>
+<ul>
+<li>Parse and write ID3v2 tags in MP3 files</li>
+<li>Create and embed CHAP/CTOC chapter frame structures</li>
+<li>Maintain podcast app compatibility (Overcast, Pocket Casts, AntennaPod, etc.)</li>
+</ul>
+<h2 id="wxpython-wxwidgets">wxPython (wxWidgets)</h2>
+<p><strong>License:</strong> wxWindows Library Licence (compatible with LGPL)</p>
+<p>The ChapterForge graphical interface is built with wxPython, a cross-platform Python binding for wxWidgets. wxPython is maintained at https://www.wxpython.org.</p>
+<p>The wxWindows Library Licence permits both commercial and open-source use, with the requirement that you acknowledge wxWidgets and provide a copy of the license with your application.</p>
+<h2 id="prismatoid-optional-windows">Prismatoid (optional, Windows)</h2>
+<p><strong>License:</strong> Unlicensed / proprietary (optional graceful degradation)</p>
+<p>The optional <code>prismatoid</code> package provides enhanced screen-reader output on Windows for NVDA compatibility. When installed, ChapterForge integrates with Windows Automation/MSAA to announce chapter progress and status. If <code>prismatoid</code> is not installed, ChapterForge gracefully falls back to visible status text and standard accessible controls.</p>
 <h2 id="quill-accessibility-patterns">QUILL (accessibility patterns)</h2>
-<p>The screen-reader bridge and announcement helpers in <code>chapterforge/a11y.py</code> and the notification-log pattern in <code>chapterforge/notify.py</code> are adapted from the QUILL project&#x27;s accessibility layer:</p>
+<p><strong>Attribution:</strong> BITS (Blind Information Technology Specialists)</p>
+<p>The screen-reader announcement and accessibility layer in ChapterForge (<code>chapterforge/a11y.py</code> and <code>chapterforge/notify.py</code>) is adapted from the QUILL project&#x27;s accessibility design. This includes:</p>
 <ul>
-<li>the Prism / Prismatoid screen-reader bridge with graceful &quot;status-only&quot;</li>
+<li>The Prism/Prismatoid screen-reader bridge with graceful fallback</li>
+<li>The <code>announce()</code> transcript API for screen-reader feedback</li>
+<li>The announcement formatting grammar (<code>format_announcement()</code>, <code>format_progress()</code>, <code>pluralize()</code>)</li>
+<li>The in-app JSON notification log pattern for accessibility and debugging</li>
 </ul>
-<p>fallback,</p>
+<p>QUILL is an accessible document editor developed by BITS. ChapterForge reuses these proven patterns to ensure full screen-reader compatibility and keyboard-first operation.</p>
+<h2 id="build-packaging-tools">Build &amp; packaging tools</h2>
+<p>The following tools are used to build and package ChapterForge but are not bundled with the application:</p>
 <ul>
-<li>the <code>announce()</code> transcript API,</li>
-<li>the announcement grammar (<code>format_announcement</code> / <code>format_progress</code> /</li>
+<li><strong>PyInstaller</strong> (GitHub Installers) — creates the self-contained Windows executable</li>
+<li><strong>Inno Setup</strong> — builds the Windows installer</li>
+<li><strong>Python 3.10+</strong> — runtime and build environment</li>
 </ul>
-<p><code>pluralize</code>),</p>
-<ul>
-<li>the in-app JSON notifications log.</li>
-</ul>
-<p>The optional <code>prismatoid</code> package provides the actual screen-reader backend on Windows; when it is not installed, ChapterForge degrades gracefully and relies on visible status text and standard accessible controls.</p>
+<hr>
+<p><strong>© 2026 Blind Information Technology Specialists (BITS)</strong></p>
+<p>ChapterForge is an accessible audiobook builder for Windows. For more information, visit https://github.com/bits-acb/chapterforge.</p>
 </main>
 </div>
 <footer class="site">© 2026 Blind Information Technology Specialists (BITS). ChapterForge documentation, generated from Markdown.</footer>

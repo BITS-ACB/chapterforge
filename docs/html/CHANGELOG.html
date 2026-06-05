@@ -67,9 +67,142 @@ footer.site { color: var(--muted); border-top: 1px solid var(--border);
 <header class="site"><nav aria-label="Documentation"><ul><li><a href="index.html">Home</a></li><li><a href="USER_GUIDE.html">User Guide</a></li><li><a href="DEPLOYMENT.html">Deployment</a></li><li><a href="CHANGELOG.html" aria-current="page">Changelog</a></li><li><a href="THIRD_PARTY.html">Third-Party Notices</a></li></ul></nav></header>
 <div class="wrap">
 <main id="main" tabindex="-1">
-<nav class="toc" aria-label="On this page"><p>On this page</p><ul><li><a href="#120---2026-06-20">[1.2.0] - 2026-06-20</a></li><li class="lvl3"><a href="#added">Added</a></li><li class="lvl3"><a href="#changed">Changed</a></li><li><a href="#110---2026-06-15">[1.1.0] - 2026-06-15</a></li><li class="lvl3"><a href="#added">Added</a></li><li class="lvl3"><a href="#changed">Changed</a></li><li><a href="#100---2026-06-01">[1.0.0] - 2026-06-01</a></li><li class="lvl3"><a href="#added">Added</a></li></ul></nav>
+<nav class="toc" aria-label="On this page"><p>On this page</p><ul><li><a href="#170---2026-06-04">[1.7.0] - 2026-06-04</a></li><li class="lvl3"><a href="#added">Added</a></li><li class="lvl3"><a href="#changed">Changed</a></li><li><a href="#160---2026-06-04">[1.6.0] - 2026-06-04</a></li><li class="lvl3"><a href="#added">Added</a></li><li class="lvl3"><a href="#fixed">Fixed</a></li><li><a href="#150---2026-06-04">[1.5.0] - 2026-06-04</a></li><li class="lvl3"><a href="#added">Added</a></li><li class="lvl3"><a href="#changed">Changed</a></li><li><a href="#120---2026-06-20">[1.2.0] - 2026-06-20</a></li><li class="lvl3"><a href="#added">Added</a></li><li class="lvl3"><a href="#changed">Changed</a></li><li><a href="#110---2026-06-15">[1.1.0] - 2026-06-15</a></li><li class="lvl3"><a href="#added">Added</a></li><li class="lvl3"><a href="#changed">Changed</a></li><li><a href="#100---2026-06-01">[1.0.0] - 2026-06-01</a></li><li class="lvl3"><a href="#added">Added</a></li></ul></nav>
 <h1>Changelog</h1>
 <p>All notable changes to ChapterForge are documented here. The format is based on <a href="https://keepachangelog.com/">Keep a Changelog</a>, and this project adheres to <a href="https://semver.org/">Semantic Versioning</a>.</p>
+<h2 id="170---2026-06-04">[1.7.0] - 2026-06-04</h2>
+<p>A UI polish and accessibility release. The app now shows only what is relevant to the task you are doing, the chapter list tells you more without you having to ask, and light and dark themes are available.</p>
+<h3 id="added">Added</h3>
+<ul>
+<li><strong>Task selector combo on the main window.</strong> A dropdown at the top of the</li>
+</ul>
+<p>Source section now says &quot;Build new master from MP3 files&quot; or &quot;Edit chapters in an existing file.&quot; Choosing one switches the mode and opens the right dialog automatically. The combo also acts as a visible mode indicator so you always know which mode you are in, which a screen reader will read on focus.</p>
+<ul>
+<li><strong>Build-only sections hide in edit mode.</strong> The Options section (bitrate,</li>
+</ul>
+<p>format, normalize, gap) and the Output section disappear entirely when you open an existing file to edit. They are not useful in edit mode and were previously just a row of dimmed controls taking up space. They reappear when you switch back to build mode.</p>
+<ul>
+<li><strong>Source box adapts its labels and button to the current mode.</strong> In edit mode</li>
+</ul>
+<p>the box is titled &quot;Current file,&quot; the path label reads &quot;Open file:,&quot; and the Browse button becomes &quot;Open File…&quot; and opens a file picker instead of a folder picker. In build mode everything reads as before.</p>
+<ul>
+<li><strong>Light and dark themes.</strong> Settings &gt; General now has a Theme dropdown with</li>
+</ul>
+<p>four options: Follow system (default, uses your Windows color scheme), Light (white background with dark text), Dark (dark background with light text), and High contrast (black background with white text). The old High-contrast checkbox is replaced by this single control; existing settings migrate automatically.</p>
+<ul>
+<li><strong>Move Up and Move Down have informative tooltips in edit mode.</strong> Instead of</li>
+</ul>
+<p>just saying &quot;unavailable,&quot; hovering over either button when editing an existing master now reads &quot;Reordering is not available in edit mode — chapter order is determined by start times.&quot;</p>
+<h3 id="changed">Changed</h3>
+<ul>
+<li><strong>Focus after loading a folder goes to the chapter list</strong>, not the title</li>
+</ul>
+<p>field. The title field is empty until a chapter is selected, so landing focus there first was confusing for keyboard and screen-reader users. The list is the primary content control and is where focus belongs.</p>
+<ul>
+<li><strong>Chapter list columns auto-size after every load.</strong> The Title column and the</li>
+</ul>
+<p>Source file or URL column resize themselves to fit the widest value, capped at reasonable maximums so no other column gets pushed off screen.</p>
+<ul>
+<li><strong>Status bar and status label updated</strong> to mention Ctrl+Shift+P so new users</li>
+</ul>
+<p>discover the command palette immediately on first launch.</p>
+<h2 id="160---2026-06-04">[1.6.0] - 2026-06-04</h2>
+<p>A keyboard accessibility and discoverability release. Every command in the app is now reachable from one place, the chapter list has a right-click menu, the Alt+F shortcut conflict is resolved, and ChapterForge can start quietly in the system tray.</p>
+<h3 id="added">Added</h3>
+<ul>
+<li><strong>Command Palette (Ctrl+Shift+P)</strong> — type any part of a command name to find</li>
+</ul>
+<p>and run it without touching the mouse. All menu and button actions are listed. Commands that are not available in the current state are shown with a dash prefix so you can still discover them. Down and Up arrows move through results; Enter runs the selected command; Escape closes without doing anything. The palette is also reachable from Tools &gt; Command Palette.</p>
+<ul>
+<li><strong>Right-click context menu on the chapter list</strong> — right-clicking (or pressing</li>
+</ul>
+<p>the application key) on any row in the chapter list pops up a small menu with the actions that make sense right now: Edit Chapter, Move Up, Move Down, Play Chapter, Split Here (edit mode), and Remove or Merge Up depending on the mode. Only relevant items are shown; items that cannot be used are dimmed.</p>
+<ul>
+<li><strong>Start minimized in system tray</strong> — a new checkbox in Settings &gt; General lets</li>
+</ul>
+<p>ChapterForge launch directly to the system tray without showing the main window. Double-click the tray icon to open it. The setting takes effect the next time you start the app. This is separate from the background watcher; no watch folders need to be configured.</p>
+<h3 id="fixed">Fixed</h3>
+<ul>
+<li><strong>Alt+F now opens the File menu</strong> as expected. The source folder label had an</li>
+</ul>
+<p>ampersand on the letter F, which caused Windows to route Alt+F to that label&#x27;s associated text field instead of dropping down the File menu. The mnemonic has been removed from the label; the Browse button still has its own shortcut.</p>
+<ul>
+<li><strong>Build-Release.ps1 step 3 no longer fails</strong> when ffmpeg is on the system PATH</li>
+</ul>
+<p>but not copied into the project&#x27;s bin folder. The PyInstaller spec file now looks for ffmpeg and ffprobe in the local bin folder first, then falls back to whatever is on the PATH. If neither location has the tool it reports a clear error message instead of a cryptic PyInstaller path-not-found.</p>
+<h2 id="150---2026-06-04">[1.5.0] - 2026-06-04</h2>
+<p>An accessibility and usability overhaul. Every control is now fully described when tabbing with a screen reader, the settings dialog is reorganised into logical tabs, and the keyboard shortcut model matches standard app conventions.</p>
+<h3 id="added">Added</h3>
+<ul>
+<li><strong>Build-Release.ps1</strong> — a single PowerShell script that runs tests, builds</li>
+</ul>
+<p>HTML docs, runs PyInstaller and packages the Inno Setup installer in one step. Accepts <code>-SkipTests</code>, <code>-SkipDocs</code>, <code>-SkipInstaller</code> and <code>-Open</code> flags.</p>
+<ul>
+<li><strong>Smart Ctrl+S</strong> — <code>Ctrl+S</code> now does the right thing in context: triggers</li>
+</ul>
+<p>Build in build mode and Save Changes in edit mode (M4B files redirect you to Save As with a spoken explanation). <code>Ctrl+Shift+O</code> is the new shortcut for choosing the output file location.</p>
+<ul>
+<li><strong>Tooltips on every control</strong> — every button, checkbox, dropdown and spinner</li>
+</ul>
+<p>on the main window and the settings dialog has a plain-English tooltip that explains what it does and why you&#x27;d change it. Useful for new users and screen-reader users who explore with the mouse.</p>
+<h3 id="changed">Changed</h3>
+<ul>
+<li><strong>Settings dialog</strong> restructured into three tabs: <em>Build</em> (encoding choices),</li>
+</ul>
+<p><em>General</em> (player, appearance, announcements) and <em>Advanced</em> (silence detection). Related settings are grouped; unrelated ones no longer share a crowded flat list.</p>
+<ul>
+<li><strong>Options row</strong> on the main window split into two rows: the three encoding</li>
+</ul>
+<p>dropdowns on top, and the three toggles/values below. Reduces horizontal crowding and makes the tab order easier to follow.</p>
+<ul>
+<li><strong>Button names</strong> throughout carry their full context when read by a screen</li>
+</ul>
+<p>reader (e.g. &quot;Browse for source folder of MP3 files&quot;, &quot;Save master file to a chosen location&quot;, &quot;Edit selected chapter title, link and image&quot;). Trailing punctuation removed from player button names.</p>
+<ul>
+<li><strong>&quot;Set…&quot; → &quot;Save to…&quot;</strong> on the output-file button — the label now reads as</li>
+</ul>
+<p>intent rather than a generic imperative.</p>
+<ul>
+<li><strong>&quot;Edit Title&quot; → &quot;Edit Chapter…&quot;</strong> — the ellipsis signals a dialog and the</li>
+</ul>
+<p>name reflects that it edits title, URL <em>and</em> image.</p>
+<ul>
+<li><strong>&quot;Play Selected&quot; → &quot;Play Chapter&quot;</strong> — shorter and unambiguous.</li>
+<li><strong>&quot;Split at Playhead&quot; → &quot;Split Here&quot;</strong> — shorter label, tooltip carries the</li>
+</ul>
+<p>explanation.</p>
+<ul>
+<li><strong>Build button label</strong> updates dynamically: &quot;Build Master MP3&quot; when MP3 is</li>
+</ul>
+<p>selected, &quot;Build M4B Audiobook&quot; when M4B is selected.</p>
+<ul>
+<li><strong>&quot;Remove&quot; / &quot;Merge Up&quot;</strong> button&#x27;s accessible name updates in edit mode to</li>
+</ul>
+<p>&quot;Merge selected chapter into the one above it&quot;.</p>
+<ul>
+<li><strong>Save Changes button tooltip</strong> explains the greyed-out state for M4B files.</li>
+<li><strong>Settings dialog z-order fix</strong> — <code>StaticText</code> labels are now created before</li>
+</ul>
+<p>their associated controls so NVDA&#x27;s preceding-static-text heuristic maps each label to the correct control.</p>
+<ul>
+<li><strong>Chapter list</strong> label and column 4 header switch dynamically between build</li>
+</ul>
+<p>mode (&quot;Chapter list, one per source file&quot; / &quot;Source file&quot;) and edit mode (&quot;Chapter list&quot; / &quot;URL / Link&quot;).</p>
+<ul>
+<li><strong>Unsaved-changes guards</strong> — switching mode, opening a folder, or loading a</li>
+</ul>
+<p>job file while in edit mode with unsaved edits now prompts before discarding.</p>
+<ul>
+<li><strong>Player sizer leak fixed</strong> — repeated load/release cycles no longer</li>
+</ul>
+<p>accumulate dead sizer items.</p>
+<ul>
+<li><strong>Volume slider name</strong> updated to &quot;Playback volume, 0 to 100 percent&quot; for</li>
+</ul>
+<p>clearer screen-reader announcement.</p>
+<ul>
+<li><strong>Initial status text</strong> is now a welcoming instruction rather than &quot;Ready.&quot;</li>
+</ul>
 <h2 id="120---2026-06-20">[1.2.0] - 2026-06-20</h2>
 <p>A polish release that deepens editing, playback and accessibility. Everything remains fully keyboard accessible with screen-reader announcements.</p>
 <h3 id="added">Added</h3>
@@ -223,7 +356,7 @@ footer.site { color: var(--muted); border-top: 1px solid var(--border);
 <li>Documentation: README, User Guide, Deployment guide, third-party notices,</li>
 </ul>
 <p>MIT license. The in-app <strong>Help</strong> menu opens accessible HTML versions (generated by <code>tools/build_docs.py</code>) in the browser.</p>
-<p>[1.1.0]: https://github.com/bits-acb/chapterforge/releases/tag/v1.1.0 [1.0.0]: https://github.com/bits-acb/chapterforge/releases/tag/v1.0.0</p>
+<p>[1.7.0]: https://github.com/bits-acb/chapterforge/releases/tag/v1.7.0 [1.6.0]: https://github.com/bits-acb/chapterforge/releases/tag/v1.6.0 [1.1.0]: https://github.com/bits-acb/chapterforge/releases/tag/v1.1.0 [1.0.0]: https://github.com/bits-acb/chapterforge/releases/tag/v1.0.0</p>
 </main>
 </div>
 <footer class="site">© 2026 Blind Information Technology Specialists (BITS). ChapterForge documentation, generated from Markdown.</footer>
