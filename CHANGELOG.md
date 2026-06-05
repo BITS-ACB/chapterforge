@@ -7,12 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ## [1.80] - 2026-06-04
 
 ### Added
-- **Auto-download FFmpeg on first launch** - If FFmpeg is missing, the app now shows 
-  a friendly yes/no dialog offering to download it automatically. Downloads happen in 
-  the background while the main window shows, and the screen reader announces progress.
-  Seamless first-run experience on development machines and fresh installations.
+- **Auto-download FFmpeg on first launch** - Beautiful progress dialog shows while FFmpeg 
+  downloads in the background. Main window only appears when ready. Seamless experience.
+- **GitHub Pages documentation site** - Docs automatically served online. App opens local 
+  files in development, falls back to GitHub Pages in releases. Users always have access.
 
 ### Changed
+- **Bundle size reduced 90%** - Removed FFmpeg (390MB) and documentation from installer.
+  Bundle shrinks from 435MB to 45MB. FFmpeg auto-downloads as needed. Friendly UX!
 - **Friendlier, less technical language throughout the app:**
   * "Auto-chapter by Silence" → "Find Chapters in Silent Gaps"
   * "Batch Build Folder" → "Build Multiple Books"
