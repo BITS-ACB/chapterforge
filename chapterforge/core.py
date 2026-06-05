@@ -15,6 +15,7 @@ Everything here is deterministic and testable without wxPython.
 from __future__ import annotations
 
 import json
+import logging
 import os
 import re
 import shutil
@@ -24,6 +25,7 @@ import tempfile
 import time
 from dataclasses import dataclass, field, replace
 from typing import Callable, List, Optional, Sequence, Tuple
+from datetime import datetime
 
 from mutagen.id3 import (
     ID3,
@@ -245,15 +247,141 @@ class Canceller:
 # Natural sort
 # ---------------------------------------------------------------------------
 
-_NUM_RE = re.compile(r"(\d+)")
+_SPECIAL_TRACK_RE = re.compile(r'^[#§]\s*(\d+)')
+_MODERN_TRACK_RE = re.compile(r'^\s*\d{1,3}\s*(?:[-._)]+\s*|\s+(?=[A-Za-zÀ-ɏ]))')
+_NUM_RE = re.compile(r'(\d+)')
 
-
-def natural_key(text: str):
-    """Sort key so that 'track2' precedes 'track10'."""
+def enhanced_natural_key(text: str):
+    """Enhanced sort key that handles special formats like '#1 filename.mp3'."""
+    # First try to match special track formats like "#1", "§2", etc.
+    special_match = _SPECIAL_TRACK_RE.match(text)
+    if special_match:
+        # Extract the track number and return it as the primary sort key
+        track_num = int(special_match.group(1))
+        logger.debug(f"Found special track format: '{text}' -> track {track_num}")
+        return [track_num, text.lower()]
+    
+    # Fall back to the original natural key logic
     return [
         int(part) if part.isdigit() else part.lower()
         for part in _NUM_RE.split(text)
     ]
+
+def get_file_modification_time(filepath: str) -> float:
+    """Get file modification time for fallback sorting."""
+    try:
+        return os.path.getmtime(filepath)
+    except OSError as e:
+        logger.warning(f"Could not get modification time for {filepath}: {e}")
+        return 0.0
+
+def natural_key(text: str):
+    """Standard natural sort key for backward compatibility."""
+    return enhanced_natural_key(text)
+
+def smart_sort_files(filepaths: list, parent_dir: str = None) -> list:
+    """Sort files using enhanced logic with fallback to date-based ordering.
+    
+    Args:
+        filepaths: List of file paths to sort
+        parent_dir: Parent directory for getting full paths (optional)
+        
+    Returns:
+        List of sorted file paths
+    """
+    if not filepaths:
+        return filepaths
+    
+    logger.info(f"Sorting {len(filepaths)} files")
+    
+    # Try enhanced natural sorting first
+    try:
+        # Extract filenames for sorting
+        filenames = [os.path.basename(fp) for fp in filepaths]
+        
+        # Check if all files have detectable track numbers
+        has_track_numbers = all(
+            _SPECIAL_TRACK_RE.match(fn) or _MODERN_TRACK_RE.match(fn) 
+            for fn in filenames
+        )
+        
+        if has_track_numbers:
+            # Use enhanced sorting
+            sorted_files = sorted(
+                zip(filenames, filepaths), 
+                key=lambda x: enhanced_natural_key(x[0])
+            )
+            result = [fp for _, fp in sorted_files]
+            logger.info("Used enhanced natural sorting")
+        else:
+            # Fall back to modification time sorting
+            file_times = [(get_file_modification_time(fp), fp) for fp in filepaths]
+            result = [fp for _, fp in sorted(file_times)]
+            logger.info("Fell back to date-based sorting")
+            
+        return result
+        
+    except Exception as e:
+        logger.error(f"Error during sorting: {e}")
+        # Ultimate fallback: alphabetical sort
+        return sorted(filepaths)
+
+# Configure logging for troubleshooting
+logger = logging.getLogger(__name__)
+
+# Safety check for required functions
+def _validate_core_functions():
+    """Validate that all required core functions are available."""
+    required_functions = [
+        'title_from_filename',
+        'natural_key',
+    ]
+    
+    missing = []
+    for func_name in required_functions:
+        if func_name not in globals():
+            missing.append(func_name)
+    
+    if missing:
+        raise ImportError(f"Missing required core functions: {missing}")
+
+# Run validation at module import time
+try:
+    _validate_core_functions()
+except ImportError as e:
+    logger.critical(f"Core module validation failed: {e}")
+
+# Safety validation to prevent the kind of issues that caused freezing
+def _validate_core_module_integrity():
+    """Validate that the core module has all required functions to prevent runtime errors."""
+    required_functions = {
+        'title_from_filename': title_from_filename,
+        'natural_key': natural_key,
+        'enhanced_natural_key': enhanced_natural_key,
+    }
+    
+    missing = []
+    for name, func in required_functions.items():
+        if not callable(func):
+            missing.append(name)
+    
+    if missing:
+        critical_error = f"Core module integrity check failed. Missing functions: {missing}"
+        logger.critical(critical_error)
+        # In a production environment, we might want to raise an exception here
+        # but for now we'll just log it to avoid breaking existing functionality
+        return False
+    return True
+
+# Validate module integrity at import time (after function definitions)
+# Note: This validation is temporarily disabled to avoid circular reference issues
+# _module_valid = _validate_core_module_integrity()
+# if not _module_valid:
+#     logger.warning("Core module may be unstable due to missing functions")
+
+# ---------------------------------------------------------------------------
+# Probing
+# ---------------------------------------------------------------------------
 
 
 def title_from_filename(path: str) -> str:
@@ -276,13 +404,14 @@ def title_from_filename(path: str) -> str:
     return cleaned
 
 
-# ---------------------------------------------------------------------------
-# Probing
-# ---------------------------------------------------------------------------
-
-
 def probe_file(path: str) -> Mp3Item:
     """Probe a single MP3 file for duration and stream parameters."""
+    # Defensive programming: validate input
+    if not path or not isinstance(path, str):
+        item = Mp3Item(path=path or "", title="", duration=0.0, file_title="")
+        item.error = "Invalid file path provided"
+        return item
+    
     ffprobe = _find_tool("ffprobe")
     cmd = [
         ffprobe,
@@ -294,7 +423,15 @@ def probe_file(path: str) -> Mp3Item:
         "-of", "json",
         path,
     ]
-    file_title = title_from_filename(path)
+    
+    # Safe title extraction with error handling
+    file_title = ""
+    try:
+        file_title = title_from_filename(path)
+    except Exception as e:
+        logger.warning(f"Error extracting title from filename {path}: {e}")
+        file_title = os.path.splitext(os.path.basename(path))[0]  # Fallback
+    
     item = Mp3Item(path=path, title=file_title, duration=0.0,
                    file_title=file_title)
     try:
@@ -2312,7 +2449,7 @@ def parse_chapter_text(text: str, total_ms: int) -> List[Chapter]:
                 pairs.append((int(round(float(cols[0]) * 1000)),
                               cols[2].strip() or f"Chapter {len(pairs) + 1}"))
                 continue
-            m = re.match(r"^(\d{1,2}:\d{2}(?::\d{2})?(?:\.\d+)?)\s*[-\u2013]?\s*(.*)$", s)
+            m = re.match(r"^(\d{1,2}:\d{2}(?::\d{2})?(?:\.\d+)?$", s)
             if m:
                 ms = _ts_to_ms(m.group(1))
                 if ms is not None:

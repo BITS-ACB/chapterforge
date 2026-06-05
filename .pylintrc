@@ -1,0 +1,66 @@
+[MASTER]
+# Use multiple processes to speed up Pylint
+jobs=4
+
+# List of modules and packages to ignore
+ignore-patterns=test_.*?py,conftest.py
+
+[MESSAGES CONTROL]
+# Disable certain pylint messages
+disable=
+    too-few-public-methods,
+    too-many-arguments,
+    too-many-locals,
+    too-many-branches,
+    too-many-statements,
+    too-many-instance-attributes,
+    too-many-public-methods,
+    too-many-nested-blocks,
+    too-many-return-statements,
+    too-many-boolean-expressions,
+    too-many-ancestors,
+    too-many-lines,
+    too-many-function-args,
+    too-many-positional-arguments,
+    import-error,
+    missing-module-docstring,
+    missing-class-docstring,
+    missing-function-docstring,
+    fixme,
+    invalid-name,
+    broad-except,
+    bare-except,
+    unused-argument,
+    arguments-differ,
+    no-member,
+    line-too-long
+
+[FORMAT]
+# Maximum number of characters on a single line
+max-line-length=100
+
+# Maximum number of lines in a module
+max-module-lines=1000
+
+[DESIGN]
+# Maximum number of branch for function / method body
+max-branches=12
+
+# Maximum number of statements in function / method body
+max-statements=50
+
+# Maximum number of parents for a class (see R0901).
+max-parents=7
+
+# Maximum number of attributes for a class (see R0902).
+max-attributes=7
+
+# Minimum number of public methods for a class (see R0903).
+min-public-methods=2
+
+# Maximum number of public methods for a class (see R0904).
+max-public-methods=20
+
+[EXCEPTIONS]
+# Exceptions that will emit a warning when caught
+overgeneral-exceptions=Exception

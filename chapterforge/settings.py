@@ -25,6 +25,8 @@ DEFAULTS: Dict[str, Any] = {
     "last_cover_dir": "",
     # Build preferences.
     "title_source": "filename",   # 'filename' or 'embedded'
+    "prefer_id3_tags": False,     # when True, prefer ID3 tags over filename when available
+    "prefer_id3_tags": False,     # when True, prefer ID3 tags over filename when available
     "output_format": "mp3",       # 'mp3' or 'm4b'
     "bitrate": "192k",
     "normalize": False,

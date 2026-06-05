@@ -3,7 +3,7 @@
 A guided, accessible, multi-step dialog shown on first launch and available
 at any time from Help -> Setup Wizard. Each step explains one aspect of the
 app and, where relevant, lets the user configure the matching setting right
-there. Every step can be skipped; all choices can be revisited in Settings.
+there. All choices can be revisited in Settings.
 """
 
 from __future__ import annotations
@@ -15,7 +15,100 @@ import wx
 from . import a11y
 from . import core
 from . import settings as settings_mod
+from .watcher_config import Process
 
+
+# ---------------------------------------------------------------------------
+# Watch folder setup helper
+# ---------------------------------------------------------------------------
+
+class WatchFolderSetup:
+    """Helper class to manage watch folder setup within the wizard."""
+
+    def __init__(self, parent, settings):
+        self.parent = parent
+        self.settings = settings
+        self.process = Process()
+
+    def create_controls(self, panel):
+        """Create watch folder setup controls."""
+        box = wx.BoxSizer(wx.VERTICAL)
+        
+        # Explanation
+        explanation = wx.StaticText(panel, label=(
+            "ChapterForge can automatically build audiobooks when you drop "
+            "folders of MP3s into a watched folder. Let's set up a watch process now."
+        ))
+        explanation.Wrap(500)
+        box.Add(explanation, 0, wx.EXPAND | wx.BOTTOM, 10)
+        
+        # Watch folder selection
+        wf_row = wx.BoxSizer(wx.HORIZONTAL)
+        wf_label = wx.StaticText(panel, label="Watch folder:")
+        wf_row.Add(wf_label, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
+        self.watch_folder_ctrl = wx.TextCtrl(panel, value="", size=(250, -1))
+        self.watch_folder_ctrl.SetHint("Folder to watch for new MP3 sub-folders")
+        wf_row.Add(self.watch_folder_ctrl, 1, wx.ALIGN_CENTER_VERTICAL)
+        browse_btn = wx.Button(panel, label="Browse…", size=(80, -1))
+        browse_btn.Bind(wx.EVT_BUTTON, self._on_browse)
+        wf_row.Add(browse_btn, 0, wx.LEFT, 8)
+        box.Add(wf_row, 0, wx.EXPAND | wx.BOTTOM, 10)
+        
+        # Process name
+        name_row = wx.BoxSizer(wx.HORIZONTAL)
+        name_label = wx.StaticText(panel, label="Process name:")
+        name_row.Add(name_label, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
+        self.name_ctrl = wx.TextCtrl(panel, value="My Watch Process", size=(250, -1))
+        name_row.Add(self.name_ctrl, 1, wx.ALIGN_CENTER_VERTICAL)
+        box.Add(name_row, 0, wx.EXPAND | wx.BOTTOM, 10)
+        
+        # Output template
+        output_row = wx.BoxSizer(wx.HORIZONTAL)
+        output_label = wx.StaticText(panel, label="Output name:")
+        output_row.Add(output_label, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
+        self.output_ctrl = wx.TextCtrl(panel, value="{folder} - Master.mp3", size=(250, -1))
+        self.output_ctrl.SetHint("Output file name template")
+        output_row.Add(self.output_ctrl, 1, wx.ALIGN_CENTER_VERTICAL)
+        box.Add(output_row, 0, wx.EXPAND | wx.BOTTOM, 10)
+        
+        # Help text
+        help_text = wx.StaticText(panel, label=(
+            "Templates can use {folder} (sub-folder name), {parent} (watch folder name), "
+            "and {date} (YYYY-MM-DD)."
+        ))
+        help_text.Wrap(500)
+        box.Add(help_text, 0, wx.BOTTOM, 10)
+        
+        return box
+
+    def _on_browse(self, event):
+        """Handle browse button click."""
+        dlg = wx.DirDialog(self.parent, "Choose folder to watch",
+                          style=wx.DD_DEFAULT_STYLE | wx.DD_DIR_MUST_EXIST)
+        if dlg.ShowModal() == wx.ID_OK:
+            self.watch_folder_ctrl.SetValue(dlg.GetPath())
+        dlg.Destroy()
+
+    def get_process(self):
+        """Create a Process object from the entered values."""
+        process = Process()
+        process.name = self.name_ctrl.GetValue().strip() or "My Watch Process"
+        process.watch_folder = self.watch_folder_ctrl.GetValue().strip()
+        process.output_template = self.output_ctrl.GetValue().strip() or "{folder} - Master.mp3"
+        process.enabled = True
+        return process
+
+    def is_valid(self):
+        """Check if the entered values are valid."""
+        if not self.watch_folder_ctrl.GetValue().strip():
+            wx.MessageBox("Please choose a folder to watch.", "Folder required",
+                         wx.OK | wx.ICON_WARNING, self.parent)
+            return False
+        if not self.name_ctrl.GetValue().strip():
+            wx.MessageBox("Please give the process a name.", "Name required",
+                         wx.OK | wx.ICON_WARNING, self.parent)
+            return False
+        return True
 
 # ---------------------------------------------------------------------------
 # Internal step descriptor
@@ -84,9 +177,8 @@ class StartupWizard(wx.Dialog):
                     "without any extra steps.\n\n"
                     "This short wizard walks you through the key choices before "
                     "you build your first project. Each step takes about "
-                    "30 seconds to read. You can skip any step at any time, "
-                    "and all of these preferences can be changed later in "
-                    "the Settings dialog."
+                    "30 seconds to read. All of these preferences can be changed "
+                    "later in the Settings dialog."
                 ),
             ),
 
@@ -152,6 +244,24 @@ class StartupWizard(wx.Dialog):
                     "the full chapter editor."
                 ),
                 make_setting=self._make_title_source,
+            ),
+
+            _Step(
+                title="ID3 Tag Preference",
+                heading="Prefer ID3 Tags for Chapter Titles",
+                body=(
+                    "When this option is enabled, ChapterForge will use ID3 title "
+                    "tags from your MP3 files when available, falling back to "
+                    "filename extraction only when no ID3 title tag is present.\n\n"
+                    "This is useful when you have carefully tagged your audio files "
+                    "with descriptive titles in media players or tagging software, "
+                    "but some files may not have ID3 tags and need to fall back to "
+                    "filename-based titles.\n\n"
+                    "Note: This setting only takes effect when 'Embedded tag' is "
+                    "selected as the chapter title source above, or when processing "
+                    "files with mixed tagging."
+                ),
+                make_setting=self._make_prefer_id3,
             ),
 
             _Step(
@@ -266,17 +376,19 @@ class StartupWizard(wx.Dialog):
                     "ChapterForge can watch a folder for new sub-folders of "
                     "MP3 files and build the master audiobook automatically - "
                     "no manual steps needed.\n\n"
-                    "Drop a folder of MP3s into your watched folder and "
-                    "ChapterForge picks it up, builds the chaptered master, "
-                    "and places the finished file in a _ChapterForge/Completed "
-                    "sub-folder alongside a chapter report.\n\n"
+                    "To set this up, you'll create a 'watch process' that defines:\n"
+                    "- Which folder to watch for new MP3 sub-folders\n"
+                    "- How to name the output files and set tags\n"
+                    "- What audio settings to use (bitrate, title source, etc.)\n\n"
+                    "Once configured, simply drop a folder of MP3s into your watched "
+                    "folder and ChapterForge picks it up, builds the chaptered master, "
+                    "and places the finished file in a _ChapterForge sub-folder "
+                    "alongside a chapter report.\n\n"
                     "A system tray icon shows when the watcher is running, "
                     "so you always know it is active. You can pause or stop "
-                    "it from the tray at any time.\n\n"
-                    "You can set up automatic building now using the button "
-                    "below, or any time later from Tools - Set Up Automatic "
-                    "Building."
+                    "it from the tray at any time."
                 ),
+                make_setting=self._make_watch_setup,
             ),
 
             _Step(
@@ -405,6 +517,43 @@ class StartupWizard(wx.Dialog):
             self.settings["auto_cover"] = ctrl.GetValue()
         return box, ctrl, apply_fn
 
+    def _make_watch_setup(self, panel):
+        """Create watch folder setup controls."""
+        # Initialize watch folder setup helper
+        self._watch_setup = WatchFolderSetup(self, self.settings)
+        sizer = self._watch_setup.create_controls(panel)
+        
+        # Store the apply function
+        def apply_fn():
+            if self._watch_setup.is_valid():
+                # Save the process configuration
+                from .watcher_config import save_processes
+                process = self._watch_setup.get_process()
+                # Load existing processes
+                from .watcher_config import load_processes
+                processes = load_processes()
+                # Add the new process
+                processes.append(process)
+                # Save all processes
+                save_processes(processes)
+        
+        ctrl = self._watch_setup.name_ctrl  # Focus control
+        return sizer, ctrl, apply_fn
+
+    def _make_prefer_id3(self, panel):
+        box = wx.BoxSizer(wx.VERTICAL)
+        ctrl = wx.CheckBox(
+            panel,
+            label="Prefer ID3 tags over filename when available (falls back to filename)")
+        ctrl.SetName(
+            "Prefer ID3 tags over filename when available")
+        ctrl.SetValue(bool(self.settings.get("prefer_id3_tags", False)))
+        box.Add(ctrl, 0)
+
+        def apply_fn():
+            self.settings["prefer_id3_tags"] = ctrl.GetValue()
+        return box, ctrl, apply_fn
+
     # ------------------------------------------------------------------
     # Chrome construction (header, content area, footer - built once)
     # ------------------------------------------------------------------
@@ -451,12 +600,6 @@ class StartupWizard(wx.Dialog):
         foot.Add(self._btn_back, 0, wx.ALL, 8)
 
         foot.AddStretchSpacer()
-
-        self._btn_skip = wx.Button(self, label="&Skip This Step")
-        self._btn_skip.SetName(
-            "Skip this step and keep the current default setting")
-        self._btn_skip.Bind(wx.EVT_BUTTON, self._on_skip)
-        foot.Add(self._btn_skip, 0, wx.ALL, 8)
 
         self._btn_next = wx.Button(self, label="&Next Step >")
         self._btn_next.SetName(
@@ -544,7 +687,6 @@ class StartupWizard(wx.Dialog):
 
         # Navigation buttons
         self._btn_back.Show(not first)
-        self._btn_skip.Show((has_setting or auto_build) and not last)
         self._btn_next.Show(not last)
         self._btn_watch.Show(auto_build)
         self._btn_open.Show(last)
@@ -583,10 +725,7 @@ class StartupWizard(wx.Dialog):
         if self._step_index > 0:
             self._go_to(self._step_index - 1)
 
-    def _on_skip(self, _evt):
-        # Move forward without applying the current step's setting
-        if self._step_index + 1 < len(self._steps):
-            self._go_to(self._step_index + 1)
+    # Skip functionality removed as per requirements
 
     def _on_open_clicked(self, _evt):
         self._apply_and_save()

@@ -31,7 +31,16 @@ dependencies = [
 speech = ["prismatoid>=0.16.5; sys_platform == 'win32'"]
 # Building the distributable executable + installer payload.
 build = ["pyinstaller>=6.0"]
-dev = ["pytest>=7"]
+# Development tools for linting, testing, and quality assurance
+dev = [
+    "pytest>=7",
+    "pylint>=2.17.0",
+    "flake8>=6.0.0",
+    "mypy>=1.3.0",
+    "black>=23.3.0",
+    "isort>=5.12.0",
+    "pytest-cov>=4.1.0",
+]
 
 [project.urls]
 Homepage = "https://github.com/bits-acb/chapterforge"
