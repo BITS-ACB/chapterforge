@@ -255,10 +255,11 @@ def title_from_filename(path: str) -> str:
     rest of the name intact.
     """
     stem = os.path.splitext(os.path.basename(path))[0]
-    # Strip a leading track-number prefix that is followed by a real separator
-    # (e.g. '01 - ', '02_', '03.', '4) ') while leaving titles such as
-    # '1984 Overview' untouched.
-    cleaned = re.sub(r"^\s*\d+\s*[-._)]+\s*", "", stem)
+    # Strip a leading track-number prefix: '01 - ', '02_', '03.', '4) ',
+    # or a bare '01 ' / '1 ' before a word.  Four-digit years like '1984'
+    # are left alone because \d{1,3} only matches up to three digits.
+    cleaned = re.sub(
+        r"^\s*\d{1,3}\s*(?:[-._)]+\s*|\s+(?=[A-Za-zÀ-ɏ]))", "", stem)
     cleaned = cleaned.replace("_", " ").strip()
     cleaned = re.sub(r"\s{2,}", " ", cleaned).strip()
     return cleaned or stem
