@@ -1447,6 +1447,114 @@ def save_master_as(src: str, dest: str, chapters: Sequence[Chapter],
     return dest
 
 
+def reorder_audio_chapters(
+    src_path: str,
+    chapters: Sequence[Chapter],
+    order: Sequence[int],
+    output_path: str,
+    tags: Tags,
+    canceller: Canceller,
+    progress: Optional[Callable[[float], None]] = None,
+) -> "BuildResult":
+    """Re-export an existing chaptered master with audio segments in a new order.
+
+    ``chapters[order[i]]`` becomes chapter i in the output. Audio is always
+    copied (no re-encode). A new file is always written -- the source is never
+    modified. Raises :class:`ChapterForgeError` on failure or cancellation.
+    """
+    ffmpeg = _find_tool("ffmpeg")
+    n = len(order)
+    total_ms = sum(chapters[i].duration_ms for i in order)
+    tmp_dir = tempfile.mkdtemp(prefix="chapterforge_reorder_")
+    segments: List[str] = []
+    try:
+        # Phase 1: extract each segment into a temp file (75 % of progress)
+        for pos, orig_idx in enumerate(order):
+            if canceller.cancelled:
+                raise ChapterForgeError("Cancelled.")
+            ch = chapters[orig_idx]
+            seg = os.path.join(tmp_dir, f"seg_{pos:04d}.mp3")
+            result = _run([
+                ffmpeg, "-hide_banner", "-nostdin", "-y",
+                "-ss", f"{ch.start_ms / 1000.0:.3f}",
+                "-to", f"{ch.end_ms / 1000.0:.3f}",
+                "-i", src_path,
+                "-map", "0:a", "-c", "copy",
+                "-map_metadata", "-1",
+                seg,
+            ])
+            if result.returncode != 0:
+                raise ChapterForgeError(
+                    f"Could not extract segment {pos + 1}: "
+                    + result.stdout.decode("utf-8", "replace")[-400:])
+            segments.append(seg)
+            if progress:
+                progress((pos + 1) / n * 0.75)
+
+        # Phase 2: concatenate segments (20 % of progress)
+        if canceller.cancelled:
+            raise ChapterForgeError("Cancelled.")
+        fd, list_path = tempfile.mkstemp(suffix=".txt", prefix="chapterforge_")
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as fh:
+                for seg in segments:
+                    fh.write(f"file '{_ffmpeg_escape_concat(seg)}'\n")
+            cmd = [
+                ffmpeg, "-hide_banner", "-nostdin", "-y",
+                "-f", "concat", "-safe", "0", "-i", list_path,
+                "-map", "0:a", "-c", "copy",
+                "-map_metadata", "-1",
+                "-progress", "pipe:1", "-nostats",
+                output_path,
+            ]
+            _stream_ffmpeg(
+                cmd, total_ms, canceller,
+                (lambda pct: progress(0.75 + pct * 0.20)) if progress else None)
+        finally:
+            try:
+                os.remove(list_path)
+            except OSError:
+                pass
+    finally:
+        for seg in segments:
+            try:
+                os.remove(seg)
+            except OSError:
+                pass
+        try:
+            os.rmdir(tmp_dir)
+        except OSError:
+            pass
+
+    if canceller.cancelled:
+        raise ChapterForgeError("Cancelled.")
+
+    # Phase 3: build sequential chapter list and tag the output
+    new_chapters: List[Chapter] = []
+    pos_ms = 0
+    for dest_pos, orig_idx in enumerate(order):
+        ch = chapters[orig_idx]
+        dur = ch.duration_ms
+        new_chapters.append(Chapter(
+            index=dest_pos, title=ch.title,
+            start_ms=pos_ms, end_ms=pos_ms + dur,
+            url=ch.url, img=ch.img,
+        ))
+        pos_ms += dur
+
+    actual_ms = _probe_duration_ms(output_path) or total_ms
+    clamped = _clamp_chapters(new_chapters, actual_ms, scale=False)
+    write_id3_chapters(output_path, clamped, tags)
+    if progress:
+        progress(1.0)
+    return BuildResult(
+        output_path=output_path,
+        chapters=clamped,
+        total_ms=actual_ms,
+        reencoded=False,
+    )
+
+
 # ---------------------------------------------------------------------------
 # Batch building
 # ---------------------------------------------------------------------------

@@ -66,6 +66,7 @@ class MainFrame(wx.Frame):
         self.edit_chapters: List[core.Chapter] = []
         self.edit_total_ms: int = 0
         self.edit_dirty: bool = False
+        self._audio_order: list = []
         self.canceller: Optional[core.Canceller] = None
         self.worker: Optional[threading.Thread] = None
         self._last_pct = -1
@@ -1204,6 +1205,8 @@ class MainFrame(wx.Frame):
             a.title, b.title = b.title, a.title
             a.url,   b.url   = b.url,   a.url
             a.img,   b.img   = b.img,   a.img
+            self._audio_order[sel], self._audio_order[new] = (
+                self._audio_order[new], self._audio_order[sel])
             self.edit_dirty = True
             self._refresh_list(select=new)
             self.player.set_chapters(self.edit_chapters)
@@ -1888,6 +1891,7 @@ class MainFrame(wx.Frame):
         self.edit_chapters = list(chapters)
         self.edit_total_ms = total_ms
         self.edit_dirty = False
+        self._audio_order = list(range(len(chapters)))
         self.items = []
         self.folder = os.path.dirname(path)
         self.folder_ctrl.ChangeValue(path)
@@ -1914,6 +1918,7 @@ class MainFrame(wx.Frame):
         self.edit_chapters = []
         self.edit_total_ms = 0
         self.edit_dirty = False
+        self._audio_order = []
         self.ch_list_label.SetLabel("Chapter &list (one per source file):")
         col4 = wx.ListItem()
         col4.SetText("Source file")
@@ -1932,11 +1937,26 @@ class MainFrame(wx.Frame):
         self.tag_year.ChangeValue(tags.year)
         self.tag_comment.ChangeValue(tags.comment)
 
+    def _audio_reordered(self) -> bool:
+        return (bool(self._audio_order) and
+                self._audio_order != list(range(len(self._audio_order))))
+
     def _on_save_edit(self, _evt):
         if self.mode != "edit" or not self._edit_is_mp3():
             return
         if self.title_ctrl.HasFocus():
             self._on_apply_title(wx.CommandEvent())
+        if self._audio_reordered():
+            ans = wx.MessageBox(
+                "You have reordered the chapters. Should the audio also be "
+                "reordered in the saved file?\n\n"
+                "Yes - create a new MP3 with audio in the new order (original unchanged)\n"
+                "No  - save labels and tags only (audio stays in its current order)",
+                "Reorder audio?",
+                wx.YES_NO | wx.ICON_QUESTION, self)
+            if ans == wx.YES:
+                self._start_reorder_audio()
+                return
         tags = self._collect_tags()
         # The player holds the file open; release before re-tagging.
         self.player.release(recreate=True)
@@ -1991,6 +2011,17 @@ class MainFrame(wx.Frame):
         dlg.Destroy()
         if not os.path.splitext(dest)[1]:
             dest += ext
+        if self._audio_reordered():
+            ans = wx.MessageBox(
+                "You have reordered the chapters. Should the audio also be "
+                "reordered in the new file?\n\n"
+                "Yes - write audio in the new chapter order\n"
+                "No  - copy audio as-is, only labels change",
+                "Reorder audio?",
+                wx.YES_NO | wx.ICON_QUESTION, self)
+            if ans == wx.YES:
+                self._start_reorder_audio(dest)
+                return
         tags = self._collect_tags()
         self._announce("Saving a copy…")
         wx.BeginBusyCursor()
@@ -2010,6 +2041,64 @@ class MainFrame(wx.Frame):
         self._announce(f"Saved a copy to {os.path.basename(dest)}.")
         wx.MessageBox(f"Saved to:\n{dest}", "Saved",
                       wx.OK | wx.ICON_INFORMATION, self)
+
+    def _start_reorder_audio(self, dest: str = ""):
+        """Prompt for output path if needed, then reorder audio on a worker thread."""
+        if not dest:
+            ext = os.path.splitext(self.edit_path)[1] or ".mp3"
+            default_dir = self.settings.get("last_output_dir", "") or self.folder
+            stem = os.path.splitext(os.path.basename(self.edit_path))[0]
+            dlg = wx.FileDialog(
+                self, "Save reordered audio as", defaultDir=default_dir,
+                defaultFile=f"{stem} (reordered){ext}",
+                wildcard=f"Audio (*{ext})|*{ext}|All files (*.*)|*.*",
+                style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT)
+            if dlg.ShowModal() != wx.ID_OK:
+                dlg.Destroy()
+                return
+            dest = dlg.GetPath()
+            dlg.Destroy()
+            if not os.path.splitext(dest)[1]:
+                dest += ext
+        tags = self._collect_tags()
+        order = list(self._audio_order)
+        chapters = list(self.edit_chapters)
+        self.canceller = core.Canceller()
+        self._update_command_state()
+        self._announce("Reordering audio chapters - please wait…")
+        self.worker = threading.Thread(
+            target=self._thread_reorder_audio,
+            args=(dest, chapters, order, tags),
+            daemon=True)
+        self.worker.start()
+
+    def _thread_reorder_audio(self, dest, chapters, order, tags):
+        try:
+            result = core.reorder_audio_chapters(
+                self.edit_path, chapters, order, dest, tags,
+                self.canceller,
+                progress=lambda pct: wx.CallAfter(
+                    self.gauge.SetValue, int(pct * 100)))
+            wx.CallAfter(self._on_reorder_audio_done, dest, result)
+        except core.ChapterForgeError as exc:
+            wx.CallAfter(self._on_reorder_audio_failed, str(exc))
+
+    def _on_reorder_audio_done(self, dest: str, result):
+        self.worker = None
+        self.gauge.SetValue(0)
+        self._audio_order = list(range(len(self._audio_order)))
+        self._update_command_state()
+        self._announce(f"Reordered audio saved as {os.path.basename(dest)}.")
+        wx.MessageBox(
+            f"Reordered audio saved to:\n{dest}",
+            "Saved", wx.OK | wx.ICON_INFORMATION, self)
+
+    def _on_reorder_audio_failed(self, msg: str):
+        self.worker = None
+        self.gauge.SetValue(0)
+        self._update_command_state()
+        self._announce("Audio reorder failed.")
+        wx.MessageBox(msg, "Could not reorder audio", wx.OK | wx.ICON_ERROR, self)
 
     # ------------------------------------------------------------------
     # Silence auto-chaptering / batch
