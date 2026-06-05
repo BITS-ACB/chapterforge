@@ -58,28 +58,9 @@ source model. Silence detection already exists in `core.py`.
 
 ---
 
-### 3. Batch Chapter Metadata Editing
-
-Currently, renaming a chapter title requires selecting it and typing in the
-title field — one at a time. For audiobooks with 60+ chapters, bulk operations
-are essential.
-
-What this enables:
-- Select multiple chapters and apply the same title transformation to all
-  (capitalize, strip leading numbers, find-and-replace)
-- Apply a title pattern like "Chapter {n}" to a range of selected chapters
-- Auto-number chapters with a configurable format
-- Find and replace text across all chapter titles at once
-
-Implementation path: Multi-select in the chapter list, a Batch Edit dialog
-with pattern options, and `core.apply_title_source()` extended with
-transformation rules.
-
----
-
 ## Tier 2 — High Impact
 
-### 4. Lossless Fade In and Fade Out for MP3 Chapters
+### 3. Lossless Fade In and Fade Out for MP3 Chapters
 
 mp3DirectCut can apply simple fades to MP3 data without re-encoding by
 manipulating frame-level gain values. This is useful for smoothing abrupt
@@ -96,7 +77,7 @@ in the chapter editor.
 
 ---
 
-### 5. Reusable Build Presets
+### 4. Reusable Build Presets
 
 Users who build audiobooks regularly with the same settings (format, quality,
 normalize, gap) should not have to re-enter them. Named presets extend the
@@ -113,7 +94,7 @@ Settings dialog with a preset picker and Save/Delete buttons.
 
 ---
 
-### 6. Export Metadata as CSV or Plain Text
+### 5. Export Metadata as CSV or Plain Text
 
 ChapterForge already saves a text chapter report alongside the master, but a
 structured export of all chapter metadata (title, duration, start time, link
@@ -132,7 +113,7 @@ Add CSV and formatted HTML export options. Very low implementation cost.
 
 ## Tier 3 — Medium Impact
 
-### 7. File Renaming from Chapter Titles and Tags
+### 6. File Renaming from Chapter Titles and Tags
 
 For users who need source files consistently named, a rename tool that reads
 from the chapter title, artist, year, and chapter number saves significant
@@ -149,77 +130,7 @@ source paths.
 
 ---
 
-### 8. Chapter-Level Per-File Loudness Normalization
-
-The current normalize option applies global normalization across the whole
-build. Per-chapter normalization targets each source file individually to a
-consistent level before concatenation, giving more even results when source
-files have very different recording levels.
-
-What this enables:
-- Target each source file to the same loudness (e.g. -16 LUFS) before joining
-- More consistent listening experience across chapters
-- Configurable target level
-
-Implementation path: FFmpeg `loudnorm` filter applied per-file in the probe
-and build pipeline. Add a "Per-file loudness target" option to Settings.
-
----
-
-### 9. CUE Sheet Round-Trip Improvements
-
-ChapterForge already exports CUE sheets. Importing a CUE sheet to define
-chapter points (for a single long source file) and round-tripping edits back
-to CUE would complete the workflow for users who already use CUE-based tools.
-
-What this enables:
-- Import a CUE sheet to define chapters in a single long source file
-- Edit chapter points and re-export the CUE
-- Use ChapterForge as a CUE-to-chaptered-MP3 converter
-
-Implementation path: Extend the existing `manifest.py` CUE parser. Map CUE
-INDEX points to chapter start times. Combine with the "Split One Long
-Recording" feature for a complete workflow.
-
----
-
-### 10. Configurable Chapter List Columns
-
-Power users may want to show fewer or more columns, or reorder them. The
-current fixed five-column layout does not allow customization.
-
-What this enables:
-- Show or hide columns (e.g. hide Source file for a cleaner view)
-- Reorder columns
-- Persist column configuration in settings
-
-Implementation path: Column configuration stored in `settings.py`. A
-right-click context menu on column headers (with keyboard alternative in the
-View menu) to toggle columns.
-
----
-
-## Tier 4 — Lower Priority but Viable
-
-### 11. Simple Batch Title Cleanup Actions
-
-A curated set of common cleanup actions for chapter titles covers 80% of
-Mp3tag-style use cases without the complexity of a scripting engine.
-
-Actions to include:
-- Capitalize all chapter titles (title case)
-- Strip leading track numbers from titles
-- Replace underscores with spaces
-- Trim leading and trailing whitespace
-- Remove duplicate consecutive spaces
-- Find and replace text across all titles
-
-Implementation path: An "Edit - Clean Up Titles" menu item that opens a
-dialog with checkboxes for each cleanup action and a preview before applying.
-
----
-
-### 12. Accessible Audio Level Meter During Build
+### 7. Accessible Audio Level Meter During Build
 
 Currently the build shows a progress gauge but no audio level feedback. A
 per-file peak level display during the build would help users verify
@@ -232,19 +143,3 @@ What this enables:
 
 Implementation path: Parse FFmpeg's `loudnorm` or `astats` filter output
 during build. Announce per-chapter levels via `a11y.announce()`.
-
----
-
-### 13. Keyboard-Configurable Shortcuts
-
-Power users who want to customize the command palette bindings or add their
-own shortcuts should be able to do so.
-
-What this enables:
-- Reassign any command palette action to a different key
-- Add keyboard shortcuts to commands that currently have none
-- Persist customizations in settings
-
-Implementation path: Extend the command palette registry with a configurable
-key map stored in `settings.py`. A "Keyboard Shortcuts" section in Settings
-with a list of commands and editable key fields.
