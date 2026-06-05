@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "chapterforge"
-version = "1.7.2"
+version = "1.7.3"
 description = "Accessible app + CLI that builds a master MP3 with chapter markers from a folder of MP3s."
 readme = "README.md"
 requires-python = ">=3.10"

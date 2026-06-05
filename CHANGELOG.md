@@ -4,6 +4,18 @@ All notable changes to ChapterForge are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.7.3] - 2026-06-04
+
+### Fixed
+- **Accessibility hardened across all dialogs:**
+  * All checkboxes on Build and General settings tabs now have visible labels
+  * Preferences dialog puts focus on first control when opened
+  * Settings controls verified to have proper accessible names
+- **Diagnostics menu no longer locks up** - now runs on background thread
+  while announcing progress
+- **Removed all m-dashes** (replaced with regular hyphens) for better compatibility
+- **Added Visit Project Website button** to About dialog
+
 ## [1.7.2] - 2026-06-04
 
 ### Fixed
