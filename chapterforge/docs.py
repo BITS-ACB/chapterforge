@@ -56,15 +56,24 @@ def doc_path(page: str = HOME) -> str | None:
 def open_doc(page: str = HOME) -> bool:
     """Open a documentation page in the default browser.
 
-    Returns True if a local HTML page was opened, False if it could not be
-    found (so callers can fall back to an in-app text dialog).
+    Tries to open local HTML files first (development), then falls back to
+    GitHub Pages online documentation. Returns True if a page was opened.
     """
+    import webbrowser
+
+    # Try local files first (for development)
     path = doc_path(page)
-    if not path:
-        return False
+    if path:
+        try:
+            webbrowser.open("file:///" + path.replace("\\", "/"))
+            return True
+        except Exception:
+            pass
+
+    # Fall back to GitHub Pages
     try:
-        import webbrowser
-        webbrowser.open("file:///" + path.replace("\\", "/"))
+        url = f"https://bits-acb.github.io/chapterforge/html/{page}"
+        webbrowser.open(url)
         return True
     except Exception:
         return False
