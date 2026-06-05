@@ -4,6 +4,62 @@ All notable changes to ChapterForge are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.92] - 2026-06-05
+
+### Added
+
+- **FLAC, WAV, OGG, M4A, AAC, and Opus source file support** - ChapterForge
+  now accepts any audio format FFmpeg supports as a chapter source file. Source
+  folders can contain a mix of formats; each is probed with FFprobe and encoded
+  to the chosen output format during the build. The folder scanner now uses a
+  broad `AUDIO_EXTS` constant covering .mp3, .flac, .wav, .ogg, .m4a, .aac,
+  .opus, .wma, and .mp2.
+
+- **FLAC output with embedded chapters** - A third output format option
+  (Settings - Build - Output format: FLAC lossless .flac) builds a lossless
+  FLAC master with Vorbis Comment chapter markers (CHAPTER001/CHAPTER001NAME
+  convention). Cover art is embedded as a FLAC picture block. The build button
+  label changes to "Build FLAC Master" when FLAC output is selected.
+
+- **Undo and Redo for chapter list operations** - Ctrl+Z undoes the last
+  chapter operation; Ctrl+Y redoes it. The Edit menu shows dynamic labels
+  ("Undo Rename Chapter 1", "Redo Move Chapter Up") and enables/disables based
+  on stack state. Operations covered: rename, move up/down, remove/merge, batch
+  edit titles, and import chapter titles. The stack holds up to 50 actions and
+  is cleared when a new file is loaded or a build starts.
+
+- **Batch Edit Titles dialog** - Edit menu - "Batch Edit Titles" opens a dialog
+  that applies transformations to all chapter titles at once. Transforms: title
+  case, strip leading track numbers, replace underscores with spaces, remove
+  extra spaces, find-and-replace, and a number pattern (Chapter {n}). A live
+  preview shows before/after for the first 8 chapters before applying.
+
+- **Per-file chapter loudness normalization** - Settings - Build - "Normalize
+  each chapter individually" applies FFmpeg loudnorm to each source file before
+  concatenating, targeting a configurable LUFS level (default -16.0 LUFS).
+  More consistent than global normalize when source files were recorded at very
+  different levels.
+
+- **CUE sheet import in build mode** - Load Chapter List From File now works in
+  both edit mode (replaces all chapter markers) and build mode (applies chapter
+  titles from the CUE or timestamp file to the loaded source items by position).
+  The menu item and command palette entry are now enabled whenever chapters are
+  loaded, not only in edit mode.
+
+- **Configurable chapter list columns** - View - Columns submenu toggles
+  individual columns (Title, Start, Duration, Source file) on or off.
+  Column visibility is saved in settings and restored at startup. The # column
+  is always visible.
+
+- **Keyboard shortcut overrides** - Settings stores a key_overrides dict that
+  maps command names to custom key strings. Overrides are applied to menu items
+  at startup via _apply_key_overrides(). The settings infrastructure and
+  application logic are in place for a future settings UI.
+
+- **Product roadmap** (from 1.91) - docs/ROADMAP.md with 13 viable features
+  ranked by impact. Waveform visualization, MP3 recording, advanced filtering,
+  cover art tools, and out-of-scope items removed per product decisions.
+
 ## [1.91] - 2026-06-05
 
 ### Added

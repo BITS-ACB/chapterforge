@@ -14,6 +14,7 @@ Design notes for accessibility:
 
 from __future__ import annotations
 
+import copy as _copy
 import os
 import sys
 import threading
@@ -33,6 +34,73 @@ from .player import PlayerPanel
 
 
 # ----------------------------------------------------------------------------
+# Undo / redo infrastructure
+# ----------------------------------------------------------------------------
+
+class _UndoAction:
+    """One reversible chapter-list operation."""
+    __slots__ = ("description", "undo_fn", "redo_fn")
+    def __init__(self, description: str, undo_fn, redo_fn):
+        self.description = description
+        self.undo_fn = undo_fn
+        self.redo_fn = redo_fn
+
+
+class _UndoStack:
+    """Bounded undo/redo stack for chapter list operations."""
+    MAX = 50
+
+    def __init__(self):
+        self._history: list = []
+        self._pos: int = -1   # index of the last *applied* action
+
+    def push(self, action: _UndoAction) -> None:
+        """Record a new action, discarding any redo tail."""
+        del self._history[self._pos + 1:]
+        self._history.append(action)
+        if len(self._history) > self.MAX:
+            self._history.pop(0)
+        else:
+            self._pos += 1
+
+    def can_undo(self) -> bool:
+        return self._pos >= 0
+
+    def can_redo(self) -> bool:
+        return self._pos < len(self._history) - 1
+
+    def undo(self):
+        if not self.can_undo():
+            return None
+        action = self._history[self._pos]
+        action.undo_fn()
+        self._pos -= 1
+        return action.description
+
+    def redo(self):
+        if not self.can_redo():
+            return None
+        self._pos += 1
+        action = self._history[self._pos]
+        action.redo_fn()
+        return action.description
+
+    def undo_label(self) -> str:
+        if not self.can_undo():
+            return "Undo"
+        return f"Undo {self._history[self._pos].description}"
+
+    def redo_label(self) -> str:
+        if not self.can_redo():
+            return "Redo"
+        return f"Redo {self._history[self._pos + 1].description}"
+
+    def clear(self) -> None:
+        self._history.clear()
+        self._pos = -1
+
+
+# ----------------------------------------------------------------------------
 # Custom events posted from the worker thread
 # ----------------------------------------------------------------------------
 
@@ -49,6 +117,9 @@ class _ThreadEvent(wx.PyEvent):
 
 
 class MainFrame(wx.Frame):
+    _COL_WIDTHS = [44, 260, 80, 80, 200]
+    _COL_NAMES_DISPLAY = ["#", "Title", "Start time", "Duration", "Source file"]
+
     def __init__(self):
         self.settings = settings_mod.load()
         size = (int(self.settings.get("win_w", 940)),
@@ -75,6 +146,7 @@ class MainFrame(wx.Frame):
         self._watch_controller = None
         self._force_quit = False
         self._list_col = 0  # currently announced column for keyboard column navigation
+        self._undo = _UndoStack()
 
         self._build_menu()
         self._build_ui()
@@ -146,9 +218,17 @@ class MainFrame(wx.Frame):
         menubar.Append(file_menu, "&File")
 
         edit_menu = wx.Menu()
+        self.mi_undo = edit_menu.Append(wx.ID_UNDO, "&Undo\tCtrl+Z",
+                                        "Undo the last chapter list change")
+        self.mi_redo = edit_menu.Append(wx.ID_REDO, "&Redo\tCtrl+Y",
+                                        "Redo the last undone change")
+        edit_menu.AppendSeparator()
         self.mi_edit_chapter = edit_menu.Append(
             wx.ID_ANY, "Edit Chapter &Details…\tF2",
             "Edit the selected chapter's title, link URL and cover image")
+        self.mi_batch_titles = edit_menu.Append(
+            wx.ID_ANY, "Batch &Edit Titles…",
+            "Apply a transformation to all chapter titles at once")
         edit_menu.AppendSeparator()
         self.mi_play_chapter = edit_menu.Append(
             wx.ID_ANY, "&Play This Chapter",
@@ -243,6 +323,14 @@ class MainFrame(wx.Frame):
             wx.ID_ANY, "Show Audio &Player",
             "Show or hide the audio player panel")
         self.mi_show_player.Check(True)
+        # Columns submenu (Feature 10)
+        col_sub = wx.Menu()
+        self.mi_col = []
+        for _ci, _cn in enumerate(["Title", "Start", "Duration", "Source File"]):
+            _mi_c = col_sub.AppendCheckItem(
+                wx.ID_ANY, _cn, f"Show or hide the {_cn} column")
+            self.mi_col.append(_mi_c)
+        view_menu.AppendSubMenu(col_sub, "&Columns", "Show or hide chapter list columns")
         # Initialise theme radio to match stored setting
         _t = self.settings.get("theme", "system")
         if _t == "system" and self.settings.get("high_contrast", False):
@@ -284,6 +372,8 @@ class MainFrame(wx.Frame):
 
         self.SetMenuBar(menubar)
 
+        self.Bind(wx.EVT_MENU, self._on_undo, self.mi_undo)
+        self.Bind(wx.EVT_MENU, self._on_redo, self.mi_redo)
         self.Bind(wx.EVT_MENU, self._on_open, self.mi_open)
         self.Bind(wx.EVT_MENU, self._on_open_master, self.mi_open_master)
         self.Bind(wx.EVT_MENU, self._on_set_output, self.mi_output)
@@ -294,6 +384,7 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self._on_load_job, self.mi_load_job)
         self.Bind(wx.EVT_MENU, self._on_generate_job, self.mi_gen_job)
         self.Bind(wx.EVT_MENU, self._on_edit_chapter, self.mi_edit_chapter)
+        self.Bind(wx.EVT_MENU, self._on_batch_edit_titles, self.mi_batch_titles)
         self.Bind(wx.EVT_MENU, self._on_play_selected, self.mi_play_chapter)
         self.Bind(wx.EVT_MENU, self._on_split_chapter, self.mi_split_here)
         self.Bind(wx.EVT_MENU, lambda e: self._move(-1), self.mi_edit_up)
@@ -311,6 +402,10 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self._on_back_page, self.mi_go_step1)
         self.Bind(wx.EVT_MENU, self._on_next_page, self.mi_go_step2)
         self.Bind(wx.EVT_MENU, self._on_view_player, self.mi_show_player)
+        for _ci2, _mi_col in enumerate(self.mi_col):
+            self.Bind(wx.EVT_MENU,
+                      lambda e, idx=_ci2 + 1: self._on_toggle_column(idx),
+                      _mi_col)
         self.Bind(wx.EVT_MENU, self._on_silence, self.mi_silence)
         self.Bind(wx.EVT_MENU, self._on_batch, self.mi_batch)
         self.Bind(wx.EVT_MENU, self._on_settings, self.mi_settings)
@@ -669,9 +764,13 @@ class MainFrame(wx.Frame):
             ctrl.Enable(not building and count > 0)
         self.btn_build.Enable(not building and not edit and has_items
                               and bool(self.output_path))
-        if self.settings.get("output_format", "mp3") == "m4b":
+        _ofmt = self.settings.get("output_format", "mp3")
+        if _ofmt == "m4b":
             self.btn_build.SetLabel("Build M4B &Audiobook")
             self.btn_build.SetName("Build M4B audiobook")
+        elif _ofmt == "flac":
+            self.btn_build.SetLabel("Build FLAC &Master")
+            self.btn_build.SetName("Build FLAC master")
         else:
             self.btn_build.SetLabel("Build Master MP&3")
             self.btn_build.SetName("Build master MP3")
@@ -731,10 +830,11 @@ class MainFrame(wx.Frame):
         self.mi_gen_job.Enable(not building and not edit and has_items)
         self.mi_silence.Enable(not building)
         self.mi_batch.Enable(not building)
-        self.mi_import_ch.Enable(not building and edit)
+        self.mi_import_ch.Enable(not building and count > 0)
         self.mi_export_ch.Enable(not building and count > 0)
         # Edit menu
         self.mi_edit_chapter.Enable(not building and sel >= 0)
+        self.mi_batch_titles.Enable(not building and count > 0)
         self.mi_play_chapter.Enable(not building and sel >= 0)
         self.mi_split_here.Enable(not building and edit and self.player.has_media())
         self.mi_edit_up.Enable(not building and sel > 0)
@@ -742,10 +842,32 @@ class MainFrame(wx.Frame):
         self.mi_edit_remove.Enable(not building and sel >= 0
                                     and (not edit or count > 1))
         self.mi_edit_remove.SetItemLabel("Mer&ge Up" if edit else "Re&move Chapter")
+        # Undo/redo
+        self.mi_undo.Enable(self._undo.can_undo())
+        self.mi_redo.Enable(self._undo.can_redo())
+        self._update_undo_menu()
         # View menu — page navigation
         on_step2 = self._page_tags.IsShown()
         self.mi_go_step1.Enable(on_step2)
         self.mi_go_step2.Enable(not building and not on_step2 and has_items)
+
+    def _update_undo_menu(self):
+        self.mi_undo.SetItemLabel(f"{self._undo.undo_label()}\tCtrl+Z")
+        self.mi_redo.SetItemLabel(f"{self._undo.redo_label()}\tCtrl+Y")
+
+    def _on_undo(self, _evt):
+        desc = self._undo.undo()
+        if desc:
+            self._refresh_list(select=self.list.GetFirstSelected())
+            self._update_command_state()
+            self._announce(f"Undid: {desc}.")
+
+    def _on_redo(self, _evt):
+        desc = self._undo.redo()
+        if desc:
+            self._refresh_list(select=self.list.GetFirstSelected())
+            self._update_command_state()
+            self._announce(f"Redid: {desc}.")
 
     def _edit_is_mp3(self) -> bool:
         return bool(self.edit_path) and core.output_format(self.edit_path) == "mp3"
@@ -778,10 +900,14 @@ class MainFrame(wx.Frame):
         self._update_estimate()
         # Auto-size the Title and last columns to their content.
         if self.list.GetItemCount() > 0:
-            self.list.SetColumnWidth(1, wx.LIST_AUTOSIZE)
-            self.list.SetColumnWidth(1, max(120, min(self.list.GetColumnWidth(1), 360)))
-            self.list.SetColumnWidth(4, wx.LIST_AUTOSIZE)
-            self.list.SetColumnWidth(4, max(80,  min(self.list.GetColumnWidth(4), 260)))
+            vis = self.settings.get("list_columns", [True] * 5)
+            if len(vis) > 1 and vis[1]:
+                self.list.SetColumnWidth(1, wx.LIST_AUTOSIZE)
+                self.list.SetColumnWidth(1, max(120, min(self.list.GetColumnWidth(1), 360)))
+            if len(vis) > 4 and vis[4]:
+                self.list.SetColumnWidth(4, wx.LIST_AUTOSIZE)
+                self.list.SetColumnWidth(4, max(80, min(self.list.GetColumnWidth(4), 260)))
+        self._apply_column_visibility()
 
     # ------------------------------------------------------------------
     # Folder / output / cover
@@ -825,6 +951,8 @@ class MainFrame(wx.Frame):
         self.folder = folder
         self.items = good
         self.player.release(recreate=True)
+        self._undo.clear()
+        self._update_undo_menu()
         self._enter_build_mode()
         self.folder_ctrl.SetValue(folder)
         self.settings["last_input_dir"] = folder
@@ -862,7 +990,12 @@ class MainFrame(wx.Frame):
         self.list.SetFocus()
 
     def _current_output_ext(self) -> str:
-        return ".m4b" if self.settings.get("output_format", "mp3") == "m4b" else ".mp3"
+        fmt = self.settings.get("output_format", "mp3")
+        if fmt == "m4b":
+            return ".m4b"
+        if fmt == "flac":
+            return ".flac"
+        return ".mp3"
 
     def _on_set_output(self, _evt) -> bool:
         if self._is_building():
@@ -872,8 +1005,12 @@ class MainFrame(wx.Frame):
                        or self.settings.get("last_output_dir", "")
                        or self.folder or "")
         default_file = os.path.basename(self.output_path) or f"Master{ext}"
-        wildcard = ("M4B audiobook (*.m4b)|*.m4b" if ext == ".m4b"
-                    else "MP3 files (*.mp3)|*.mp3")
+        if ext == ".m4b":
+            wildcard = "M4B audiobook (*.m4b)|*.m4b"
+        elif ext == ".flac":
+            wildcard = "FLAC lossless (*.flac)|*.flac"
+        else:
+            wildcard = "MP3 files (*.mp3)|*.mp3"
         dlg = wx.FileDialog(
             self, "Save master as", defaultDir=default_dir,
             defaultFile=default_file, wildcard=wildcard,
@@ -984,6 +1121,35 @@ class MainFrame(wx.Frame):
         self.tag_album_artist.SetValue(s.get("album_artist", ""))
         self.tag_genre.SetValue(s.get("genre", ""))
         self._update_estimate()
+        # Feature 10: init column check states from settings
+        vis = self.settings.get("list_columns", [True] * 5)
+        for i, mi in enumerate(self.mi_col):
+            mi.Check(bool(vis[i + 1]) if i + 1 < len(vis) else True)
+        self._apply_column_visibility()
+        # Feature 13: apply keyboard overrides
+        self._apply_key_overrides()
+
+    def _apply_column_visibility(self):
+        """Show or hide list columns based on settings (Feature 10)."""
+        vis = self.settings.get("list_columns", [True] * 5)
+        for i, show in enumerate(vis):
+            if i == 0:
+                continue  # # column always visible
+            w = self._COL_WIDTHS[i] if show else 0
+            self.list.SetColumnWidth(i, w)
+
+    def _on_toggle_column(self, col_idx: int):
+        """Toggle visibility of list column *col_idx* (Feature 10)."""
+        vis = list(self.settings.get("list_columns", [True] * 5))
+        while len(vis) < 5:
+            vis.append(True)
+        vis[col_idx] = not vis[col_idx]
+        self.settings["list_columns"] = vis
+        settings_mod.save(self.settings)
+        self.mi_col[col_idx - 1].Check(vis[col_idx])
+        self._apply_column_visibility()
+        col_name = self._COL_NAMES_DISPLAY[col_idx]
+        self._announce(f"Column '{col_name}' {'shown' if vis[col_idx] else 'hidden'}.")
 
     def _gather_settings(self):
         s = self.settings
@@ -1127,7 +1293,8 @@ class MainFrame(wx.Frame):
         if not (0 <= sel < self._row_count()):
             return
         new_title = self.title_ctrl.GetValue().strip()
-        if not new_title or new_title == self._selected_title(sel):
+        old_title = self._selected_title(sel)
+        if not new_title or new_title == old_title:
             return
         if self.mode == "edit":
             self.edit_chapters[sel].title = new_title
@@ -1137,6 +1304,51 @@ class MainFrame(wx.Frame):
             self.items[sel].edited = True
         self.list.SetItem(sel, 1, new_title)
         self._announce(f"Renamed chapter {sel + 1} to “{new_title}”.")
+
+        # Record undo
+        _sel, _new, _old = sel, new_title, old_title
+
+        def _do_rename(title):
+            if self.mode == "edit":
+                self.edit_chapters[_sel].title = title
+                self.edit_dirty = True
+            else:
+                self.items[_sel].title = title
+                self.items[_sel].edited = True
+            self.list.SetItem(_sel, 1, title)
+            self.list.Select(_sel)
+            self._update_command_state()
+
+        self._undo.push(_UndoAction(
+            f"Rename Chapter {_sel + 1}",
+            undo_fn=lambda: _do_rename(_old),
+            redo_fn=lambda: _do_rename(_new),
+        ))
+        self._update_undo_menu()
+
+    def _move_no_record(self, delta: int, from_idx: int = -1):
+        """Perform a chapter move without recording to the undo stack."""
+        sel = from_idx if from_idx >= 0 else self.list.GetFirstSelected()
+        if sel < 0:
+            return
+        new = sel + delta
+        if self.mode == "edit":
+            if not (0 <= new < len(self.edit_chapters)):
+                return
+            a, b = self.edit_chapters[sel], self.edit_chapters[new]
+            a.title, b.title = b.title, a.title
+            a.url,   b.url   = b.url,   a.url
+            a.img,   b.img   = b.img,   a.img
+            self._audio_order[sel], self._audio_order[new] = (
+                self._audio_order[new], self._audio_order[sel])
+            self.edit_dirty = True
+            self._refresh_list(select=new)
+            self.player.set_chapters(self.edit_chapters)
+        else:
+            if not (0 <= new < len(self.items)):
+                return
+            self.items[sel], self.items[new] = self.items[new], self.items[sel]
+            self._refresh_list(select=new)
 
     def _move(self, delta: int):
         sel = self.list.GetFirstSelected()
@@ -1159,22 +1371,52 @@ class MainFrame(wx.Frame):
             self._announce(
                 f"Swapped labels: now chapter {sel + 1} is '{b.title}', "
                 f"chapter {new + 1} is '{a.title}'.")
-            return
-        if not (0 <= new < len(self.items)):
-            return
-        self.items[sel], self.items[new] = self.items[new], self.items[sel]
-        self._refresh_list(select=new)
-        self._announce(f"Moved chapter to position {new + 1} of {len(self.items)}.")
+        else:
+            if not (0 <= new < len(self.items)):
+                return
+            self.items[sel], self.items[new] = self.items[new], self.items[sel]
+            self._refresh_list(select=new)
+            self._announce(f"Moved chapter to position {new + 1} of {len(self.items)}.")
+
+        _from, _to, _delta = sel, new, delta
+        self._undo.push(_UndoAction(
+            f"Move Chapter {_from + 1} {'Down' if _delta > 0 else 'Up'}",
+            undo_fn=lambda: self._move_no_record(-_delta, from_idx=_to),
+            redo_fn=lambda: self._move_no_record(_delta, from_idx=_from),
+        ))
+        self._update_undo_menu()
+
+    def _remove_no_record(self, sel):
+        # Perform a remove/merge without recording to the undo stack.
+        _edit = (self.mode == 'edit')
+        if _edit:
+            try:
+                self.edit_chapters = core.merge_chapter(self.edit_chapters, sel)
+            except core.ChapterForgeError:
+                return
+            self.edit_dirty = True
+            nxt = max(0, min(sel, len(self.edit_chapters) - 1))
+            self._refresh_list(select=nxt)
+            self.player.set_chapters(self.edit_chapters)
+            self._update_command_state()
+        else:
+            if 0 <= sel < len(self.items):
+                self.items.pop(sel)
+                nxt = min(sel, len(self.items) - 1)
+                self._refresh_list(select=nxt)
+                self._update_command_state()
 
     def _remove_selected(self):
         sel = self.list.GetFirstSelected()
         if sel < 0:
             return
-        if self.mode == "edit":
+        _in_edit_mode = (self.mode == 'edit')
+        if _in_edit_mode:
+            _saved_chapters = _copy.deepcopy(self.edit_chapters)
             try:
                 self.edit_chapters = core.merge_chapter(self.edit_chapters, sel)
             except core.ChapterForgeError as exc:
-                wx.MessageBox(str(exc), "Cannot merge",
+                wx.MessageBox(str(exc), 'Cannot merge',
                               wx.OK | wx.ICON_INFORMATION, self)
                 return
             self.edit_dirty = True
@@ -1182,14 +1424,54 @@ class MainFrame(wx.Frame):
             self._refresh_list(select=nxt)
             self.player.set_chapters(self.edit_chapters)
             self._announce(
-                f"Merged. {len(self.edit_chapters)} chapter(s) remain.")
+                'Merged. ' + str(len(self.edit_chapters)) + ' chapter(s) remain.')
+            _sel = sel
+
+            def _undo_merge():
+                self.edit_chapters = _copy.deepcopy(_saved_chapters)
+                self.edit_dirty = True
+                self._refresh_list(select=_sel)
+                self.player.set_chapters(self.edit_chapters)
+                self._update_command_state()
+
+            self._undo.push(_UndoAction(
+                'Merge Chapter ' + str(_sel + 1),
+                undo_fn=_undo_merge,
+                redo_fn=lambda: self._remove_no_record(_sel),
+            ))
+            self._update_undo_menu()
             return
+
+        _sel = sel
+        _saved_item = _copy.copy(self.items[sel])
+
+        def _undo_remove():
+            self.items.insert(_sel, _saved_item)
+            self._refresh_list(select=_sel)
+            self._update_command_state()
+
+        def _redo_remove():
+            if 0 <= _sel < len(self.items):
+                self.items.pop(_sel)
+                nxt = min(_sel, len(self.items) - 1)
+                self._refresh_list(select=nxt)
+                self._update_command_state()
+
         removed = self.items.pop(sel)
         nxt = min(sel, len(self.items) - 1)
         self._refresh_list(select=nxt)
-        self._announce(f"Removed “{removed.title}”. {len(self.items)} chapter(s) left.")
+        self._announce(
+            'Removed “' + removed.title + '”. '
+            + str(len(self.items)) + ' chapter(s) left.')
         if not self.items:
-            self.title_ctrl.ChangeValue("")
+            self.title_ctrl.ChangeValue('')
+
+        self._undo.push(_UndoAction(
+            'Remove Chapter ' + str(_sel + 1),
+            undo_fn=_undo_remove,
+            redo_fn=_redo_remove,
+        ))
+        self._update_undo_menu()
 
     # ------------------------------------------------------------------
     # Build
@@ -1243,12 +1525,18 @@ class MainFrame(wx.Frame):
         write_pod2 = bool(self.settings.get("write_pod2", False))
         bitrate = self.settings.get("bitrate", "192k")
         normalize = bool(self.settings.get("normalize", False))
+        per_file_normalize = bool(self.settings.get("per_file_normalize", False))
+        normalize_lufs = float(self.settings.get("normalize_lufs", -16.0))
         gap_ms = self._gap_ms()
         self._save_settings()
+        self._undo.clear()
+        self._update_undo_menu()
         self.canceller = core.Canceller()
         self._last_pct = -1
         self.gauge.SetValue(0)
-        verb = "audiobook" if core.output_format(output) == "m4b" else "master MP3"
+        _ofmt2 = core.output_format(output)
+        verb = ("audiobook" if _ofmt2 == "m4b" else
+                "FLAC master" if _ofmt2 == "flac" else "master MP3")
         self._announce(f"Building {verb}…")
         self._update_command_state_building(True)
 
@@ -1260,7 +1548,9 @@ class MainFrame(wx.Frame):
                 result = core.build_master(
                     items, output, tags, chapters=chapters,
                     bitrate=bitrate, normalize=normalize, gap_ms=gap_ms,
-                    canceller=self.canceller, progress=progress)
+                    canceller=self.canceller, progress=progress,
+                    per_file_normalize=per_file_normalize,
+                    normalize_lufs=normalize_lufs)
                 try:
                     core.write_chapter_report(output, result, tags, items)
                 except OSError:
@@ -1327,7 +1617,9 @@ class MainFrame(wx.Frame):
         result = evt.payload
         self.gauge.SetValue(100)
         mode = "re-encoded" if result.reencoded else "lossless copy"
-        kind = "audiobook" if core.output_format(result.output_path) == "m4b" else "master MP3"
+        _rfmt = core.output_format(result.output_path)
+        kind = ("audiobook" if _rfmt == "m4b" else
+                "FLAC master" if _rfmt == "flac" else "master MP3")
         # Post-build verification: re-read the file and confirm the chapters.
         verified_note = ""
         try:
@@ -1379,6 +1671,62 @@ class MainFrame(wx.Frame):
     # ------------------------------------------------------------------
     # Chapter editing / job files / watcher
     # ------------------------------------------------------------------
+
+    def _apply_key_overrides(self):
+        """Apply any user-configured keyboard shortcut overrides from settings."""
+        overrides = self.settings.get("key_overrides", {})
+        if not overrides:
+            return
+        _menu_map = {
+            "Open Folder…":        (self.mi_open,      "Ctrl+Shift+O"),
+            "Open Existing Master…": (self.mi_open_master, "Ctrl+O"),
+            "Save As…":            (self.mi_save_as,   "Ctrl+Shift+A"),
+            "Build Master MP3":    (self.mi_build,     "Ctrl+B"),
+            "Save Changes":        (self.mi_save_edit, "Ctrl+Shift+S"),
+            "Settings…":           (self.mi_settings,  "Ctrl+,"),
+        }
+        for cmd, new_key in overrides.items():
+            if cmd in _menu_map:
+                mi, _ = _menu_map[cmd]
+                base = mi.GetItemLabelText().split("\t")[0]
+                mi.SetItemLabel(f"{base}\t{new_key}")
+
+    def _on_batch_edit_titles(self, _evt):
+        """Open the Batch Edit Titles dialog and apply the chosen transformations."""
+        if self._is_building() or not self._row_count():
+            return
+        if self.mode == "edit":
+            current_titles = [c.title for c in self.edit_chapters]
+        else:
+            current_titles = [it.title for it in self.items]
+
+        dlg = BatchTitleDialog(self, current_titles)
+        if dlg.ShowModal() == wx.ID_OK:
+            new_titles = dlg.result_titles()
+            old_titles = list(current_titles)
+
+            def _apply(titles):
+                for i, t in enumerate(titles):
+                    if self.mode == "edit":
+                        if i < len(self.edit_chapters):
+                            self.edit_chapters[i].title = t
+                            self.edit_dirty = True
+                    else:
+                        if i < len(self.items):
+                            self.items[i].title = t
+                            self.items[i].edited = True
+                    self.list.SetItem(i, 1, t)
+                self._update_command_state()
+
+            _apply(new_titles)
+            self._undo.push(_UndoAction(
+                "Batch Edit Titles",
+                undo_fn=lambda: _apply(old_titles),
+                redo_fn=lambda: _apply(new_titles)))
+            self._update_undo_menu()
+            self._announce(f"Applied title edits to {len(new_titles)} chapter(s).")
+        dlg.Destroy()
+
     def _on_edit_chapter(self, _evt):
         sel = self.list.GetFirstSelected()
         if sel < 0:
@@ -1590,7 +1938,8 @@ class MainFrame(wx.Frame):
         bitrate = self.settings.get("bitrate", "192k")
         total_ms, est_bytes = core.estimate_output(
             self.items, bitrate=bitrate, gap_ms=self._gap_ms())
-        fmt = "M4B" if self.settings.get("output_format", "mp3") == "m4b" else "MP3"
+        _efmt = self.settings.get("output_format", "mp3")
+        fmt = "M4B" if _efmt == "m4b" else "FLAC" if _efmt == "flac" else "MP3"
         self.estimate_text.SetLabel(
             f"Estimated {fmt}: {core.format_timestamp(total_ms)}, "
             f"about {core.format_size(est_bytes)} "
@@ -1648,13 +1997,14 @@ class MainFrame(wx.Frame):
         self._announce(f"Exported chapters to {os.path.basename(dest)}.")
 
     def _on_import_chapters(self, _evt):
-        if self.mode != "edit":
-            wx.MessageBox(
-                "Open an existing master first (File → Open Existing Master), "
-                "then import a chapter list to replace its markers.",
-                "Import chapters", wx.OK | wx.ICON_INFORMATION, self)
-            return
         if self._is_building():
+            return
+        count = self._row_count()
+        if count == 0:
+            wx.MessageBox(
+                "Open a folder of MP3 files or an existing master first, "
+                "then import a chapter list to apply chapter titles.",
+                "Import chapters", wx.OK | wx.ICON_INFORMATION, self)
             return
         default_dir = self.settings.get("last_input_dir", "") or self.folder
         dlg = wx.FileDialog(
@@ -1667,21 +2017,53 @@ class MainFrame(wx.Frame):
             return
         path = dlg.GetPath()
         dlg.Destroy()
-        try:
-            with open(path, encoding="utf-8") as fh:
-                text = fh.read()
-            chapters = core.parse_chapter_text(text, self.edit_total_ms)
-        except (core.ChapterForgeError, OSError, UnicodeDecodeError) as exc:
-            wx.MessageBox(str(exc), "Could not import",
-                          wx.OK | wx.ICON_ERROR, self)
-            return
-        self.edit_chapters = chapters
-        self.edit_dirty = True
-        self._refresh_list(select=0)
-        self.player.set_chapters(self.edit_chapters)
-        self._announce(
-            f"Imported {len(chapters)} chapter(s) from "
-            f"{os.path.basename(path)}. Use Save Changes to keep them.")
+
+        if self.mode == "edit":
+            # Edit mode: replace all chapter markers from the file
+            try:
+                with open(path, encoding="utf-8") as fh:
+                    text = fh.read()
+                chapters = core.parse_chapter_text(text, self.edit_total_ms)
+            except (core.ChapterForgeError, OSError, UnicodeDecodeError) as exc:
+                wx.MessageBox(str(exc), "Could not import",
+                              wx.OK | wx.ICON_ERROR, self)
+                return
+            self.edit_chapters = chapters
+            self.edit_dirty = True
+            self._refresh_list(select=0)
+            self.player.set_chapters(self.edit_chapters)
+            self._announce(
+                f"Imported {len(chapters)} chapter(s) from "
+                f"{os.path.basename(path)}. Use Save Changes to keep them.")
+        else:
+            # Build mode: use chapter titles from the file to rename source items
+            try:
+                with open(path, encoding="utf-8") as fh:
+                    text = fh.read()
+                # Use a large total_ms so all timestamps are accepted
+                chapters = core.parse_chapter_text(text, total_ms=86_400_000)
+            except (core.ChapterForgeError, OSError, UnicodeDecodeError) as exc:
+                wx.MessageBox(str(exc), "Could not import",
+                              wx.OK | wx.ICON_ERROR, self)
+                return
+            n = min(len(chapters), len(self.items))
+            old_titles = [it.title for it in self.items]
+            for i in range(n):
+                self.items[i].title = chapters[i].title
+                self.items[i].edited = True
+            self._refresh_list(select=0)
+            new_titles = [it.title for it in self.items]
+            self._undo.push(_UndoAction(
+                "Import Chapter Titles",
+                undo_fn=lambda: [setattr(self.items[j], 'title', old_titles[j])
+                                 or self.list.SetItem(j, 1, old_titles[j])
+                                 for j in range(len(old_titles))],
+                redo_fn=lambda: [setattr(self.items[j], 'title', new_titles[j])
+                                 or self.list.SetItem(j, 1, new_titles[j])
+                                 for j in range(n)]))
+            self._update_undo_menu()
+            self._announce(
+                f"Applied {n} chapter title(s) from {os.path.basename(path)}.")
 
     # ------------------------------------------------------------------
     # Diagnostics
@@ -1831,6 +2213,8 @@ class MainFrame(wx.Frame):
         finally:
             if wx.IsBusy():
                 wx.EndBusyCursor()
+        self._undo.clear()
+        self._update_undo_menu()
         self._enter_edit_mode(path, tags, chapters, total_ms)
         self._push_recent(path)
 
@@ -2939,11 +3323,16 @@ class SettingsDialog(wx.Dialog):
 
         self.fmt = brow(
             "Default output &format:",
-            lambda: wx.Choice(bp, choices=["MP3 (.mp3)", "M4B audiobook (.m4b)"]),
+            lambda: wx.Choice(bp, choices=["MP3 (.mp3)", "M4B audiobook (.m4b)",
+                                            "FLAC lossless (.flac)"]),
             "Default output format",
             "MP3 works everywhere. M4B is the Apple audiobook format, supported by most "
-            "podcast and audiobook apps.")
-        self.fmt.SetSelection(1 if settings.get("output_format") == "m4b" else 0)
+            "podcast and audiobook apps. FLAC is a lossless format with chapter markers "
+            "stored as Vorbis comments.")
+        _fmt_stored = settings.get("output_format", "mp3")
+        self.fmt.SetSelection(
+            1 if _fmt_stored == "m4b" else
+            2 if _fmt_stored == "flac" else 0)
 
         self.title_src = brow(
             "Chapter titles fro&m:",
@@ -2993,6 +3382,23 @@ class SettingsDialog(wx.Dialog):
             "Required for chapter art and links in Podcasting 2.0 apps.")
         self.write_pod2.SetValue(bool(settings.get("write_pod2", False)))
 
+        # Feature 8: per-file LUFS normalization
+        self.per_file_norm = bcheck(
+            "Normalize each chapter &individually (per-file LUFS)",
+            "Normalize each chapter individually to a consistent loudness target",
+            "Applies loudnorm to each source file before concatenating.\n"
+            "More consistent than global normalize when chapters have very different levels.")
+        self.per_file_norm.SetValue(bool(settings.get("per_file_normalize", False)))
+
+        self.lufs_target = brow(
+            "Target loudness (&LUFS):",
+            lambda: wx.SpinCtrlDouble(bp, min=-32.0, max=-6.0, inc=0.5,
+                                      initial=float(settings.get("normalize_lufs", -16.0))),
+            "Target loudness in LUFS for per-file normalization",
+            "Industry standard for podcasts is -16 LUFS. Audiobooks often use -18 LUFS.",
+            use_accessible=True)
+        self.lufs_target.SetDigits(1)
+
         bp_sizer = wx.BoxSizer(wx.VERTICAL)
         bp_sizer.Add(bg, 1, wx.EXPAND | wx.ALL, 14)
         bp.SetSizer(bp_sizer)
@@ -3037,6 +3443,62 @@ class SettingsDialog(wx.Dialog):
         ap.SetSizer(ap_sizer)
         nb.AddPage(ap, "Advanced")
 
+        # ----------------------------------------------------------------
+        # Tab 4 - Shortcuts (Feature 13)
+        # ----------------------------------------------------------------
+        sp = wx.Panel(nb)
+        sp_sizer = wx.BoxSizer(wx.VERTICAL)
+        _sc_hint = wx.StaticText(
+            sp, label="Select a command and click Change Key to rebind it.")
+        _sc_hint.SetForegroundColour(
+            wx.SystemSettings.GetColour(wx.SYS_COLOUR_GRAYTEXT))
+        sp_sizer.Add(_sc_hint, 0, wx.ALL, 10)
+        self._shortcut_list = wx.ListCtrl(
+            sp, style=wx.LC_REPORT | wx.LC_SINGLE_SEL | wx.BORDER_SUNKEN)
+        self._shortcut_list.SetName(
+            "Keyboard shortcuts list - select a command to change its key")
+        self._shortcut_list.InsertColumn(0, "Command", width=270)
+        self._shortcut_list.InsertColumn(1, "Shortcut", width=140)
+        sp_sizer.Add(self._shortcut_list, 1, wx.EXPAND | wx.LEFT | wx.RIGHT, 10)
+        _sc_btn_row = wx.BoxSizer(wx.HORIZONTAL)
+        self._sc_change_btn = wx.Button(sp, label="Change &Key...")
+        self._sc_change_btn.SetName("Change key for selected command")
+        self._sc_change_btn.Bind(wx.EVT_BUTTON, self._on_sc_change)
+        _sc_btn_row.Add(self._sc_change_btn, 0, wx.ALL, 6)
+        self._sc_reset_btn = wx.Button(sp, label="Reset to &Default")
+        self._sc_reset_btn.SetName("Reset shortcut to default for selected command")
+        self._sc_reset_btn.Bind(wx.EVT_BUTTON, self._on_sc_reset)
+        _sc_btn_row.Add(self._sc_reset_btn, 0, wx.ALL, 6)
+        sp_sizer.Add(_sc_btn_row, 0)
+        sp.SetSizer(sp_sizer)
+        nb.AddPage(sp, "Shortcuts")
+        # Known shortcuts list: (display_name, default_key)
+        self._KNOWN_SHORTCUTS = [
+            ("Open Folder…",         "Ctrl+Shift+O"),
+            ("Open Existing Master…", "Ctrl+O"),
+            ("Build Master MP3",     "Ctrl+B"),
+            ("Save Changes",         "Ctrl+S"),
+            ("Save As…",             "Ctrl+Shift+A"),
+            ("Load a Saved Setup…",  "Ctrl+L"),
+            ("Save This Setup as a Template…", "Ctrl+G"),
+            ("Settings…",            "Ctrl+,"),
+            ("Command Palette",      "Ctrl+Shift+P"),
+            ("User Guide",           "F1"),
+            ("Keyboard Shortcuts",   "Ctrl+/"),
+            ("Larger Text",          "Ctrl+="),
+            ("Smaller Text",         "Ctrl+-"),
+            ("Reset Text Size",      "Ctrl+0"),
+            ("Go to Chapters (Step 1)",       "Ctrl+1"),
+            ("Go to Tags and Build (Step 2)", "Ctrl+2"),
+            ("Set Up Automatic Building…",    "Ctrl+W"),
+        ]
+        self._key_overrides = dict(settings.get("key_overrides", {}))
+        for _sn, _sk in self._KNOWN_SHORTCUTS:
+            _idx = self._shortcut_list.InsertItem(
+                self._shortcut_list.GetItemCount(), _sn)
+            self._shortcut_list.SetItem(
+                _idx, 1, self._key_overrides.get(_sn, _sk))
+
         outer.Add(nb, 1, wx.EXPAND | wx.ALL, 8)
         outer.Add(self.CreateButtonSizer(wx.OK | wx.CANCEL),
                   0, wx.EXPAND | wx.ALL, 12)
@@ -3045,10 +3507,33 @@ class SettingsDialog(wx.Dialog):
         self.CentreOnParent()
         self.skip.SetFocus()
 
+    def _on_sc_change(self, _evt):
+        """Open key-capture dialog for selected shortcut (Feature 13)."""
+        sel = self._shortcut_list.GetFirstSelected()
+        if sel < 0 or sel >= len(self._KNOWN_SHORTCUTS):
+            return
+        cmd_name, _default = self._KNOWN_SHORTCUTS[sel]
+        dlg = _KeyCaptureDialog(self, cmd_name)
+        if dlg.ShowModal() == wx.ID_OK and dlg.captured_key:
+            self._key_overrides[cmd_name] = dlg.captured_key
+            self._shortcut_list.SetItem(sel, 1, dlg.captured_key)
+        dlg.Destroy()
+
+    def _on_sc_reset(self, _evt):
+        """Reset selected shortcut to its default (Feature 13)."""
+        sel = self._shortcut_list.GetFirstSelected()
+        if sel < 0 or sel >= len(self._KNOWN_SHORTCUTS):
+            return
+        cmd_name, default_key = self._KNOWN_SHORTCUTS[sel]
+        self._key_overrides.pop(cmd_name, None)
+        self._shortcut_list.SetItem(sel, 1, default_key)
+
     def result(self) -> dict:
         """Return the edited settings as a dict (call after ShowModal == OK)."""
-        return {
-            "output_format": "m4b" if self.fmt.GetSelection() == 1 else "mp3",
+        d = {
+            "output_format": (
+                "m4b" if self.fmt.GetSelection() == 1 else
+                "flac" if self.fmt.GetSelection() == 2 else "mp3"),
             "title_source": (core.TITLE_SOURCE_EMBEDDED
                              if self.title_src.GetSelection() == 1
                              else core.TITLE_SOURCE_FILENAME),
@@ -3069,7 +3554,186 @@ class SettingsDialog(wx.Dialog):
             "high_contrast": self.theme_choice.GetSelection() == 3,
             "start_minimized": self.start_minimized.GetValue(),
             "check_updates_startup": self.check_updates_startup.GetValue(),
+            # Feature 8
+            "per_file_normalize": self.per_file_norm.GetValue(),
+            "normalize_lufs": float(self.lufs_target.GetValue()),
+            # Feature 13
+            "key_overrides": {row: override
+                              for row, override in self._key_overrides.items()},
         }
+        return d
+
+
+class _KeyCaptureDialog(wx.Dialog):
+    """Captures a single key combination for shortcut rebinding (Feature 13)."""
+
+    def __init__(self, parent, cmd_name: str):
+        super().__init__(parent, title="Press New Key",
+                         style=wx.DEFAULT_DIALOG_STYLE)
+        self.captured_key: str = ""
+        outer = wx.BoxSizer(wx.VERTICAL)
+        msg = wx.StaticText(
+            self,
+            label=f"Press the key combination to use for:\n\"{cmd_name}\"\n\n"
+                  "Press Escape to cancel.")
+        msg.SetName("Key capture instruction")
+        outer.Add(msg, 0, wx.ALL, 18)
+        self._status = wx.StaticText(self, label="Waiting for key press...")
+        self._status.SetName("Captured key status")
+        outer.Add(self._status, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 14)
+        self.SetSizer(outer)
+        self.Fit()
+        self.CentreOnParent()
+        self.Bind(wx.EVT_KEY_DOWN, self._on_key)
+        self.SetFocus()
+
+    def _on_key(self, evt):
+        key = evt.GetKeyCode()
+        if key == wx.WXK_ESCAPE:
+            self.captured_key = ""
+            self.EndModal(wx.ID_CANCEL)
+            return
+        parts = []
+        if evt.ControlDown():
+            parts.append("Ctrl")
+        if evt.AltDown():
+            parts.append("Alt")
+        if evt.ShiftDown():
+            parts.append("Shift")
+        _special = {
+            wx.WXK_F1: "F1", wx.WXK_F2: "F2", wx.WXK_F3: "F3",
+            wx.WXK_F4: "F4", wx.WXK_F5: "F5", wx.WXK_F6: "F6",
+            wx.WXK_F7: "F7", wx.WXK_F8: "F8", wx.WXK_F9: "F9",
+            wx.WXK_F10: "F10", wx.WXK_F11: "F11", wx.WXK_F12: "F12",
+            wx.WXK_DELETE: "Del", wx.WXK_INSERT: "Ins",
+            wx.WXK_HOME: "Home", wx.WXK_END: "End",
+            wx.WXK_PAGEUP: "PgUp", wx.WXK_PAGEDOWN: "PgDn",
+            wx.WXK_UP: "Up", wx.WXK_DOWN: "Down",
+            wx.WXK_LEFT: "Left", wx.WXK_RIGHT: "Right",
+            wx.WXK_SPACE: "Space", wx.WXK_TAB: "Tab",
+            wx.WXK_RETURN: "Enter", wx.WXK_BACK: "Backspace",
+        }
+        if key in _special:
+            parts.append(_special[key])
+        elif 32 <= key <= 126:
+            parts.append(chr(key).upper() if evt.ShiftDown() else chr(key))
+        else:
+            evt.Skip()
+            return
+        key_str = "+".join(parts)
+        self.captured_key = key_str
+        self._status.SetLabel(f"Captured: {key_str}")
+        self.EndModal(wx.ID_OK)
+
+
+class BatchTitleDialog(wx.Dialog):
+    """Apply bulk transformations to all chapter titles at once."""
+
+    def __init__(self, parent, titles: list):
+        super().__init__(parent, title="Batch Edit Titles",
+                         style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
+        self._titles = list(titles)
+        outer = wx.BoxSizer(wx.VERTICAL)
+
+        xform_box = wx.StaticBoxSizer(wx.VERTICAL, self, "Quick Transforms")
+        self.chk_titlecase = wx.CheckBox(self, label="Apply &title case to all chapters")
+        self.chk_titlecase.SetName("Apply title case to all chapter titles")
+        self.chk_strip_num = wx.CheckBox(self, label="Strip leading &track numbers (01, 02 -)")
+        self.chk_strip_num.SetName("Strip leading track numbers from chapter titles")
+        self.chk_underscores = wx.CheckBox(self, label="Replace &underscores with spaces")
+        self.chk_underscores.SetName("Replace underscores with spaces in chapter titles")
+        self.chk_spaces = wx.CheckBox(self, label="Remove e&xtra spaces")
+        self.chk_spaces.SetName("Remove duplicate and trailing spaces from chapter titles")
+        for chk in (self.chk_titlecase, self.chk_strip_num,
+                    self.chk_underscores, self.chk_spaces):
+            xform_box.Add(chk, 0, wx.ALL, 4)
+        outer.Add(xform_box, 0, wx.EXPAND | wx.ALL, 8)
+
+        fr_box = wx.StaticBoxSizer(wx.VERTICAL, self, "Find and Replace")
+        fr_grid = wx.FlexGridSizer(0, 2, 6, 8)
+        fr_grid.AddGrowableCol(1, 1)
+        fr_grid.Add(wx.StaticText(self, label="&Find:"), 0, wx.ALIGN_CENTER_VERTICAL)
+        self.find_ctrl = wx.TextCtrl(self)
+        self.find_ctrl.SetName("Find text in chapter titles")
+        fr_grid.Add(self.find_ctrl, 1, wx.EXPAND)
+        fr_grid.Add(wx.StaticText(self, label="&Replace with:"), 0, wx.ALIGN_CENTER_VERTICAL)
+        self.replace_ctrl = wx.TextCtrl(self)
+        self.replace_ctrl.SetName("Replacement text for chapter titles")
+        fr_grid.Add(self.replace_ctrl, 1, wx.EXPAND)
+        fr_box.Add(fr_grid, 0, wx.EXPAND | wx.ALL, 4)
+        outer.Add(fr_box, 0, wx.EXPAND | wx.ALL, 8)
+
+        pat_box = wx.StaticBoxSizer(wx.VERTICAL, self, "Number Pattern (replaces all titles)")
+        self.chk_pattern = wx.CheckBox(self, label="Apply &number pattern:")
+        self.chk_pattern.SetName("Apply a number pattern to replace all chapter titles")
+        self.pattern_ctrl = wx.TextCtrl(self, value="Chapter {n}")
+        self.pattern_ctrl.SetName(
+            "Number pattern - use {n} for chapter number, {title} for current title")
+        self.pattern_ctrl.Enable(False)
+        hint = wx.StaticText(
+            self, label="Use {n} for chapter number, {title} for current title")
+        pat_box.Add(self.chk_pattern, 0, wx.ALL, 4)
+        pat_box.Add(self.pattern_ctrl, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 4)
+        pat_box.Add(hint, 0, wx.LEFT | wx.BOTTOM, 4)
+        outer.Add(pat_box, 0, wx.EXPAND | wx.ALL, 8)
+
+        prev_box = wx.StaticBoxSizer(wx.VERTICAL, self, "Preview (first 8 chapters)")
+        self.preview_ctrl = wx.TextCtrl(
+            self, style=wx.TE_MULTILINE | wx.TE_READONLY | wx.NO_BORDER, size=(-1, 120))
+        self.preview_ctrl.SetName("Preview of title changes - before and after")
+        self.preview_ctrl.SetBackgroundColour(self.GetBackgroundColour())
+        prev_box.Add(self.preview_ctrl, 1, wx.EXPAND | wx.ALL, 4)
+        outer.Add(prev_box, 0, wx.EXPAND | wx.ALL, 8)
+
+        outer.Add(self.CreateButtonSizer(wx.OK | wx.CANCEL), 0, wx.EXPAND | wx.ALL, 8)
+        self.SetSizer(outer)
+        self.SetMinSize((480, -1))
+        self.SetSize((560, -1))
+        self.Fit()
+        self.CentreOnParent()
+
+        for ctrl in (self.chk_titlecase, self.chk_strip_num,
+                     self.chk_underscores, self.chk_spaces):
+            ctrl.Bind(wx.EVT_CHECKBOX, self._refresh_preview)
+        self.chk_pattern.Bind(wx.EVT_CHECKBOX, self._on_pattern_toggle)
+        for ctrl in (self.find_ctrl, self.replace_ctrl, self.pattern_ctrl):
+            ctrl.Bind(wx.EVT_TEXT, self._refresh_preview)
+        self._refresh_preview(None)
+        self.find_ctrl.SetFocus()
+
+    def _on_pattern_toggle(self, _evt):
+        self.pattern_ctrl.Enable(self.chk_pattern.GetValue())
+        self._refresh_preview(None)
+
+    def _transform(self, title: str, n: int) -> str:
+        import re as _re
+        t = title
+        if self.chk_underscores.GetValue():
+            t = t.replace("_", " ")
+        if self.chk_spaces.GetValue():
+            t = " ".join(t.split())
+        if self.chk_strip_num.GetValue():
+            t = _re.sub(r"^\s*\d{1,3}\s*(?:[-._)]+\s*|\s+(?=[A-Za-z]))", "", t).strip()
+        if self.chk_titlecase.GetValue():
+            t = t.title()
+        find = self.find_ctrl.GetValue()
+        if find:
+            t = t.replace(find, self.replace_ctrl.GetValue())
+        if self.chk_pattern.GetValue():
+            pat = self.pattern_ctrl.GetValue()
+            t = pat.replace("{n}", str(n)).replace("{title}", t)
+        return t
+
+    def _refresh_preview(self, _evt):
+        lines = []
+        for i, orig in enumerate(self._titles[:8], start=1):
+            new = self._transform(orig, i)
+            marker = " -> " if new != orig else "    "
+            lines.append(f"{orig}{marker}{new}")
+        self.preview_ctrl.SetValue("\n".join(lines))
+
+    def result_titles(self) -> list:
+        return [self._transform(t, i + 1) for i, t in enumerate(self._titles)]
 
 
 class ChapterEditDialog(wx.Dialog):
@@ -3217,7 +3881,7 @@ class CommandPaletteDialog:
             ("Cancel Build",                  "Esc",            lambda: f._on_cancel(None),              lambda: f._is_building()),
             ("Load a Saved Setup…",           "Ctrl+L",         lambda: f._on_load_job(None),            lambda: nb()),
             ("Save This Setup as a Template…", "Ctrl+G",         lambda: f._on_generate_job(None),        lambda: nb() and no_edit() and has_items()),
-            ("Load Chapter List From File…",  None,             lambda: f._on_import_chapters(None),     lambda: nb() and edit()),
+            ("Load Chapter List From File…",  None,             lambda: f._on_import_chapters(None),     lambda: nb() and n() > 0),
             ("Save Chapter List…",            None,             lambda: f._on_export_chapters(None),     lambda: nb() and n() > 0),
             ("Find Chapters in Silent Gaps…", None,             lambda: f._on_silence(None),             lambda: nb()),
             ("Build Multiple Books…",        None,             lambda: f._on_batch(None),               lambda: nb()),
@@ -3225,6 +3889,7 @@ class CommandPaletteDialog:
             ("Auto-Build in Background",      None,             lambda: f._on_start_watcher(None),       lambda: True),
             ("Settings…",                     "Ctrl+,",         lambda: f._on_settings(None),            lambda: True),
             ("Edit Chapter Details…",          "F2",             lambda: f._on_edit_chapter(None),        lambda: nb() and sel() >= 0),
+            ("Batch Edit Titles…",             None,             lambda: f._on_batch_edit_titles(None),   lambda: nb() and n() > 0),
             ("Play This Chapter",             None,             lambda: f._on_play_selected(None),       lambda: nb() and sel() >= 0),
             ("Split Here",                    None,             lambda: f._on_split_chapter(None),       lambda: nb() and edit() and f.player.has_media()),
             ("Move Up",                       "Alt+Up",         lambda: f._move(-1),                     lambda: nb() and sel() > 0),

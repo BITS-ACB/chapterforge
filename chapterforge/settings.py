@@ -56,6 +56,13 @@ DEFAULTS: Dict[str, Any] = {
     # Colour theme.
     "theme": "system",         # 'system', 'light', 'dark', 'high_contrast'
     "high_contrast": False,    # kept for backwards compatibility with older settings files
+    # Per-file loudness normalization (Feature 8).
+    "per_file_normalize": False,   # normalize each source file individually
+    "normalize_lufs": -16.0,       # LUFS target for per-file normalization
+    # Chapter list column visibility (Feature 10): [#, Title, Start, Duration, Source]
+    "list_columns": [True, True, True, True, True],
+    # Keyboard shortcut overrides (Feature 13): maps command name -> key string
+    "key_overrides": {},
 }
 
 

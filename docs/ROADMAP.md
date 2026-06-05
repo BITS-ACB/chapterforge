@@ -1,19 +1,20 @@
 # ChapterForge Roadmap
 
 Ranked by user impact, highest to lowest. All items are viable with the
-existing FFmpeg-based architecture and wxPython UI. Online services are
-explicitly excluded — ChapterForge is and will remain a fully local,
-privacy-respecting tool.
+existing FFmpeg-based architecture and wxPython UI. ChapterForge is and will
+remain fully local — no online services, no network calls beyond update
+checking.
 
 Items marked **Accessibility Priority** are features where existing tools
-(mp3DirectCut, Mp3tag) have poor or no screen-reader support, giving
-ChapterForge an opportunity to be the only fully accessible option.
+have poor or no screen-reader support, giving ChapterForge an opportunity to
+be the only fully accessible option.
 
 ---
 
-## Tier 1 — Core Workflow Gaps (ship these next)
+## Tier 1 — Core Workflow Gaps
 
 ### 1. Lossless MP3 Trim and Cut Without Re-encoding
+
 **Accessibility Priority**
 
 mp3DirectCut is the only widely-used tool for this, and it has serious
@@ -25,8 +26,8 @@ What this enables:
   before building
 - Remove a section from the middle of a chapter without re-encoding
 - Clean up recordings directly inside ChapterForge — no external tool needed
-- "Pre-listen as cut" so the user hears what the result will sound like
-  before saving
+- Pre-listen as cut so the user hears what the result will sound like before
+  saving
 
 Implementation path: FFmpeg `-c copy -ss START -to END` for lossless segment
 extraction. UI: a Trim panel in the player with accessible Begin/End markers,
@@ -34,25 +35,7 @@ fine-adjust with arrow keys, and a preview-then-save workflow.
 
 ---
 
-### 2. FLAC, WAV, OGG, M4A, and AAC Source File Support
-
-ChapterForge currently requires MP3 source files. Many users record in FLAC
-or WAV, or have files in M4A from purchases. FFmpeg already handles all of
-these formats.
-
-What this enables:
-- Accept any format FFmpeg supports as a source chapter file
-- Transcode automatically during build (already happens for re-encode; just
-  remove the MP3-only filter at scan time)
-- Open FLAC audiobooks for editing in edit mode
-
-Implementation path: Remove the `.mp3`-only filter in `core.scan_folder()`.
-Update `probe_file()` to accept all FFmpeg-supported containers. Test M4A/FLAC
-round-trip in build and edit modes.
-
----
-
-### 3. Split One Long Recording into Chapters
+### 2. Split One Long Recording into Chapters
 
 **Accessibility Priority**
 
@@ -69,13 +52,13 @@ What this enables:
 - Save to multiple files or build the chaptered master directly
 - Lossless split via FFmpeg `-c copy`
 
-Implementation path: New "Split Recording" task mode (alongside Build and Edit
-in the task selector). Uses the existing chapter editor UI with a different
+Implementation path: New "Split Recording" task mode alongside Build and Edit
+in the task selector. Uses the existing chapter editor UI with a different
 source model. Silence detection already exists in `core.py`.
 
 ---
 
-### 4. Batch Chapter Metadata Editing
+### 3. Batch Chapter Metadata Editing
 
 Currently, renaming a chapter title requires selecting it and typing in the
 title field — one at a time. For audiobooks with 60+ chapters, bulk operations
@@ -85,7 +68,7 @@ What this enables:
 - Select multiple chapters and apply the same title transformation to all
   (capitalize, strip leading numbers, find-and-replace)
 - Apply a title pattern like "Chapter {n}" to a range of selected chapters
-- Auto-number chapters with configurable format
+- Auto-number chapters with a configurable format
 - Find and replace text across all chapter titles at once
 
 Implementation path: Multi-select in the chapter list, a Batch Edit dialog
@@ -96,7 +79,7 @@ transformation rules.
 
 ## Tier 2 — High Impact
 
-### 5. Lossless Fade In and Fade Out for MP3 Chapters
+### 4. Lossless Fade In and Fade Out for MP3 Chapters
 
 mp3DirectCut can apply simple fades to MP3 data without re-encoding by
 manipulating frame-level gain values. This is useful for smoothing abrupt
@@ -113,25 +96,7 @@ in the chapter editor.
 
 ---
 
-### 6. Cover Art Management — Resize, Convert, Crop
-
-Mp3tag has extensive cover art tools. ChapterForge's cover art support is
-currently limited to selecting a file. Many users have cover images that are
-too large (multi-MB), wrong aspect ratio, or in PNG when JPEG is preferred.
-
-What this enables:
-- Resize cover art to a target pixel dimension before embedding
-- Convert PNG to JPEG (smaller file size for embedded art)
-- Crop to square if the cover is not already square
-- Preview before embedding
-
-Implementation path: Python `Pillow` library (already widely available) or
-FFmpeg's image scaling filters. UI: options in the cover art section of the
-Tags page.
-
----
-
-### 7. Reusable Build Presets
+### 5. Reusable Build Presets
 
 Users who build audiobooks regularly with the same settings (format, quality,
 normalize, gap) should not have to re-enter them. Named presets extend the
@@ -140,20 +105,20 @@ existing `.cfjob` job file concept to settings profiles.
 What this enables:
 - Save the current build settings as a named preset
 - Load a preset to restore format, bitrate, normalize, gap, and JSON settings
-- Ship with sensible built-in presets: "Podcast MP3", "Audiobook M4B", "High
-  Quality Archive"
+- Ship with sensible built-in presets: "Podcast MP3", "Audiobook M4B",
+  "Lossless FLAC Archive"
 
 Implementation path: Extend `settings.py` with a `presets` dict. UI in the
 Settings dialog with a preset picker and Save/Delete buttons.
 
 ---
 
-### 8. Export Metadata as CSV or Plain Text
+### 6. Export Metadata as CSV or Plain Text
 
-Mp3tag's export feature produces auditable metadata reports. ChapterForge
-already saves a text chapter report alongside the master, but a structured
-export of all chapter metadata (title, duration, start time, link URL, image)
-would be useful for review, archiving, and accessibility descriptions.
+ChapterForge already saves a text chapter report alongside the master, but a
+structured export of all chapter metadata (title, duration, start time, link
+URL, image path) would be useful for review, archiving, and accessibility
+descriptions.
 
 What this enables:
 - Audit all chapter titles and times before distributing
@@ -165,48 +130,13 @@ Add CSV and formatted HTML export options. Very low implementation cost.
 
 ---
 
-### 9. FLAC Output with Embedded Chapters
-
-ChapterForge outputs MP3 or M4B. Adding FLAC output would serve users who
-want a lossless archive copy of their audiobook with chapter markers.
-
-What this enables:
-- Build a lossless FLAC master with chapters using Vorbis Comment CHAPTER
-  markers (standard for FLAC audiobooks)
-- Keep the MP3/M4B option for distribution, FLAC for archiving
-
-Implementation path: FFmpeg already supports FLAC output with chapters via
-`-c:a flac` and Matroska/OGG chapter metadata. Mutagen supports Vorbis Comment
-chapter writing.
-
----
-
-### 10. Undo and Redo for Chapter List Operations
-
-Currently, any chapter operation (rename, remove, reorder, merge) is permanent
-until the session is discarded. A lightweight undo stack would dramatically
-reduce the cost of mistakes.
-
-What this enables:
-- Undo an accidental rename, remove, or merge
-- Step back through a series of edits
-- Redo an undone change
-- Clear the undo stack when the build completes
-
-Implementation path: Store a list of (operation, inverse_operation) tuples.
-Operations are already discrete function calls in `app.py`. Announce each
-undo/redo via `a11y.announce()`.
-
----
-
 ## Tier 3 — Medium Impact
 
-### 11. File Renaming from Chapter Titles and Tags
+### 7. File Renaming from Chapter Titles and Tags
 
-Mp3tag's Tag -> Filename converter is one of its most-used features. For
-ChapterForge users who need source files consistently named, a rename tool
-that reads from the chapter title, artist, year, and chapter number would
-save significant manual work.
+For users who need source files consistently named, a rename tool that reads
+from the chapter title, artist, year, and chapter number saves significant
+manual work.
 
 What this enables:
 - Rename source files to match their chapter titles
@@ -219,7 +149,7 @@ source paths.
 
 ---
 
-### 12. Chapter-Level Per-File Loudness Normalization
+### 8. Chapter-Level Per-File Loudness Normalization
 
 The current normalize option applies global normalization across the whole
 build. Per-chapter normalization targets each source file individually to a
@@ -236,44 +166,7 @@ and build pipeline. Add a "Per-file loudness target" option to Settings.
 
 ---
 
-### 13. MP3 Recording Directly into ChapterForge
-
-**Accessibility Priority**
-
-mp3DirectCut includes a built-in recorder. For users who create content
-directly (spoken-word recordings, interviews), recording directly into a source
-chapter without leaving the app removes a major workflow gap.
-
-What this enables:
-- Record a new chapter directly into the chapter list
-- Each recording session creates a new source MP3
-- Level meter and status during recording
-- Immediate preview after recording
-
-Implementation path: `sounddevice` or `PyAudio` for capture; FFmpeg or LAME
-for encoding. Requires careful accessible UI for device selection, level
-monitoring, and recording state.
-
----
-
-### 14. Advanced Chapter List Filtering and Search
-
-Mp3tag's filter expressions are one of its most powerful features. A simpler
-version for ChapterForge would let users find chapters by title text, flag
-chapters with missing data, or isolate a range for batch operations.
-
-What this enables:
-- Search chapter titles as you type
-- Filter to chapters with empty titles
-- Filter to chapters with no link URL or image (for Podcasting 2.0 workflows)
-- Select filtered chapters for batch operations
-
-Implementation path: A search/filter bar above the chapter list. Filter is
-applied client-side against the in-memory chapter list. No new dependencies.
-
----
-
-### 15. CUE Sheet Round-Trip Improvements
+### 9. CUE Sheet Round-Trip Improvements
 
 ChapterForge already exports CUE sheets. Importing a CUE sheet to define
 chapter points (for a single long source file) and round-tripping edits back
@@ -290,11 +183,10 @@ Recording" feature for a complete workflow.
 
 ---
 
-### 16. Configurable Chapter List Columns
+### 10. Configurable Chapter List Columns
 
 Power users may want to show fewer or more columns, or reorder them. The
-current fixed five-column layout (number, title, start, duration, source file)
-does not allow customization.
+current fixed five-column layout does not allow customization.
 
 What this enables:
 - Show or hide columns (e.g. hide Source file for a cleaner view)
@@ -309,11 +201,10 @@ View menu) to toggle columns.
 
 ## Tier 4 — Lower Priority but Viable
 
-### 17. Simple Batch Tag Cleanup Actions
+### 11. Simple Batch Title Cleanup Actions
 
-Mp3tag's action groups are a power-user superpower. A simpler, curated set of
-common cleanup actions for ChapterForge's chapter titles would cover 80% of
-the use cases without the complexity of a scripting engine.
+A curated set of common cleanup actions for chapter titles covers 80% of
+Mp3tag-style use cases without the complexity of a scripting engine.
 
 Actions to include:
 - Capitalize all chapter titles (title case)
@@ -328,14 +219,14 @@ dialog with checkboxes for each cleanup action and a preview before applying.
 
 ---
 
-### 18. Accessible Audio Level Meter During Build
+### 12. Accessible Audio Level Meter During Build
 
 Currently the build shows a progress gauge but no audio level feedback. A
-real-time or per-file peak level display during the build would help users
-verify their normalization is working as intended.
+per-file peak level display during the build would help users verify
+normalization is working as intended.
 
 What this enables:
-- See (or hear announced) the peak level of each chapter as it is processed
+- Hear announced peak level of each chapter as it is processed
 - Detect chapters that are clipping or very quiet before the build finishes
 - Build confidence that normalization is working
 
@@ -344,39 +235,16 @@ during build. Announce per-chapter levels via `a11y.announce()`.
 
 ---
 
-### 19. Keyboard-Configurable Shortcuts
+### 13. Keyboard-Configurable Shortcuts
 
-ChapterForge has a fixed set of keyboard shortcuts. Power users who want to
-customize the command palette bindings or add their own shortcuts should be
-able to do so.
+Power users who want to customize the command palette bindings or add their
+own shortcuts should be able to do so.
 
 What this enables:
 - Reassign any command palette action to a different key
 - Add keyboard shortcuts to commands that currently have none
 - Persist customizations in settings
 
-Implementation path: Extend the command palette registry with a
-configurable key map stored in `settings.py`. A "Keyboard Shortcuts" section
-in Settings with a list of commands and editable key fields.
-
----
-
-## Out of Scope
-
-The following features were considered and excluded:
-
-- **Online metadata lookup** (Discogs, MusicBrainz, freedb) - ChapterForge
-  is a local, privacy-respecting tool with no network calls except update
-  checking.
-- **Multi-track mixing or DAW features** - Outside the single-stream
-  audiobook/podcast workflow.
-- **Noise reduction, click repair, spectral editing** - Requires a full DSP
-  library (iZotope/SoX-level); out of scope for this tool's mission.
-- **EQ, compression, reverb** - Same reason.
-- **Pitch correction** - Out of scope; speed-with-pitch-preservation (already
-  shipped in 1.90) covers the real use case.
-- **MP4/MKV video chapter editing** - ChapterForge is audio-only.
-- **Library/music-collection management** - ChapterForge builds individual
-  audiobooks, not a whole music library.
-- **Web scraping or browser automation** - Not appropriate for a local desktop
-  tool.
+Implementation path: Extend the command palette registry with a configurable
+key map stored in `settings.py`. A "Keyboard Shortcuts" section in Settings
+with a list of commands and editable key fields.

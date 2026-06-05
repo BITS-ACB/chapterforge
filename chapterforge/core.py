@@ -42,6 +42,15 @@ from mutagen.id3 import (
     WXXX,
 )
 from mutagen.mp3 import MP3
+from mutagen.flac import FLAC, Picture
+
+# ---------------------------------------------------------------------------
+# Audio formats accepted as chapter source files.
+# ---------------------------------------------------------------------------
+
+AUDIO_EXTS: frozenset = frozenset({
+    ".mp3", ".flac", ".wav", ".ogg", ".m4a", ".aac", ".opus", ".wma", ".mp2",
+})
 
 # ---------------------------------------------------------------------------
 # Tool discovery
@@ -346,17 +355,19 @@ def is_probable_master(name: str, folder: str) -> bool:
 
 def scan_folder_detailed(folder: str, exclude_masters: bool = True
                          ) -> Tuple[List[Mp3Item], List[str]]:
-    """Probe every ``.mp3`` in *folder*; return ``(items, skipped_master_names)``.
+    """Probe every audio file in *folder*; return ``(items, skipped_master_names)``.
 
-    A likely previously-built master (see :func:`is_probable_master`) is skipped
-    so it is not turned into a chapter - unless skipping would leave nothing, in
-    which case every file is kept.
+    Recognises all formats in :data:`AUDIO_EXTS`. A likely previously-built
+    master (see :func:`is_probable_master`) is skipped so it is not turned into
+    a chapter - unless skipping would leave nothing, in which case every file is
+    kept.
     """
     if not os.path.isdir(folder):
         raise NoAudioFilesError(f"Not a folder: {folder}")
     names = [
         n for n in os.listdir(folder)
-        if n.lower().endswith(".mp3") and os.path.isfile(os.path.join(folder, n))
+        if os.path.splitext(n)[1].lower() in AUDIO_EXTS
+        and os.path.isfile(os.path.join(folder, n))
     ]
     names.sort(key=natural_key)
 
@@ -677,8 +688,13 @@ M4B_EXTS = {".m4b", ".m4a", ".mp4"}
 
 
 def output_format(output_path: str) -> str:
-    """Return 'm4b' for MP4-family outputs, otherwise 'mp3'."""
-    return "m4b" if os.path.splitext(output_path)[1].lower() in M4B_EXTS else "mp3"
+    """Return 'm4b' for MP4-family outputs, 'flac' for FLAC, otherwise 'mp3'."""
+    ext = os.path.splitext(output_path)[1].lower()
+    if ext in M4B_EXTS:
+        return "m4b"
+    if ext == ".flac":
+        return "flac"
+    return "mp3"
 
 
 def build_master(items: Sequence[Mp3Item], output_path: str, tags: Tags,
@@ -688,7 +704,9 @@ def build_master(items: Sequence[Mp3Item], output_path: str, tags: Tags,
                  scale_chapters: bool = True,
                  gap_ms: int = 0,
                  canceller: Optional[Canceller] = None,
-                 progress: Optional[Callable[[float], None]] = None) -> BuildResult:
+                 progress: Optional[Callable[[float], None]] = None,
+                 per_file_normalize: bool = False,
+                 normalize_lufs: float = -16.0) -> BuildResult:
     """Build a master file with tags and chapter markers.
 
     Dispatches on *output_path*'s extension: ``.m4b``/``.m4a``/``.mp4`` produce
@@ -702,16 +720,25 @@ def build_master(items: Sequence[Mp3Item], output_path: str, tags: Tags,
     sit on the real media timeline (e.g. from silence detection) so boundaries
     are clamped but not proportionally rescaled. *gap_ms* inserts that many
     milliseconds of silence between chapters (forces a re-encode).
+    *per_file_normalize* applies loudnorm to each source file individually before
+    concatenation (MP3 output only; ignored for M4B/FLAC which always re-encode).
     """
-    if output_format(output_path) == "m4b":
+    fmt = output_format(output_path)
+    if fmt == "m4b":
         return build_m4b(items, output_path, tags, chapters=chapters,
                          bitrate=bitrate, normalize=normalize,
                          scale_chapters=scale_chapters, gap_ms=gap_ms,
                          canceller=canceller, progress=progress)
+    if fmt == "flac":
+        return build_flac(items, output_path, tags, chapters=chapters,
+                          normalize=normalize, scale_chapters=scale_chapters,
+                          gap_ms=gap_ms, canceller=canceller, progress=progress)
     return build_mp3(items, output_path, tags, chapters=chapters,
                      bitrate=bitrate, normalize=normalize,
                      scale_chapters=scale_chapters, gap_ms=gap_ms,
-                     canceller=canceller, progress=progress)
+                     canceller=canceller, progress=progress,
+                     per_file_normalize=per_file_normalize,
+                     normalize_lufs=normalize_lufs)
 
 
 def build_mp3(items: Sequence[Mp3Item], output_path: str, tags: Tags,
@@ -721,7 +748,9 @@ def build_mp3(items: Sequence[Mp3Item], output_path: str, tags: Tags,
               scale_chapters: bool = True,
               gap_ms: int = 0,
               canceller: Optional[Canceller] = None,
-              progress: Optional[Callable[[float], None]] = None) -> BuildResult:
+              progress: Optional[Callable[[float], None]] = None,
+              per_file_normalize: bool = False,
+              normalize_lufs: float = -16.0) -> BuildResult:
     """Concatenate *items* into an MP3 master with ID3v2 chapter markers."""
     items = list(items)
     canceller = canceller or Canceller()
@@ -734,6 +763,37 @@ def build_mp3(items: Sequence[Mp3Item], output_path: str, tags: Tags,
         raise ChapterForgeError(f"Some files could not be used: {names}")
 
     canceller._check()
+
+    # Per-file normalization: process each source file through loudnorm into a
+    # temp file, then build from those temps.
+    _tmp_norm_dir: Optional[str] = None
+    if per_file_normalize:
+        _tmp_norm_dir = tempfile.mkdtemp(prefix="chapterforge_norm_")
+        norm_items: List[Mp3Item] = []
+        try:
+            for i, it in enumerate(items):
+                canceller._check()
+                dst = os.path.join(_tmp_norm_dir, f"norm_{i:04d}.mp3")
+                if normalize_file(it.path, dst, target_lufs=normalize_lufs):
+                    # Probe the normalized temp so duration/params are accurate.
+                    normed = probe_file(dst)
+                    normed.title = it.title
+                    normed.file_title = it.file_title
+                    normed.embedded_title = it.embedded_title
+                    normed.edited = it.edited
+                    normed.url = it.url
+                    normed.img = it.img
+                    norm_items.append(normed)
+                else:
+                    # Fall back to original if normalization fails.
+                    norm_items.append(it)
+            items = norm_items
+        except Exception:
+            # Clean up and re-raise so the caller sees the error.
+            import shutil as _shutil
+            _shutil.rmtree(_tmp_norm_dir, ignore_errors=True)
+            _tmp_norm_dir = None
+            raise
 
     if chapters is None:
         chapters = compute_chapters(items)
@@ -794,6 +854,10 @@ def build_mp3(items: Sequence[Mp3Item], output_path: str, tags: Tags,
             except OSError:
                 pass
         raise
+    finally:
+        if _tmp_norm_dir and os.path.isdir(_tmp_norm_dir):
+            import shutil as _shutil
+            _shutil.rmtree(_tmp_norm_dir, ignore_errors=True)
 
     return BuildResult(
         output_path=output_path,
@@ -939,6 +1003,164 @@ def _concat_aac(items: Sequence[Mp3Item], output: str, total_ms: int,
         output,
     ]
     _stream_ffmpeg(cmd, total_ms, canceller, progress)
+
+
+def _flac_chapter_timestamp(ms: int) -> str:
+    """Format milliseconds as HH:MM:SS.mmm for FLAC Vorbis chapter comments."""
+    h = ms // 3_600_000
+    m = (ms % 3_600_000) // 60_000
+    s = (ms % 60_000) // 1000
+    frac = ms % 1000
+    return f"{h:02d}:{m:02d}:{s:02d}.{frac:03d}"
+
+
+def _write_flac_tags(path: str, tags: Tags, chapters: list) -> None:
+    """Write Vorbis tags, chapter markers, and cover art onto a FLAC file."""
+    audio = FLAC(path)
+    if tags.title:
+        audio["TITLE"] = [tags.title]
+    if tags.artist:
+        audio["ARTIST"] = [tags.artist]
+    if tags.album_artist:
+        audio["ALBUMARTIST"] = [tags.album_artist]
+    if tags.album:
+        audio["ALBUM"] = [tags.album]
+    if tags.year:
+        audio["DATE"] = [tags.year]
+    if tags.genre:
+        audio["GENRE"] = [tags.genre]
+    if tags.comment:
+        audio["COMMENT"] = [tags.comment]
+    # Chapter markers (Vorbis comment convention)
+    for i, ch in enumerate(chapters, start=1):
+        audio[f"CHAPTER{i:03d}"] = [_flac_chapter_timestamp(ch.start_ms)]
+        audio[f"CHAPTER{i:03d}NAME"] = [ch.title]
+    # Cover art
+    if tags.cover_path and os.path.isfile(tags.cover_path):
+        try:
+            pic = Picture()
+            with open(tags.cover_path, "rb") as f:
+                pic.data = f.read()
+            ext = os.path.splitext(tags.cover_path)[1].lower()
+            pic.mime = "image/jpeg" if ext in (".jpg", ".jpeg") else "image/png"
+            pic.type = 3  # front cover
+            pic.desc = "Cover"
+            audio.add_picture(pic)
+        except Exception:
+            pass
+    audio.save()
+
+
+def _concat_flac(items: Sequence[Mp3Item], output: str, total_ms: int,
+                 target_sr: int, target_ch: int,
+                 canceller: Canceller,
+                 progress: Optional[Callable[[float], None]],
+                 normalize: bool = False, gap_ms: int = 0) -> None:
+    """Concatenate *items* and encode to FLAC using FFmpeg's concat filter."""
+    ffmpeg = _find_tool("ffmpeg")
+    cmd = [ffmpeg, "-hide_banner", "-nostdin", "-y"]
+    for it in items:
+        cmd += ["-i", it.path]
+    layout = "stereo" if target_ch == 2 else "mono"
+    gap_s = max(0, gap_ms) / 1000.0
+    parts = []
+    for i in range(len(items)):
+        chain = (f"[{i}:a]aresample={target_sr},"
+                 f"aformat=sample_fmts=s16:channel_layouts={layout}")
+        if gap_s > 0 and i < len(items) - 1:
+            chain += f",apad=pad_dur={gap_s:g}"
+        parts.append(chain + f"[a{i}]")
+    concat_in = "".join(f"[a{i}]" for i in range(len(items)))
+    graph = ";".join(parts) + ";" + concat_in + f"concat=n={len(items)}:v=0:a=1"
+    if normalize:
+        graph += "[cat];[cat]loudnorm=I=-16:TP=-1.5:LRA=11[out]"
+    else:
+        graph += "[out]"
+    cmd += [
+        "-filter_complex", graph,
+        "-map", "[out]",
+        "-c:a", "flac", "-compression_level", "5",
+        "-map_metadata", "-1",
+        "-progress", "pipe:1", "-nostats",
+        output,
+    ]
+    _stream_ffmpeg(cmd, total_ms, canceller, progress)
+
+
+def build_flac(items: Sequence[Mp3Item], output_path: str, tags: Tags,
+               chapters: Optional[Sequence[Chapter]] = None,
+               normalize: bool = False,
+               scale_chapters: bool = True,
+               gap_ms: int = 0,
+               canceller: Optional[Canceller] = None,
+               progress: Optional[Callable[[float], None]] = None) -> BuildResult:
+    """Concatenate *items* into a FLAC master with embedded chapter markers.
+
+    Chapter markers are written as Vorbis comments (CHAPTER001/CHAPTER001NAME
+    convention). Cover art is embedded as a FLAC picture block.
+    """
+    items = list(items)
+    canceller = canceller or Canceller()
+    if not items:
+        raise NoAudioFilesError("There are no audio files to build.")
+
+    bad = [it for it in items if it.error or it.duration <= 0]
+    if bad:
+        names = ", ".join(it.filename for it in bad[:5])
+        raise ChapterForgeError(f"Some files could not be used: {names}")
+
+    canceller._check()
+
+    if chapters is None:
+        chapters = compute_chapters(items)
+    chapters = list(chapters)
+    if gap_ms > 0:
+        if len(chapters) != len(items):
+            raise ChapterForgeError(
+                "Inter-chapter gaps require exactly one chapter per input file.")
+        chapters = _chapters_with_gaps(items, gap_ms, base=chapters)
+        scale_chapters = False
+    total_ms = chapters[-1].end_ms if chapters else 0
+
+    target_sr, target_ch = _choose_target(items)
+
+    out_dir = os.path.dirname(os.path.abspath(output_path)) or "."
+    os.makedirs(out_dir, exist_ok=True)
+    fd, tmp_out = tempfile.mkstemp(suffix=".flac", prefix="chapterforge_", dir=out_dir)
+    os.close(fd)
+
+    try:
+        _concat_flac(items, tmp_out, total_ms, target_sr, target_ch,
+                     canceller, progress, normalize=normalize, gap_ms=gap_ms)
+
+        canceller._check()
+
+        actual_ms = _probe_duration_ms(tmp_out)
+        if actual_ms > 0:
+            chapters = _clamp_chapters(chapters, actual_ms, scale=scale_chapters)
+            total_ms = actual_ms
+
+        _write_flac_tags(tmp_out, tags, chapters)
+
+        if os.path.exists(output_path):
+            os.remove(output_path)
+        os.replace(tmp_out, output_path)
+    except BaseException:
+        if os.path.exists(tmp_out):
+            try:
+                os.remove(tmp_out)
+            except OSError:
+                pass
+        raise
+
+    return BuildResult(
+        output_path=output_path,
+        chapters=chapters,
+        total_ms=total_ms,
+        reencoded=True,
+        target_sample_rate=target_sr,
+        target_channels=target_ch,
+    )
 
 
 def _ffmeta_escape(value: str) -> str:
@@ -1092,6 +1314,20 @@ def _atempo_filter(speed: float) -> str:
         s /= 0.5
     filters.append(f"atempo={s:.6f}")
     return ",".join(filters)
+
+
+def normalize_file(src_path: str, dst_path: str, target_lufs: float = -16.0) -> bool:
+    """Normalize *src_path* loudness to *target_lufs* LUFS, writing to *dst_path*."""
+    ffmpeg = _find_tool("ffmpeg")
+    loudnorm = f"loudnorm=I={target_lufs:.1f}:TP=-1.5:LRA=11"
+    cmd = [ffmpeg, "-y", "-i", src_path, "-af", loudnorm,
+           "-c:a", "libmp3lame", "-b:a", "192k", "-vn", dst_path]
+    try:
+        result = subprocess.run(cmd, capture_output=True, timeout=300,
+                                creationflags=CREATE_NO_WINDOW)
+        return result.returncode == 0
+    except Exception:
+        return False
 
 
 def apply_tempo(src_path: str, speed: float, dst_path: str) -> bool:
