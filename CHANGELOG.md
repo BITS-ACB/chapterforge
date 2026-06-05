@@ -4,6 +4,25 @@ All notable changes to ChapterForge are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.91] - 2026-06-05
+
+### Added
+
+- **Watch folder setup step in the Startup Wizard** - The wizard now has
+  eleven steps. The new "Automatic Building in the Background" step explains
+  the watch folder feature and offers a "Set Up Automatic Building Now" button
+  that launches the watch folder configuration dialog directly from the wizard.
+  Users can also skip or use Next to continue without setting it up.
+
+### Added
+
+- **Product roadmap** - `docs/ROADMAP.md` added with 20 viable features ranked
+  by impact. Covers lossless trim/cut, broad source format support, waveform
+  visualization, recording splitting, batch metadata editing, cover art tools,
+  presets, metadata export, FLAC output, undo/redo, file renaming, and more.
+  Features are self-contained (no online services). Original inventory file
+  removed.
+
 ## [1.90] - 2026-06-05
 
 ### Added

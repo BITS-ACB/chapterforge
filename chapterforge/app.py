@@ -2378,7 +2378,8 @@ class MainFrame(wx.Frame):
         from . import wizard
         wizard.show_wizard(
             self, self.settings,
-            on_open_folder=lambda: self._on_open(None))
+            on_open_folder=lambda: self._on_open(None),
+            on_setup_watch=lambda: self._on_watch_folders(None))
         self.settings["wizard_seen"] = True
         settings_mod.save(self.settings)
 

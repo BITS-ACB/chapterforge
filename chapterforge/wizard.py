@@ -44,13 +44,15 @@ class StartupWizard(wx.Dialog):
     """Multi-step guided setup wizard."""
 
     def __init__(self, parent, settings: dict,
-                 on_open_folder: Optional[Callable] = None):
+                 on_open_folder: Optional[Callable] = None,
+                 on_setup_watch: Optional[Callable] = None):
         super().__init__(
             parent,
             title="ChapterForge Setup Wizard",
             style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
         self.settings = settings
         self._on_open_folder = on_open_folder
+        self._on_setup_watch = on_setup_watch
         self._step_index = 0
         self._setting_apply: Optional[Callable] = None
         self._steps: List[_Step] = []
@@ -258,6 +260,26 @@ class StartupWizard(wx.Dialog):
             ),
 
             _Step(
+                title="Auto-Build",
+                heading="Automatic Building in the Background",
+                body=(
+                    "ChapterForge can watch a folder for new sub-folders of "
+                    "MP3 files and build the master audiobook automatically - "
+                    "no manual steps needed.\n\n"
+                    "Drop a folder of MP3s into your watched folder and "
+                    "ChapterForge picks it up, builds the chaptered master, "
+                    "and places the finished file in a _ChapterForge/Completed "
+                    "sub-folder alongside a chapter report.\n\n"
+                    "A system tray icon shows when the watcher is running, "
+                    "so you always know it is active. You can pause or stop "
+                    "it from the tray at any time.\n\n"
+                    "You can set up automatic building now using the button "
+                    "below, or any time later from Tools - Set Up Automatic "
+                    "Building."
+                ),
+            ),
+
+            _Step(
                 title="All Set!",
                 heading="You Are Ready to Build!",
                 body=(
@@ -442,6 +464,14 @@ class StartupWizard(wx.Dialog):
         self._btn_next.Bind(wx.EVT_BUTTON, self._on_next)
         foot.Add(self._btn_next, 0, wx.ALL, 8)
 
+        self._btn_watch = wx.Button(
+            self, label="Set Up &Automatic Building Now")
+        self._btn_watch.SetName(
+            "Open the automatic building setup dialog")
+        self._btn_watch.Bind(wx.EVT_BUTTON, self._on_setup_watch_clicked)
+        self._btn_watch.Hide()
+        foot.Add(self._btn_watch, 0, wx.ALL, 8)
+
         self._btn_open = wx.Button(self, label="Open a Folder of &MP3 Files")
         self._btn_open.SetName(
             "Close the wizard and open a folder of MP3 files to start building")
@@ -509,10 +539,14 @@ class StartupWizard(wx.Dialog):
 
         self._content.Layout()
 
+        # Is this the auto-build step (no setting, has "Set Up Now" button)?
+        auto_build = (idx == len(self._steps) - 2)
+
         # Navigation buttons
         self._btn_back.Show(not first)
-        self._btn_skip.Show(has_setting and not last)
+        self._btn_skip.Show((has_setting or auto_build) and not last)
         self._btn_next.Show(not last)
+        self._btn_watch.Show(auto_build)
         self._btn_open.Show(last)
         self._btn_finish.Show(last)
 
@@ -560,18 +594,27 @@ class StartupWizard(wx.Dialog):
         if self._on_open_folder:
             wx.CallAfter(self._on_open_folder)
 
+    def _on_setup_watch_clicked(self, _evt):
+        self._apply_and_save()
+        self.EndModal(wx.ID_OK)
+        if self._on_setup_watch:
+            wx.CallAfter(self._on_setup_watch)
+
 
 # ---------------------------------------------------------------------------
 # Public helper
 # ---------------------------------------------------------------------------
 
 def show_wizard(parent, settings: dict,
-                on_open_folder: Optional[Callable] = None) -> bool:
+                on_open_folder: Optional[Callable] = None,
+                on_setup_watch: Optional[Callable] = None) -> bool:
     """Show the setup wizard modally.
 
-    Returns True if the user clicked 'Open a Folder of MP3 Files'.
+    Returns True if the user clicked 'Open a Folder of MP3 Files' or
+    'Set Up Automatic Building Now'.
     """
-    dlg = StartupWizard(parent, settings, on_open_folder=on_open_folder)
+    dlg = StartupWizard(parent, settings, on_open_folder=on_open_folder,
+                        on_setup_watch=on_setup_watch)
     result = dlg.ShowModal()
     dlg.Destroy()
     return result == wx.ID_OK
