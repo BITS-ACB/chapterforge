@@ -3020,17 +3020,82 @@ class CommandPaletteDialog:
         self.dialog.Destroy()
 
 
+class FFmpegSetupDialog(wx.Dialog):
+    """Progress dialog for FFmpeg setup - shown before main window."""
+
+    def __init__(self):
+        super().__init__(None, title="Setting Up ChapterForge",
+                         style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
+        self.success = False
+
+        outer = wx.BoxSizer(wx.VERTICAL)
+
+        # Title
+        title = wx.StaticText(self, label="Downloading FFmpeg...")
+        f = title.GetFont()
+        f.MakeItalic()
+        title.SetFont(f)
+        outer.Add(title, 0, wx.ALL, 12)
+
+        # Status text
+        self.status = wx.StaticText(self, label="Initializing download...")
+        self.status.SetName("Setup status")
+        outer.Add(self.status, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 12)
+
+        # Gauge (indeterminate while downloading)
+        self.gauge = wx.Gauge(self, range=100, style=wx.GA_HORIZONTAL)
+        self.gauge.Pulse()
+        self.gauge.SetName("Setup progress")
+        outer.Add(self.gauge, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 12)
+
+        # OK button (hidden until done)
+        btn_sizer = self.CreateButtonSizer(wx.OK)
+        self.ok_btn = self.FindWindow(wx.ID_OK)
+        self.ok_btn.Hide()
+        outer.Add(btn_sizer, 0, wx.EXPAND | wx.ALL, 12)
+
+        self.SetSizerAndFit(outer)
+        self.SetMinSize((400, 150))
+        self.CentreOnScreen()
+
+    def update_status(self, message: str):
+        """Update status text and pulse gauge."""
+        wx.CallAfter(self._do_update, message)
+
+    def _do_update(self, message: str):
+        """Run on main thread."""
+        self.status.SetLabel(message)
+        self.gauge.Pulse()
+        self.Layout()
+
+    def download_complete(self, success: bool, message: str):
+        """Call when download is done."""
+        wx.CallAfter(self._show_completion, success, message)
+
+    def _show_completion(self, success: bool, message: str):
+        """Run on main thread."""
+        self.success = success
+        self.status.SetLabel(message)
+        self.gauge.SetValue(100)
+        self.ok_btn.Show()
+        self.Layout()
+
+
 class ChapterForgeApp(wx.App):
     def OnInit(self):
         # Check if FFmpeg exists
         try:
             core._find_tool("ffmpeg")
             core._find_tool("ffprobe")
+            ffmpeg_ready = True
         except core.FFmpegNotFoundError:
-            # FFmpeg missing - ask user if they want to download it
+            ffmpeg_ready = False
+
+        if not ffmpeg_ready:
+            # Ask user if they want to download FFmpeg
             result = wx.MessageBox(
                 "FFmpeg is needed to build audiobooks. Would you like to download it now?\n\n"
-                "This will happen in the background and won't affect ChapterForge.",
+                "The download will happen in the background.",
                 "Set Up FFmpeg",
                 wx.YES_NO | wx.ICON_INFORMATION)
 
@@ -3042,22 +3107,26 @@ class ChapterForgeApp(wx.App):
                     wx.OK | wx.ICON_INFORMATION)
                 return False
 
-            # Show frame with a status message while downloading
-            frame = MainFrame()
-            frame.Show()
-            self.SetTopWindow(frame)
+            # Show progress dialog while downloading
+            setup_dlg = FFmpegSetupDialog()
+            self.SetTopWindow(setup_dlg)
 
-            # Download FFmpeg on background thread
-            frame._announce("Downloading FFmpeg (this may take a minute)...")
-            frame.canceller = core.Canceller()
-            frame.worker = threading.Thread(
+            # Download on background thread
+            self.worker = threading.Thread(
                 target=self._download_ffmpeg,
-                args=(frame,),
+                args=(setup_dlg,),
                 daemon=True)
-            frame.worker.start()
-            return True
+            self.worker.start()
 
-        # FFmpeg found, show frame normally
+            # Show dialog and wait for OK
+            setup_dlg.ShowModal()
+            setup_dlg.Destroy()
+
+            # If download failed, exit
+            if not setup_dlg.success:
+                return False
+
+        # All requirements met - show main window
         frame = MainFrame()
         if frame.settings.get("start_minimized", False):
             frame._setup_startup_tray()
@@ -3066,12 +3135,10 @@ class ChapterForgeApp(wx.App):
         self.SetTopWindow(frame)
         return True
 
-    def _download_ffmpeg(self, frame):
+    def _download_ffmpeg(self, dlg):
         """Background thread: download FFmpeg."""
         try:
-            from . import tools
-            # Import the get_ffmpeg module
-            import sys
+            dlg.update_status("Downloading FFmpeg from gyan.dev...")
             import importlib.util
             spec = importlib.util.spec_from_file_location(
                 "get_ffmpeg",
@@ -3079,14 +3146,12 @@ class ChapterForgeApp(wx.App):
             get_ffmpeg = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(get_ffmpeg)
 
-            # Run the download
             if get_ffmpeg.download_ffmpeg():
-                wx.CallAfter(frame._announce, "FFmpeg ready! You can now build audiobooks.")
-                wx.CallAfter(frame._update_command_state)
+                dlg.download_complete(True, "FFmpeg ready! Click OK to continue.")
             else:
-                wx.CallAfter(frame._announce, "Failed to download FFmpeg. Please download manually.")
+                dlg.download_complete(False, "Download failed. Please try manual download from ffmpeg.org")
         except Exception as exc:
-            wx.CallAfter(frame._announce, f"Error downloading FFmpeg: {exc}")
+            dlg.download_complete(False, f"Error: {exc}")
 
 
 def main():

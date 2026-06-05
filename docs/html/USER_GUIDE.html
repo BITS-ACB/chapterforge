@@ -67,7 +67,7 @@ footer.site { color: var(--muted); border-top: 1px solid var(--border);
 <header class="site"><nav aria-label="Documentation"><ul><li><a href="index.html">Home</a></li><li><a href="USER_GUIDE.html" aria-current="page">User Guide</a></li><li><a href="DEPLOYMENT.html">Deployment</a></li><li><a href="CHANGELOG.html">Changelog</a></li><li><a href="THIRD_PARTY.html">Third-Party Notices</a></li></ul></nav></header>
 <div class="wrap">
 <main id="main" tabindex="-1">
-<nav class="toc" aria-label="On this page"><p>On this page</p><ul><li><a href="#1-quick-start-graphical-app">1. Quick start (graphical app)</a></li><li><a href="#2-keyboard-shortcuts">2. Keyboard shortcuts</a></li><li><a href="#3-working-with-chapters">3. Working with chapters</a></li><li><a href="#4-tags-cover-art">4. Tags &amp; cover art</a></li><li><a href="#5-output-format-mp3-or-m4b">5. Output format: MP3 or M4B</a></li><li><a href="#6-previewing-with-the-built-in-player">6. Previewing with the built-in player</a></li><li><a href="#7-editing-an-existing-chaptered-file">7. Editing an existing chaptered file</a></li><li class="lvl3"><a href="#importing-and-exporting-chapter-lists">Importing and exporting chapter lists</a></li><li><a href="#8-auto-chapter-by-silence">8. Auto-chapter by silence</a></li><li><a href="#9-batch-building-a-library">9. Batch-building a library</a></li><li><a href="#10-settings">10. Settings</a></li><li><a href="#11-job-files-cfjob">11. Job files (`.cfjob`)</a></li><li><a href="#12-background-folder-watcher">12. Background folder watcher</a></li><li><a href="#13-output-organization">13. Output organization</a></li><li><a href="#14-command-line">14. Command line</a></li><li><a href="#15-updates">15. Updates</a></li><li><a href="#16-troubleshooting">16. Troubleshooting</a></li></ul></nav>
+<nav class="toc" aria-label="On this page"><p>On this page</p><ul><li><a href="#1-quick-start-graphical-app">1. Quick start (graphical app)</a></li><li><a href="#2-keyboard-shortcuts">2. Keyboard shortcuts</a></li><li><a href="#3-working-with-chapters">3. Working with chapters</a></li><li><a href="#4-tags-cover-art">4. Tags &amp; cover art</a></li><li><a href="#5-output-format-mp3-or-m4b">5. Output format: MP3 or M4B</a></li><li><a href="#6-previewing-with-the-built-in-player">6. Previewing with the built-in player</a></li><li><a href="#7-editing-an-existing-chaptered-file">7. Editing an existing chaptered file</a></li><li class="lvl3"><a href="#loading-and-saving-chapter-lists">Loading and saving chapter lists</a></li><li><a href="#8-find-chapters-in-silent-gaps">8. Find chapters in silent gaps</a></li><li><a href="#9-build-multiple-books-at-once">9. Build multiple books at once</a></li><li><a href="#10-settings">10. Settings</a></li><li><a href="#11-saved-setups-cfjob-files">11. Saved setups (`.cfjob` files)</a></li><li><a href="#12-auto-building-in-the-background">12. Auto-building in the background</a></li><li><a href="#13-output-organization">13. Output organization</a></li><li><a href="#14-command-line">14. Command line</a></li><li><a href="#15-updates">15. Updates</a></li><li><a href="#16-troubleshooting">16. Troubleshooting</a></li></ul></nav>
 <h1>ChapterForge — User Guide</h1>
 <p>ChapterForge turns a folder of MP3 files into a single <strong>master MP3</strong> with embedded chapter markers (ID3v2 <code>CHAP</code>/<code>CTOC</code>). Each source file becomes one chapter, titled from its filename. It is designed to be fully usable with a keyboard and a screen reader.</p>
 <hr>
@@ -102,9 +102,9 @@ footer.site { color: var(--muted); border-top: 1px solid var(--border);
 <tr><td><code>Ctrl+B</code></td><td>Build master (MP3 or M4B) - explicit</td></tr>
 <tr><td><code>Ctrl+Shift+S</code></td><td>Save changes to the open master - explicit</td></tr>
 <tr><td><code>Ctrl+Alt+S</code></td><td>Save As (a new file)</td></tr>
-<tr><td><code>Ctrl+L</code></td><td>Load job file (<code>.cfjob</code>)</td></tr>
-<tr><td><code>Ctrl+G</code></td><td>Generate job file</td></tr>
-<tr><td><code>Ctrl+W</code></td><td>Watch Folders…</td></tr>
+<tr><td><code>Ctrl+L</code></td><td>Load a Saved Setup (<code>.cfjob</code>)</td></tr>
+<tr><td><code>Ctrl+G</code></td><td>Save This Setup as a Template</td></tr>
+<tr><td><code>Ctrl+W</code></td><td>Set Up Automatic Building</td></tr>
 <tr><td><code>Ctrl+,</code></td><td>Settings</td></tr>
 <tr><td><code>Ctrl+/</code></td><td>Keyboard shortcuts help</td></tr>
 <tr><td><code>Alt+F4</code></td><td>Exit</td></tr>
@@ -187,52 +187,52 @@ footer.site { color: var(--muted); border-top: 1px solid var(--border);
 <li><strong>Play Selected</strong> jumps the player straight to the highlighted chapter.</li>
 </ul>
 <p>These edits update the player immediately without interrupting playback.</p>
-<h3 id="importing-and-exporting-chapter-lists">Importing and exporting chapter lists</h3>
+<h3 id="loading-and-saving-chapter-lists">Loading and saving chapter lists</h3>
 <ul>
-<li><strong>File → Export Chapters…</strong> saves the current list as <strong>Audacity labels</strong>, a</li>
+<li><strong>File → Save Chapter List…</strong> saves the current list as <strong>Audacity labels</strong>, a</li>
 </ul>
 <p><strong>CUE sheet</strong>, plain <strong>timestamps</strong>, or <strong>Podcasting 2.0 JSON</strong>.</p>
 <ul>
-<li><strong>File → Import Chapters…</strong> (in edit mode) reads any of those formats and</li>
+<li><strong>File → Load Chapter List From File…</strong> (in edit mode) reads any of those formats and</li>
 </ul>
 <p>replaces the open master&#x27;s markers; use <strong>Save Changes</strong> to keep them.</p>
 <hr>
-<h2 id="8-auto-chapter-by-silence">8. Auto-chapter by silence</h2>
-<p><strong>Tools → Auto-chapter by Silence…</strong> analyses one long recording and proposes chapter breaks at its silent gaps. Tune the <strong>silence threshold</strong> and <strong>minimum silence length</strong> in <strong>Settings</strong>. The detected chapters open in edit mode so you can rename them and then <strong>Save Changes</strong> (MP3) or <strong>Save As</strong>.</p>
+<h2 id="8-find-chapters-in-silent-gaps">8. Find chapters in silent gaps</h2>
+<p><strong>Tools → Find Chapters in Silent Gaps…</strong> analyses one long recording and proposes chapter breaks at its silent gaps. Tune the <strong>silence threshold</strong> and <strong>minimum silence length</strong> in <strong>Settings</strong>. The detected chapters open in edit mode so you can rename them and then <strong>Save Changes</strong> (MP3) or <strong>Save As</strong>.</p>
 <hr>
-<h2 id="9-batch-building-a-library">9. Batch-building a library</h2>
-<p><strong>Tools → Batch Build Folder…</strong> points ChapterForge at a <em>parent</em> folder and builds a master for <strong>every</strong> book sub-folder that contains MP3s, using your current format/quality options. Progress covers the whole run and a summary reports successes and any failures.</p>
+<h2 id="9-build-multiple-books-at-once">9. Build multiple books at once</h2>
+<p><strong>Tools → Build Multiple Books…</strong> points ChapterForge at a <em>parent</em> folder and builds a master for <strong>every</strong> book sub-folder that contains MP3s, using your current format/quality options. Progress covers the whole run and a summary reports successes and any failures.</p>
 <p>Before each build, the main window shows a <strong>live estimate</strong> of the master&#x27;s duration and approximate file size. After a build, ChapterForge <strong>verifies</strong> the result by re-reading it and announcing the confirmed chapter count.</p>
 <hr>
 <h2 id="10-settings">10. Settings</h2>
 <p><strong>Tools → Settings</strong> (<code>Ctrl+,</code>) collects your preferences: default output format, re-encode quality, loudness normalization, cover auto-detect, chapters JSON, an optional <strong>gap of silence between chapters</strong>, the player <strong>skip interval</strong> and <strong>default volume</strong>, announcement detail, silence-detection tuning, and accessibility appearance — <strong>UI text size</strong> and a <strong>high-contrast theme</strong>. They persist between sessions.</p>
 <p>The <strong>File → Open Recent</strong> submenu remembers the folders, masters and job files you used most recently. <strong>Help → Save Diagnostics…</strong> writes a support report (version, Python/wxPython/OS and FFmpeg details, and your settings) to a text file.</p>
 <hr>
-<h2 id="11-job-files-cfjob">11. Job files (<code>.cfjob</code>)</h2>
-<p>A job file is a small, hand-editable text file that records the <strong>order</strong> and <strong>chapter titles</strong> for a build (plus optional tags). Use it to script repeatable builds or to prepare a build for the watcher.</p>
+<h2 id="11-saved-setups-cfjob-files">11. Saved setups (<code>.cfjob</code> files)</h2>
+<p>A saved setup is a small, hand-editable text file that records the <strong>order</strong> and <strong>chapter titles</strong> for a build (plus optional tags). Use it to script repeatable builds or to prepare a build for the auto-builder.</p>
 <ul>
-<li><strong>Generate</strong> one from the current folder: <strong>File → Generate Job File…</strong></li>
+<li><strong>Save</strong> one from the current folder: <strong>File → Save This Setup as a Template…</strong></li>
 </ul>
 <p>(<code>Ctrl+G</code>).</p>
 <ul>
-<li><strong>Load</strong> one to rebuild: <strong>File → Load Job File…</strong> (<code>Ctrl+L</code>).</li>
+<li><strong>Load</strong> one to rebuild: <strong>File → Load a Saved Setup…</strong> (<code>Ctrl+L</code>).</li>
 <li>From the CLI: <code>chapterforge-cli -j mybook.cfjob</code>.</li>
 </ul>
 <p>The format is intentionally simple — open it in any text editor to change the order of files or the chapter names.</p>
 <hr>
-<h2 id="12-background-folder-watcher">12. Background folder watcher</h2>
+<h2 id="12-auto-building-in-the-background">12. Auto-building in the background</h2>
 <p>ChapterForge can sit in the <strong>system tray</strong> and build new folders of MP3s for you automatically.</p>
 <ul>
-<li><strong>Tools → Watch Folders…</strong> (<code>Ctrl+W</code>) — define reusable <em>processes</em>: a watch</li>
+<li><strong>Tools → Set Up Automatic Building…</strong> (<code>Ctrl+W</code>) — define reusable <em>processes</em>: a watch</li>
 </ul>
 <p>folder plus a naming template for the output master.</p>
 <ul>
-<li><strong>Tools → Start Background Watcher</strong> — minimises to the tray and watches.</li>
-<li><strong>Tools → Start Watcher at Sign-in</strong> — registers a per-user startup entry so</li>
+<li><strong>Tools → Auto-Build in Background</strong> — minimises to the tray and watches.</li>
+<li><strong>Tools → Auto-Build When I Sign In</strong> — registers a per-user startup entry so</li>
 </ul>
-<p>the watcher runs automatically when you log in.</p>
+<p>the auto-builder runs automatically when you log in.</p>
 <ul>
-<li><code>chapterforge-cli --watch</code> runs the watcher standalone.</li>
+<li><code>chapterforge-cli --watch</code> runs the auto-builder standalone.</li>
 </ul>
 <p><strong>How it stays safe:</strong></p>
 <ul>
@@ -279,18 +279,18 @@ chapterforge-cli ./chapters --list
 # Build a master for every book sub-folder of a library
 chapterforge-cli --batch &quot;C:\Audiobooks&quot; --format m4b
 
-# Auto-chapter one long recording by its silent gaps
+# Find chapters in silent gaps of a long recording
 chapterforge-cli --split-silence recording.mp3 --noise-db -30 --min-silence 0.8
 
-# Build from a job file
+# Build from a saved setup
 chapterforge-cli -j mybook.cfjob
 
-# Run the tray watcher / check for updates
+# Run the auto-builder / check for updates
 chapterforge-cli --watch
 chapterforge-cli --check-updates</code></pre>
 <hr>
 <h2 id="15-updates">15. Updates</h2>
-<p><strong>Help → Check for Updates</strong> queries GitHub Releases and tells you if a newer version is available. When an installer for your platform is published, you can choose <strong>Download &amp; Install</strong> — ChapterForge downloads it over a verified HTTPS/GitHub connection, then launches the installer and closes so it can be replaced. You can instead choose <strong>Open Page</strong> to download manually, or <strong>Later</strong> to dismiss.</p>
+<p><strong>Help → Look for Updates</strong> queries GitHub Releases and tells you if a newer version is available. When an installer for your platform is published, you can choose <strong>Download &amp; Install</strong> — ChapterForge downloads it over a verified HTTPS/GitHub connection, then launches the installer and closes so it can be replaced. You can instead choose <strong>Open Page</strong> to download manually, or <strong>Later</strong> to dismiss.</p>
 <p>From a terminal, <code>chapterforge-cli --check-updates</code> reports the latest version, and <code>chapterforge-cli --update</code> downloads and launches the installer.</p>
 <hr>
 <h2 id="16-troubleshooting">16. Troubleshooting</h2>

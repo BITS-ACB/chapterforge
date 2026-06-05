@@ -17,9 +17,8 @@ locates them next to the executable / inside the bundle automatically.
 block_cipher = None
 
 datas = [
-    ('bin/ffmpeg.exe', 'bin'),
-    ('bin/ffprobe.exe', 'bin'),
-    ('docs/html', 'docs/html'),
+    # FFmpeg is downloaded at runtime if needed - not bundled to keep size small
+    # Docs are available online - not bundled to reduce installer size
 ]
 
 hiddenimports = ['wx._xml', 'wx.adv', 'wx.media']

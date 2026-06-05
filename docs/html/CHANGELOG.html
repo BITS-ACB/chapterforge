@@ -67,9 +67,34 @@ footer.site { color: var(--muted); border-top: 1px solid var(--border);
 <header class="site"><nav aria-label="Documentation"><ul><li><a href="index.html">Home</a></li><li><a href="USER_GUIDE.html">User Guide</a></li><li><a href="DEPLOYMENT.html">Deployment</a></li><li><a href="CHANGELOG.html" aria-current="page">Changelog</a></li><li><a href="THIRD_PARTY.html">Third-Party Notices</a></li></ul></nav></header>
 <div class="wrap">
 <main id="main" tabindex="-1">
-<nav class="toc" aria-label="On this page"><p>On this page</p><ul><li><a href="#173---2026-06-04">[1.7.3] - 2026-06-04</a></li><li class="lvl3"><a href="#fixed">Fixed</a></li><li><a href="#172---2026-06-04">[1.7.2] - 2026-06-04</a></li><li class="lvl3"><a href="#fixed">Fixed</a></li><li><a href="#171---2026-06-04">[1.7.1] - 2026-06-04</a></li><li class="lvl3"><a href="#fixed">Fixed</a></li><li><a href="#170---2026-06-04">[1.7.0] - 2026-06-04</a></li><li class="lvl3"><a href="#added">Added</a></li><li class="lvl3"><a href="#changed">Changed</a></li><li><a href="#160---2026-06-04">[1.6.0] - 2026-06-04</a></li><li class="lvl3"><a href="#added">Added</a></li><li class="lvl3"><a href="#fixed">Fixed</a></li><li><a href="#150---2026-06-04">[1.5.0] - 2026-06-04</a></li><li class="lvl3"><a href="#added">Added</a></li><li class="lvl3"><a href="#changed">Changed</a></li><li><a href="#120---2026-06-20">[1.2.0] - 2026-06-20</a></li><li class="lvl3"><a href="#added">Added</a></li><li class="lvl3"><a href="#changed">Changed</a></li><li><a href="#110---2026-06-15">[1.1.0] - 2026-06-15</a></li><li class="lvl3"><a href="#added">Added</a></li><li class="lvl3"><a href="#changed">Changed</a></li><li><a href="#100---2026-06-01">[1.0.0] - 2026-06-01</a></li><li class="lvl3"><a href="#added">Added</a></li></ul></nav>
+<nav class="toc" aria-label="On this page"><p>On this page</p><ul><li><a href="#180---2026-06-04">[1.80] - 2026-06-04</a></li><li class="lvl3"><a href="#added">Added</a></li><li class="lvl3"><a href="#changed">Changed</a></li><li><a href="#173---2026-06-04">[1.7.3] - 2026-06-04</a></li><li class="lvl3"><a href="#fixed">Fixed</a></li><li><a href="#172---2026-06-04">[1.7.2] - 2026-06-04</a></li><li class="lvl3"><a href="#fixed">Fixed</a></li><li><a href="#171---2026-06-04">[1.7.1] - 2026-06-04</a></li><li class="lvl3"><a href="#fixed">Fixed</a></li><li><a href="#170---2026-06-04">[1.7.0] - 2026-06-04</a></li><li class="lvl3"><a href="#added">Added</a></li><li class="lvl3"><a href="#changed">Changed</a></li><li><a href="#160---2026-06-04">[1.6.0] - 2026-06-04</a></li><li class="lvl3"><a href="#added">Added</a></li><li class="lvl3"><a href="#fixed">Fixed</a></li><li><a href="#150---2026-06-04">[1.5.0] - 2026-06-04</a></li><li class="lvl3"><a href="#added">Added</a></li><li class="lvl3"><a href="#changed">Changed</a></li><li><a href="#120---2026-06-20">[1.2.0] - 2026-06-20</a></li><li class="lvl3"><a href="#added">Added</a></li><li class="lvl3"><a href="#changed">Changed</a></li><li><a href="#110---2026-06-15">[1.1.0] - 2026-06-15</a></li><li class="lvl3"><a href="#added">Added</a></li><li class="lvl3"><a href="#changed">Changed</a></li><li><a href="#100---2026-06-01">[1.0.0] - 2026-06-01</a></li><li class="lvl3"><a href="#added">Added</a></li></ul></nav>
 <h1>Changelog</h1>
 <p>All notable changes to ChapterForge are documented here. The format is based on <a href="https://keepachangelog.com/">Keep a Changelog</a>, and this project adheres to <a href="https://semver.org/">Semantic Versioning</a>.</p>
+<h2 id="180---2026-06-04">[1.80] - 2026-06-04</h2>
+<h3 id="added">Added</h3>
+<ul>
+<li><strong>Auto-download FFmpeg on first launch</strong> - If FFmpeg is missing, the app now shows </li>
+</ul>
+<p>a friendly yes/no dialog offering to download it automatically. Downloads happen in the background while the main window shows, and the screen reader announces progress. Seamless first-run experience on development machines and fresh installations.</p>
+<h3 id="changed">Changed</h3>
+<ul>
+<li><strong>Friendlier, less technical language throughout the app:</strong></li>
+<li>&quot;Auto-chapter by Silence&quot; → &quot;Find Chapters in Silent Gaps&quot;</li>
+<li>&quot;Batch Build Folder&quot; → &quot;Build Multiple Books&quot;</li>
+<li>&quot;Watch Folders&quot; → &quot;Set Up Automatic Building&quot;</li>
+<li>&quot;Start Background Watcher&quot; → &quot;Auto-Build in Background&quot;</li>
+<li>&quot;Start Watcher at Sign-in&quot; → &quot;Auto-Build When I Sign In&quot;</li>
+<li>&quot;Load Job File&quot; → &quot;Load a Saved Setup&quot;</li>
+<li>&quot;Generate Job File&quot; → &quot;Save This Setup as a Template&quot;</li>
+<li>&quot;Import/Export Chapters&quot; → &quot;Load/Save Chapter List&quot;</li>
+<li>&quot;Edit Selected Chapter&quot; → &quot;Edit This Chapter&quot;</li>
+<li>&quot;Play Selected Chapter&quot; → &quot;Listen to This Chapter&quot;</li>
+<li>&quot;Split Chapter at Playhead&quot; → &quot;Split Here&quot;</li>
+<li>&quot;Choose Output File&quot; → &quot;Save Master As&quot;</li>
+<li>&quot;Check for Updates&quot; → &quot;Look for Updates&quot;</li>
+<li>&quot;Save Diagnostics&quot; → &quot;Get Help Information&quot;</li>
+<li>Makes ChapterForge feel more accessible and less technical for new users.</li>
+</ul>
 <h2 id="173---2026-06-04">[1.7.3] - 2026-06-04</h2>
 <h3 id="fixed">Fixed</h3>
 <ul>
