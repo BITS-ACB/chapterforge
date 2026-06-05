@@ -4,6 +4,22 @@ All notable changes to ChapterForge are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.81] - 2026-06-05
+
+### Added
+- **Edit menu** - Dedicated Edit menu with chapter operations: Edit This Chapter (F2),
+  Move Up, Move Down, Remove/Merge Up, Load Chapter List, Save Chapter List.
+  Chapter import/export moved here from the File menu where they belong logically.
+- **View menu** - New View menu with live theme switching (Follow System, Light, Dark,
+  High Contrast), text size controls (Larger Ctrl+=, Smaller Ctrl+-, Reset Ctrl+0),
+  and Show/Hide Player toggle. Theme changes apply instantly without opening Settings.
+- **Quick Actions dropdown** - A "Quick Actions..." combo in the source bar gives
+  one-click access to Command Palette, Look for Updates, Settings, and Get Help.
+- **Portable installation mode** - The single installer now lets you choose Standard
+  (installs to Program Files with Start Menu) or Portable (extracts to any folder -
+  USB drive, network share, no registry writes, no uninstaller).
+- **GitHub Pages documentation** - https://bits-acb.github.io/chapterforge/ is now live.
+
 ## [1.80] - 2026-06-04
 
 ### Added

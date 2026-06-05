@@ -136,15 +136,32 @@ class MainFrame(wx.Frame):
             wx.ID_ANY, "Sa&ve This Setup as a Template…\tCtrl+G",
             "Save the current chapters and tags as a reusable .cfjob file")
         file_menu.AppendSeparator()
-        self.mi_import_ch = file_menu.Append(
-            wx.ID_ANY, "&Load Chapter List From File…",
-            "Replace the chapter markers of the open master from a label file")
-        self.mi_export_ch = file_menu.Append(
-            wx.ID_ANY, "Sa&ve Chapter List…",
-            "Save the current chapter list as labels, a CUE sheet or JSON")
-        file_menu.AppendSeparator()
         file_menu.Append(wx.ID_EXIT, "E&xit\tAlt+F4", "Close ChapterForge")
         menubar.Append(file_menu, "&File")
+
+        edit_menu = wx.Menu()
+        self.mi_edit_chapter = edit_menu.Append(
+            wx.ID_ANY, "Edit This Chapter…\tF2",
+            "Open the chapter editor for the selected chapter")
+        edit_menu.AppendSeparator()
+        self.mi_edit_up = edit_menu.Append(
+            wx.ID_ANY, "Move &Up",
+            "Move the selected chapter one position earlier")
+        self.mi_edit_down = edit_menu.Append(
+            wx.ID_ANY, "Move &Down",
+            "Move the selected chapter one position later")
+        edit_menu.AppendSeparator()
+        self.mi_edit_remove = edit_menu.Append(
+            wx.ID_ANY, "Re&move Chapter",
+            "Remove the selected chapter, or merge it into the one above in edit mode")
+        edit_menu.AppendSeparator()
+        self.mi_import_ch = edit_menu.Append(
+            wx.ID_ANY, "&Load Chapter List From File…",
+            "Replace the chapter markers of the open master from a label file")
+        self.mi_export_ch = edit_menu.Append(
+            wx.ID_ANY, "Sa&ve Chapter List…",
+            "Save the current chapter list as labels, a CUE sheet or JSON")
+        menubar.Append(edit_menu, "&Edit")
 
         tools_menu = wx.Menu()
         self.mi_silence = tools_menu.Append(
@@ -175,6 +192,48 @@ class MainFrame(wx.Frame):
             wx.ID_PREFERENCES, "&Settings…\tCtrl+,",
             "Edit ChapterForge preferences")
         menubar.Append(tools_menu, "&Tools")
+
+        view_menu = wx.Menu()
+        theme_sub = wx.Menu()
+        self.mi_theme_system = theme_sub.AppendRadioItem(
+            wx.ID_ANY, "Follow &System",
+            "Use your Windows color scheme")
+        self.mi_theme_light = theme_sub.AppendRadioItem(
+            wx.ID_ANY, "&Light",
+            "White background with dark text")
+        self.mi_theme_dark = theme_sub.AppendRadioItem(
+            wx.ID_ANY, "&Dark",
+            "Dark background with light text")
+        self.mi_theme_hc = theme_sub.AppendRadioItem(
+            wx.ID_ANY, "&High Contrast",
+            "Black background with white text for maximum legibility")
+        view_menu.AppendSubMenu(theme_sub, "&Theme", "Change the color theme")
+        view_menu.AppendSeparator()
+        self.mi_text_larger = view_menu.Append(
+            wx.ID_ANY, "Larger &Text\tCtrl+=",
+            "Increase the text size")
+        self.mi_text_smaller = view_menu.Append(
+            wx.ID_ANY, "Smaller T&ext\tCtrl+-",
+            "Decrease the text size")
+        self.mi_text_reset = view_menu.Append(
+            wx.ID_ANY, "Reset Text &Size\tCtrl+0",
+            "Reset the text size to the default")
+        view_menu.AppendSeparator()
+        self.mi_show_player = view_menu.AppendCheckItem(
+            wx.ID_ANY, "Show Audio &Player",
+            "Show or hide the audio player panel")
+        self.mi_show_player.Check(True)
+        # Initialise theme radio to match stored setting
+        _t = self.settings.get("theme", "system")
+        if _t == "system" and self.settings.get("high_contrast", False):
+            _t = "high_contrast"
+        {
+            "system":        self.mi_theme_system,
+            "light":         self.mi_theme_light,
+            "dark":          self.mi_theme_dark,
+            "high_contrast": self.mi_theme_hc,
+        }.get(_t, self.mi_theme_system).Check(True)
+        menubar.Append(view_menu, "&View")
 
         help_menu = wx.Menu()
         self.mi_guide = help_menu.Append(
@@ -213,8 +272,20 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self._on_cancel, self.mi_cancel)
         self.Bind(wx.EVT_MENU, self._on_load_job, self.mi_load_job)
         self.Bind(wx.EVT_MENU, self._on_generate_job, self.mi_gen_job)
+        self.Bind(wx.EVT_MENU, self._on_edit_chapter, self.mi_edit_chapter)
+        self.Bind(wx.EVT_MENU, lambda e: self._move(-1), self.mi_edit_up)
+        self.Bind(wx.EVT_MENU, lambda e: self._move(1), self.mi_edit_down)
+        self.Bind(wx.EVT_MENU, lambda e: self._remove_selected(), self.mi_edit_remove)
         self.Bind(wx.EVT_MENU, self._on_import_chapters, self.mi_import_ch)
         self.Bind(wx.EVT_MENU, self._on_export_chapters, self.mi_export_ch)
+        self.Bind(wx.EVT_MENU, lambda e: self._apply_theme("system"), self.mi_theme_system)
+        self.Bind(wx.EVT_MENU, lambda e: self._apply_theme("light"), self.mi_theme_light)
+        self.Bind(wx.EVT_MENU, lambda e: self._apply_theme("dark"), self.mi_theme_dark)
+        self.Bind(wx.EVT_MENU, lambda e: self._apply_theme("high_contrast"), self.mi_theme_hc)
+        self.Bind(wx.EVT_MENU, self._on_text_larger, self.mi_text_larger)
+        self.Bind(wx.EVT_MENU, self._on_text_smaller, self.mi_text_smaller)
+        self.Bind(wx.EVT_MENU, self._on_text_reset, self.mi_text_reset)
+        self.Bind(wx.EVT_MENU, self._on_view_player, self.mi_show_player)
         self.Bind(wx.EVT_MENU, self._on_silence, self.mi_silence)
         self.Bind(wx.EVT_MENU, self._on_batch, self.mi_batch)
         self.Bind(wx.EVT_MENU, self._on_settings, self.mi_settings)
@@ -297,6 +368,22 @@ class MainFrame(wx.Frame):
         self.btn_browse.SetToolTip("Open a folder whose MP3 files will become the chapters.")
         self.btn_browse.Bind(wx.EVT_BUTTON, self._on_browse_or_open)
         src_box.Add(self.btn_browse, 0, wx.ALL, 6)
+        src_box.Add(wx.StaticLine(panel, style=wx.LI_VERTICAL),
+                    0, wx.EXPAND | wx.TOP | wx.BOTTOM, 8)
+        self.actions_choice = wx.Choice(panel, choices=[
+            "Quick Actions...",
+            "Command Palette   Ctrl+Shift+P",
+            "Look for Updates...",
+            "Settings   Ctrl+,",
+            "Get Help Information...",
+        ])
+        self.actions_choice.SetSelection(0)
+        self.actions_choice.SetName(
+            "Quick actions - select an action to run it immediately")
+        self.actions_choice.SetToolTip(
+            "Shortcuts to common actions. Select one to run it immediately.")
+        self.actions_choice.Bind(wx.EVT_CHOICE, self._on_actions_choice)
+        src_box.Add(self.actions_choice, 0, _ACV | wx.ALL, 6)
         outer.Add(src_box, 0, wx.EXPAND | wx.ALL, 8)
 
         # --- Main split: chapters (left) and tags (right) --------------
@@ -656,6 +743,15 @@ class MainFrame(wx.Frame):
         self.mi_batch.Enable(not building)
         self.mi_import_ch.Enable(not building and edit)
         self.mi_export_ch.Enable(not building and count > 0)
+        # Edit menu
+        self.mi_edit_chapter.Enable(not building and sel >= 0)
+        self.mi_edit_up.Enable(not building and not edit and sel > 0)
+        self.mi_edit_down.Enable(not building and not edit
+                                  and 0 <= sel < count - 1)
+        self.mi_edit_remove.Enable(not building and sel >= 0
+                                    and (not edit or count > 1))
+        _rm_label = "Merge &Up" if edit else "Re&move Chapter"
+        self.mi_edit_remove.SetItemLabel(_rm_label)
 
     def _edit_is_mp3(self) -> bool:
         return bool(self.edit_path) and core.output_format(self.edit_path) == "mp3"
@@ -1329,10 +1425,68 @@ class MainFrame(wx.Frame):
             settings_mod.save(self.settings)
             self._apply_settings_to_ui()
             self._apply_appearance()
+            self._sync_theme_menu()
             self.player.vol_slider.SetValue(
                 int(self.settings.get("default_volume", 80)))
             self._announce("Settings saved.")
         dlg.Destroy()
+
+    def _apply_theme(self, theme: str):
+        self.settings["theme"] = theme
+        self.settings["high_contrast"] = (theme == "high_contrast")
+        settings_mod.save(self.settings)
+        self._apply_appearance()
+        label = {"system": "System", "light": "Light",
+                 "dark": "Dark", "high_contrast": "High Contrast"}.get(theme, theme)
+        self._announce(f"Theme: {label}.")
+
+    def _sync_theme_menu(self):
+        t = self.settings.get("theme", "system")
+        if t == "system" and self.settings.get("high_contrast", False):
+            t = "high_contrast"
+        self.mi_theme_system.Check(t == "system")
+        self.mi_theme_light.Check(t == "light")
+        self.mi_theme_dark.Check(t == "dark")
+        self.mi_theme_hc.Check(t == "high_contrast")
+
+    def _on_text_larger(self, _evt=None):
+        scale = min(200, int(self.settings.get("text_scale", 100)) + 10)
+        self.settings["text_scale"] = scale
+        settings_mod.save(self.settings)
+        self._apply_appearance()
+        self._announce(f"Text size {scale}%.")
+
+    def _on_text_smaller(self, _evt=None):
+        scale = max(60, int(self.settings.get("text_scale", 100)) - 10)
+        self.settings["text_scale"] = scale
+        settings_mod.save(self.settings)
+        self._apply_appearance()
+        self._announce(f"Text size {scale}%.")
+
+    def _on_text_reset(self, _evt=None):
+        self.settings["text_scale"] = 100
+        settings_mod.save(self.settings)
+        self._apply_appearance()
+        self._announce("Text size reset to default.")
+
+    def _on_view_player(self, _evt=None):
+        visible = not self.player.IsShown()
+        self.player.Show(visible)
+        self.mi_show_player.Check(visible)
+        self.panel.Layout()
+        self._announce("Player " + ("shown." if visible else "hidden."))
+
+    def _on_actions_choice(self, _evt):
+        idx = self.actions_choice.GetSelection()
+        wx.CallAfter(self.actions_choice.SetSelection, 0)
+        if idx == 1:
+            self._open_command_palette()
+        elif idx == 2:
+            self._on_check_updates(None)
+        elif idx == 3:
+            self._on_settings(None)
+        elif idx == 4:
+            self._on_save_diagnostics(None)
 
     def _on_player_volume(self, vol: int):
         self.settings["default_volume"] = int(vol)
