@@ -5,7 +5,7 @@ GitHub Releases API for the newest eligible release, compares versions with
 intentional pre-release ordering, picks the right installer asset for the
 current platform, and refuses any non-HTTPS / untrusted-host download URL.
 
-The check is deliberately dependency-free (``urllib``) and side-effect free —
+The check is deliberately dependency-free (``urllib``) and side-effect free -
 callers decide what to do with a :class:`ReleaseInfo`. It is safe to run on a
 background thread.
 """

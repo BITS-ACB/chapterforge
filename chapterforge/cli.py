@@ -222,7 +222,7 @@ def _run_job(args, quiet: bool) -> int:
         _print(f"Output: {output}", quiet)
 
     if args.list or args.dry_run:
-        _print("\n(dry run — nothing was written)", quiet)
+        _print("\n(dry run - nothing was written)", quiet)
         return 0
 
     if os.path.exists(output) and not args.yes:
@@ -251,7 +251,7 @@ def _run_job(args, quiet: bool) -> int:
     bar.finish()
     elapsed = time.time() - started
     mode = "re-encoded" if result.reencoded else "lossless copy"
-    _print(f"Done in {elapsed:.1f}s — {mode}.", quiet)
+    _print(f"Done in {elapsed:.1f}s - {mode}.", quiet)
     _print(f"  {len(result.chapters)} chapter(s), "
            f"{core.format_timestamp(result.total_ms)}", quiet)
     _print(f"  Saved: {result.output_path}", quiet)
@@ -443,7 +443,7 @@ def _run_split_silence(args, src: str, quiet: bool) -> int:
         _print("", quiet)
         _print(f"Output: {output}", quiet)
     if args.list or args.dry_run:
-        _print("\n(dry run — nothing was written)", quiet)
+        _print("\n(dry run - nothing was written)", quiet)
         return 0
     if os.path.exists(output) and not args.yes:
         if sys.stdin and sys.stdin.isatty():
@@ -583,7 +583,7 @@ def run(argv: Optional[List[str]] = None) -> int:
         _print_preflight(good, quiet)
 
     if args.list or args.dry_run:
-        _print("\n(dry run — nothing was written)", quiet)
+        _print("\n(dry run - nothing was written)", quiet)
         return 0
 
     if os.path.exists(output) and not args.yes:
@@ -617,7 +617,7 @@ def run(argv: Optional[List[str]] = None) -> int:
 
     elapsed = time.time() - started
     mode = "re-encoded" if result.reencoded else "lossless copy"
-    _print(f"Done in {elapsed:.1f}s — {mode}.", quiet)
+    _print(f"Done in {elapsed:.1f}s - {mode}.", quiet)
     _print(f"  {len(result.chapters)} chapter(s), "
            f"{core.format_timestamp(result.total_ms)}", quiet)
     _print(f"  Saved: {result.output_path}", quiet)

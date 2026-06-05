@@ -3,13 +3,13 @@
 The screen-reader bridge and announcement grammar are adapted from the QUILL
 project (S:\\quill):
 
-* ``quill/platform/windows/prism_bridge.py`` — the Prism (``prism`` /
+* ``quill/platform/windows/prism_bridge.py`` - the Prism (``prism`` /
   ``prismatoid``) announcement engine that routes spoken output to a running
   screen reader (NVDA / JAWS / Narrator) instead of talking over it, with a
   graceful "status only" fallback when Prism isn't installed.
-* ``quill/platform/windows/sr_announce.py`` — the small ``announce`` /
+* ``quill/platform/windows/sr_announce.py`` - the small ``announce`` /
   ``set_announce_handler`` transcript API.
-* ``quill/core/announcements.py`` — the shared announcement grammar
+* ``quill/core/announcements.py`` - the shared announcement grammar
   (``format_announcement`` / ``format_progress`` / ``pluralize``).
 
 The goal is identical to QUILL's: every status message follows one predictable

@@ -4,7 +4,7 @@ The player is a self-contained :class:`wx.Panel` built from standard, native
 controls (buttons, a slider and a read-only text field) so that screen readers
 announce every control and every state change clearly. The actual decoding is
 delegated to :class:`wx.media.MediaCtrl` (the platform media backend), which is
-not itself very screen-reader friendly — so the panel never relies on it for
+not itself very screen-reader friendly - so the panel never relies on it for
 accessibility. Instead every meaningful event is surfaced through:
 
 * visible, named buttons / slider with explicit accessible names,
@@ -16,7 +16,7 @@ Design points worth knowing:
 
 * ``wx.media.MediaCtrl`` keeps the media file open on Windows. Before the rest
   of the app overwrites or re-tags a file the player may have loaded, call
-  :meth:`PlayerPanel.release` — it stops playback and recreates the underlying
+  :meth:`PlayerPanel.release` - it stops playback and recreates the underlying
   control so the OS file handle is released.
 * All media calls happen on the main thread (driven by a ``wx.Timer``), so they
   never race the build worker thread.
@@ -383,7 +383,7 @@ class PlayerPanel(wx.Panel):
         title = ""
         if 0 <= idx < len(self.chapters):
             title = self.chapters[idx].title
-        suffix = f" — {title}" if title else ""
+        suffix = f" - {title}" if title else ""
         self._set_status(f"{_fmt(pos)} / {_fmt(length)}{suffix}",
                          announce=False)
         if announce_chapter and idx != self._announced_idx and idx >= 0:

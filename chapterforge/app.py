@@ -78,7 +78,7 @@ class MainFrame(wx.Frame):
         self._build_ui()
         self.CreateStatusBar()
         self.SetStatusText(
-            "Open a folder of MP3 files to begin — or press Ctrl+Shift+P for all commands.")
+            "Open a folder of MP3 files to begin - or press Ctrl+Shift+P for all commands.")
 
         self._apply_settings_to_ui()
 
@@ -106,16 +106,16 @@ class MainFrame(wx.Frame):
         menubar = wx.MenuBar()
 
         file_menu = wx.Menu()
-        self.mi_open = file_menu.Append(wx.ID_OPEN, "&Open Folder…\tCtrl+O",
+        self.mi_open = file_menu.Append(wx.ID_OPEN, "&Open Folder…\tCtrl+Shift+O",
                                         "Choose a folder of MP3 files")
         self.mi_open_master = file_menu.Append(
-            wx.ID_ANY, "Open &Existing Master…\tCtrl+E",
+            wx.ID_ANY, "Open &Existing Master…\tCtrl+O",
             "Open a chaptered MP3/M4B to fix its tags and chapter titles")
         self.recent_menu = wx.Menu()
         self.mi_recent = file_menu.AppendSubMenu(
             self.recent_menu, "Open &Recent",
             "Re-open a recently used folder, master or job file")
-        self.mi_output = file_menu.Append(wx.ID_ANY, "Choose Out&put File…\tCtrl+Shift+O",
+        self.mi_output = file_menu.Append(wx.ID_ANY, "Choose Out&put File…",
                                           "Choose where the master file is saved")
         file_menu.AppendSeparator()
         self.mi_build = file_menu.Append(wx.ID_ANY, "&Build Master MP3\tCtrl+B",
@@ -237,7 +237,7 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self._on_about, id=wx.ID_ABOUT)
 
         # Ctrl+S = smart save: Build in build mode, Save Changes in edit mode.
-        # (Ctrl+Shift+O = Choose Output File; Ctrl+B = explicit Build.)
+        # (Ctrl+B = explicit Build.)
         _smart_save_id = wx.NewIdRef()
         _palette_id = wx.NewIdRef()
         self.Bind(wx.EVT_MENU, self._on_smart_save, id=_smart_save_id)
@@ -281,7 +281,7 @@ class MainFrame(wx.Frame):
             panel,
             choices=["Build new master from MP3 files",
                      "Edit chapters in an existing file"])
-        self.task_choice.SetName("Task — what you want to do")
+        self.task_choice.SetName("Task - what you want to do")
         self.task_choice.SetToolTip(
             "Build: combine a folder of MP3 files into one chaptered master.\n"
             "Edit: open an existing chaptered MP3 or M4B to rename chapters or fix tags.")
@@ -491,7 +491,7 @@ class MainFrame(wx.Frame):
                     0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 6)
         self.output_ctrl = wx.TextCtrl(panel, style=wx.TE_READONLY)
         self.output_ctrl.SetName("Output file")
-        self.output_ctrl.SetHint("Not yet set — click 'Save to…' to pick a location")
+        self.output_ctrl.SetHint("Not yet set - click 'Save to…' to pick a location")
         out_box.Add(self.output_ctrl, 1, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 6)
         self.btn_output = wx.Button(panel, label="Save &to…")
         self.btn_output.SetName("Save master file to a chosen location")
@@ -612,7 +612,7 @@ class MainFrame(wx.Frame):
         self.btn_up.Enable(not building and not edit and sel > 0)
         self.btn_down.Enable(not building and not edit and 0 <= sel < count - 1)
         _reorder_tip = (
-            "Reordering is not available in edit mode — "
+            "Reordering is not available in edit mode - "
             "chapter order is determined by start times.")
         self.btn_up.SetToolTip(
             _reorder_tip if edit else
@@ -639,7 +639,7 @@ class MainFrame(wx.Frame):
         if edit and not self._edit_is_mp3():
             self.btn_save_edit.SetToolTip(
                 "In-place saving is only supported for MP3 files.\n"
-                "This file is an M4B — use File → Save As (Ctrl+Alt+S) to save "
+                "This file is an M4B - use File → Save As (Ctrl+Alt+S) to save "
                 "a copy with the updated chapter titles and tags.")
         else:
             self.btn_save_edit.SetToolTip(
@@ -1177,7 +1177,7 @@ class MainFrame(wx.Frame):
         if errors:
             summary += f" {len(errors)} failed."
         self._announce(summary)
-        self.notifier.notify("ChapterForge — batch done", summary, "info",
+        self.notifier.notify("ChapterForge - batch done", summary, "info",
                              speak=False)
         detail = "\n".join(os.path.basename(r.output_path) for r in results[:20])
         if errors:
@@ -1234,7 +1234,7 @@ class MainFrame(wx.Frame):
         self._announce(summary)
         self._push_recent(result.output_path)
         self._update_command_state()
-        self.notifier.notify("ChapterForge — done", summary, "info", speak=False)
+        self.notifier.notify("ChapterForge - done", summary, "info", speak=False)
         # Offer to preview the finished file in the in-app player.
         if wx.MessageBox(
                 f"{summary}\n\nSaved {kind} to:\n{result.output_path}\n\n"
@@ -1259,7 +1259,7 @@ class MainFrame(wx.Frame):
                           wx.OK | wx.ICON_INFORMATION, self)
         else:
             self._announce("Build failed.")
-            self.notifier.notify("ChapterForge — failed", str(evt.payload),
+            self.notifier.notify("ChapterForge - failed", str(evt.payload),
                                  "error", speak=False)
             wx.MessageBox(str(evt.payload), "Build failed",
                           wx.OK | wx.ICON_ERROR, self)
@@ -2055,7 +2055,7 @@ class MainFrame(wx.Frame):
             self._announce("Opening the User Guide in your browser.")
             return
         guide = (
-            "ChapterForge — Quick Start\n"
+            "ChapterForge - Quick Start\n"
             "\n"
             "The Task dropdown at the top controls what you are doing:\n"
             "\n"
@@ -2088,7 +2088,7 @@ class MainFrame(wx.Frame):
             "to the system tray and builds any new sub-folder of MP3s "
             "automatically, with notifications.\n"
             "\n"
-            "Everything is keyboard accessible — see Help → Keyboard Shortcuts.")
+            "Everything is keyboard accessible - see Help → Keyboard Shortcuts.")
         self._scroll_dialog("User Guide", guide)
 
     def _on_deployment_doc(self, _evt):
@@ -2116,13 +2116,13 @@ class MainFrame(wx.Frame):
         keys = (
             "Keyboard shortcuts\n"
             "\n"
-            "Ctrl+Shift+P\tCommand Palette — search and run any command\n"
+            "Ctrl+Shift+P\tCommand Palette - search and run any command\n"
             "Ctrl+O\tOpen folder of MP3 files (build mode)\n"
             "Ctrl+E\tOpen an existing chaptered file (edit mode)\n"
             "Ctrl+S\tBuild (build mode) / Save Changes (edit mode)\n"
             "Ctrl+Shift+O\tChoose output file location\n"
-            "Ctrl+B\tBuild master (MP3 or M4B) — explicit\n"
-            "Ctrl+Shift+S\tSave changes to the open master — explicit\n"
+            "Ctrl+B\tBuild master (MP3 or M4B) - explicit\n"
+            "Ctrl+Shift+S\tSave changes to the open master - explicit\n"
             "Ctrl+Alt+S\tSave As (write a new copy)\n"
             "Esc\tCancel a build in progress\n"
             "Ctrl+L\tLoad a .cfjob job file\n"
@@ -2132,7 +2132,7 @@ class MainFrame(wx.Frame):
             "F1\tUser guide\n"
             "Ctrl+/\tThis shortcut list\n"
             "\n"
-            "Main window — Task combo:\n"
+            "Main window - Task combo:\n"
             "Alt+T\tFocus the Task dropdown (Build / Edit)\n"
             "Browse / Open File button changes label and action with the mode.\n"
             "Options and Output sections are hidden automatically in edit mode.\n"
@@ -2486,7 +2486,7 @@ class SettingsDialog(wx.Dialog):
             return ctrl
 
         # ----------------------------------------------------------------
-        # Tab 1 — Build (all the audio/encoding settings)
+        # Tab 1 - Build (all the audio/encoding settings)
         # ----------------------------------------------------------------
         bp = wx.Panel(nb)
         bg = wx.FlexGridSizer(0, 2, 10, 10)
@@ -2559,7 +2559,7 @@ class SettingsDialog(wx.Dialog):
         nb.AddPage(bp, "Build")
 
         # ----------------------------------------------------------------
-        # Tab 2 — General (player and appearance)
+        # Tab 2 - General (player and appearance)
         # ----------------------------------------------------------------
         gp = wx.Panel(nb)
         gg = wx.FlexGridSizer(0, 2, 10, 10)
@@ -2632,7 +2632,7 @@ class SettingsDialog(wx.Dialog):
         nb.AddPage(gp, "General")
 
         # ----------------------------------------------------------------
-        # Tab 3 — Advanced (silence detection, rarely changed)
+        # Tab 3 - Advanced (silence detection, rarely changed)
         # ----------------------------------------------------------------
         ap = wx.Panel(nb)
         ag = wx.FlexGridSizer(0, 2, 10, 10)
@@ -2702,7 +2702,7 @@ class SettingsDialog(wx.Dialog):
 
 
 class ChapterEditDialog(wx.Dialog):
-    """Edit a single chapter's title, and optional link URL and image — the
+    """Edit a single chapter's title, and optional link URL and image - the
     rich per-chapter metadata carried into the chapters JSON sidecar."""
 
     def __init__(self, parent, number: int, title: str, url: str, img: str,
@@ -2790,7 +2790,7 @@ class CommandPaletteDialog:
 
         dlg = wx.Dialog(frame, title="Command Palette",
                         style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
-        dlg.SetName("Command Palette — type to search, Enter to run, Escape to close")
+        dlg.SetName("Command Palette - type to search, Enter to run, Escape to close")
         outer = wx.BoxSizer(wx.VERTICAL)
 
         self.search = wx.SearchCtrl(dlg, style=wx.TE_PROCESS_ENTER)
@@ -2801,7 +2801,7 @@ class CommandPaletteDialog:
         outer.Add(self.search, 0, wx.EXPAND | wx.ALL, 8)
 
         self.results = wx.ListBox(dlg, style=wx.LB_SINGLE)
-        self.results.SetName("Command results — use arrows to navigate, Enter to run")
+        self.results.SetName("Command results - use arrows to navigate, Enter to run")
         outer.Add(self.results, 1, wx.EXPAND | wx.LEFT | wx.RIGHT, 8)
 
         self.status = wx.StaticText(dlg, label="")
@@ -2837,9 +2837,9 @@ class CommandPaletteDialog:
         n = lambda: f._row_count()
 
         return [
-            ("Open Folder…",                 "Ctrl+O",         lambda: f._on_open(None),               lambda: nb()),
-            ("Open Existing Master…",         "Ctrl+E",         lambda: f._on_open_master(None),         lambda: nb()),
-            ("Choose Output File…",           "Ctrl+Shift+O",   lambda: f._on_set_output(None),          lambda: nb() and no_edit()),
+            ("Open Folder…",                 "Ctrl+Shift+O",   lambda: f._on_open(None),               lambda: nb()),
+            ("Open Existing Master…",         "Ctrl+O",         lambda: f._on_open_master(None),         lambda: nb()),
+            ("Choose Output File…",           None,             lambda: f._on_set_output(None),          lambda: nb() and no_edit()),
             ("Build Master MP3",              "Ctrl+B",         lambda: f._on_build(None),               lambda: nb() and no_edit() and has_items() and has_out()),
             ("Save Changes",                  "Ctrl+S",         lambda: f._on_save_edit(None),           lambda: edit() and nb() and f._edit_is_mp3()),
             ("Save As…",                      "Ctrl+Alt+S",     lambda: f._on_save_as(None),             lambda: nb() and n() > 0),
@@ -2902,7 +2902,7 @@ class CommandPaletteDialog:
             available = enabled_fn()
             label = f"{title}  [{key}]" if key else title
             if not available:
-                label = f"— {label}"  # em-dash prefix for unavailable
+                label = f"- {label}"  # em-dash prefix for unavailable
             self.results.Append(label)
         n = len(self._visible)
         if n:

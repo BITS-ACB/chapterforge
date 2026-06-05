@@ -198,7 +198,7 @@ class ProcessesDialog(wx.Dialog):
     @staticmethod
     def _describe(p: Process) -> str:
         state = "enabled" if p.enabled else "disabled"
-        return f"{p.name} — {state} — {p.watch_folder}"
+        return f"{p.name} - {state} - {p.watch_folder}"
 
     def _on_add(self, _evt):
         dlg = ProcessEditDialog(self, Process())

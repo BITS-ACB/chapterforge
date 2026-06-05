@@ -1,4 +1,4 @@
-"""The ChapterForge job file (``.cfjob``) — a simple, hand-editable manifest.
+"""The ChapterForge job file (``.cfjob``) - a simple, hand-editable manifest.
 
 Format (UTF-8, resolved relative to the job file's own folder)::
 
@@ -163,7 +163,7 @@ def write_manifest(path: str, items: Sequence[core.Mp3Item], tags: core.Tags,
                    normalize: bool = False) -> None:
     """Write a human-friendly ``.cfjob`` describing *items* and *tags*."""
     lines: List[str] = [
-        "# ChapterForge job file — edit freely, then run it from the app or CLI.",
+        "# ChapterForge job file - edit freely, then run it from the app or CLI.",
         "# '@key = value' sets a tag/option; other lines are 'filename | Chapter title'.",
         "# Order below is the order chapters are built.",
         "",

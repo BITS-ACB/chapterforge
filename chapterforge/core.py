@@ -346,7 +346,7 @@ def scan_folder_detailed(folder: str, exclude_masters: bool = True
     """Probe every ``.mp3`` in *folder*; return ``(items, skipped_master_names)``.
 
     A likely previously-built master (see :func:`is_probable_master`) is skipped
-    so it is not turned into a chapter — unless skipping would leave nothing, in
+    so it is not turned into a chapter - unless skipping would leave nothing, in
     which case every file is kept.
     """
     if not os.path.isdir(folder):
@@ -1093,7 +1093,7 @@ def write_chapter_report(output_path: str, result: "BuildResult",
     watcher). Returns the report path; best-effort (raises only on I/O error).
     """
     lines = [
-        f"{__import__('chapterforge').__app_name__} — chapter report",
+        f"{__import__('chapterforge').__app_name__} - chapter report",
         "=" * 48,
         f"Master file : {os.path.basename(result.output_path)}",
         f"Built        : {time.strftime('%Y-%m-%d %H:%M:%S')}",
@@ -1159,7 +1159,7 @@ def preflight(items: Sequence[Mp3Item]) -> List[str]:
     tiny = [it for it in good if it.duration < 1.0]
     if tiny:
         warnings.append(
-            f"{len(tiny)} file(s) are under 1 second — check they are real "
+            f"{len(tiny)} file(s) are under 1 second - check they are real "
             "chapters (e.g. " + ", ".join(it.filename for it in tiny[:3]) + ").")
 
     untitled = [it for it in good if not it.title.strip()]

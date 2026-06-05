@@ -5,17 +5,17 @@ sub-folders of MP3s inside each enabled process's watch folder and builds a
 master automatically. Designed to be safe (see the rubber-duck-driven notes
 below) rather than clever:
 
-* **Stability** — a folder is only built once its source set
+* **Stability** - a folder is only built once its source set
   ``(count, total size, newest mtime)`` has been unchanged for ``settle``
   seconds *and* no source file was modified within the last ``settle`` seconds.
   The settle timer resets whenever the set changes, so a paused copy can't be
   grabbed early.
-* **No re-trigger loops** — generated masters are written into an excluded
+* **No re-trigger loops** - generated masters are written into an excluded
   ``_ChapterForge`` sub-folder, the resolved output path is excluded from
   scans, and a ``.chapterforge_done`` marker makes a folder one-shot.
-* **No double processing** — a ``.chapterforge_processing`` lock is created
+* **No double processing** - a ``.chapterforge_processing`` lock is created
   atomically (``O_CREAT|O_EXCL``); stale locks are stolen after an hour.
-* **Failure backoff** — a failed folder records ``.chapterforge_failed`` and is
+* **Failure backoff** - a failed folder records ``.chapterforge_failed`` and is
   retried only after its source signature changes.
 
 All wx work belongs to the host: the watcher only calls the ``on_event``

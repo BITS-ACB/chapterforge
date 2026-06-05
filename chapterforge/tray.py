@@ -65,9 +65,9 @@ class WatcherController:
         category = {"failed": "error", "error": "error"}.get(event.kind, "info")
         if event.kind in ("started", "done", "failed"):
             title = {
-                "started": "ChapterForge — working",
-                "done": "ChapterForge — done",
-                "failed": "ChapterForge — failed",
+                "started": "ChapterForge - working",
+                "done": "ChapterForge - done",
+                "failed": "ChapterForge - failed",
             }[event.kind]
             self.notifier.notify(title, event.message, category)
         if self.extra_on_event:
@@ -91,7 +91,7 @@ class ChapterForgeTaskBarIcon(wx.adv.TaskBarIcon):
         if self.controller is None:
             return __app_name__
         state = "watching" if self.controller.running else "paused"
-        return f"{__app_name__} — {state}"
+        return f"{__app_name__} - {state}"
 
     def refresh(self) -> None:
         self.SetIcon(make_app_icon(), self._tooltip())
