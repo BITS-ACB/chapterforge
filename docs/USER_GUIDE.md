@@ -11,14 +11,14 @@ keyboard and a screen reader.
 
 1. Launch **ChapterForge** (Start menu shortcut, or `chapterforge` with no
    arguments).
-2. **File → Open Folder…** (`Ctrl+O`) and choose the folder of MP3s.
-   - Files are listed in natural order (`01`, `02`, … `10`, `11`).
+2. **File → Open Folder…** (`Ctrl+Shift+O`) and choose the folder of MP3s.
+   - Files are listed in natural order (`01`, `02`, `10`, `11`).
    - If a previously built master is found in the folder, it is skipped
      automatically and reported in the status line.
 3. Review the **Chapters** list. Adjust as needed (see §3).
-4. Fill in the **Tags** (title, artist, album, year, cover, …).
+4. Fill in the **Tags** (title, artist, album, year, cover, etc.).
 5. **File → Build Master MP3** (`Ctrl+B`).
-6. Choose/confirm the output file (`Ctrl+S` sets it explicitly).
+6. Choose/confirm the output file, then Build (`Ctrl+S` is smart save).
 
 The build runs on a background thread; progress and status are announced to
 your screen reader. When it finishes, a master MP3 and a readable
@@ -30,11 +30,11 @@ your screen reader. When it finishes, a master MP3 and a readable
 
 | Key | Action |
 | --- | --- |
-| `Ctrl+O` | Open folder |
-| `Ctrl+E` | Open an existing chaptered file to edit |
-| `Ctrl+S` | Set output file |
-| `Ctrl+B` | Build master (MP3 or M4B) |
-| `Ctrl+Shift+S` | Save changes to the open master |
+| `Ctrl+Shift+O` | Open folder (build mode) |
+| `Ctrl+O` | Open an existing chaptered file to edit |
+| `Ctrl+S` | Build (build mode) or Save Changes (edit mode) |
+| `Ctrl+B` | Build master (MP3 or M4B) - explicit |
+| `Ctrl+Shift+S` | Save changes to the open master - explicit |
 | `Ctrl+Alt+S` | Save As (a new file) |
 | `Ctrl+L` | Load job file (`.cfjob`) |
 | `Ctrl+G` | Generate job file |
@@ -115,7 +115,7 @@ boundary, and seeks/skip announce the new time.
 
 ## 7. Editing an existing chaptered file
 
-**File → Open Existing Master…** (`Ctrl+E`) loads a finished file so you can fix
+**File → Open Existing Master…** (`Ctrl+O`) loads a finished file so you can fix
 its ID3 tags and chapter titles (and link URLs/images).
 
 - For **MP3**, **Save Changes** (`Ctrl+Shift+S`) rewrites the tags and chapters
