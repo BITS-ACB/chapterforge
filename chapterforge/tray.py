@@ -75,7 +75,7 @@ class WatcherController:
 
 
 class ChapterForgeTaskBarIcon(wx.adv.TaskBarIcon):
-    def __init__(self, controller: WatcherController,
+    def __init__(self, controller: Optional[WatcherController],
                  on_open: Callable[[], None],
                  on_manage: Callable[[], None],
                  on_quit: Callable[[], None]) -> None:
@@ -88,6 +88,8 @@ class ChapterForgeTaskBarIcon(wx.adv.TaskBarIcon):
         self.Bind(wx.adv.EVT_TASKBAR_LEFT_DCLICK, lambda e: self.on_open())
 
     def _tooltip(self) -> str:
+        if self.controller is None:
+            return __app_name__
         state = "watching" if self.controller.running else "paused"
         return f"{__app_name__} — {state}"
 
@@ -98,10 +100,11 @@ class ChapterForgeTaskBarIcon(wx.adv.TaskBarIcon):
         menu = wx.Menu()
         open_item = menu.Append(wx.ID_ANY, "&Open ChapterForge")
         self.Bind(wx.EVT_MENU, lambda e: self.on_open(), open_item)
-        toggle = menu.Append(
-            wx.ID_ANY,
-            "&Pause watching" if self.controller.running else "&Start watching")
-        self.Bind(wx.EVT_MENU, self._toggle, toggle)
+        if self.controller is not None:
+            toggle = menu.Append(
+                wx.ID_ANY,
+                "&Pause watching" if self.controller.running else "&Start watching")
+            self.Bind(wx.EVT_MENU, self._toggle, toggle)
         manage = menu.Append(wx.ID_ANY, "&Manage watch folders…")
         self.Bind(wx.EVT_MENU, lambda e: self.on_manage(), manage)
         menu.AppendSeparator()
@@ -110,10 +113,11 @@ class ChapterForgeTaskBarIcon(wx.adv.TaskBarIcon):
         return menu
 
     def _toggle(self, _evt):
-        if self.controller.running:
-            self.controller.stop()
-        else:
-            self.controller.start()
+        if self.controller is not None:
+            if self.controller.running:
+                self.controller.stop()
+            else:
+                self.controller.start()
         self.refresh()
 
 

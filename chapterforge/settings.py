@@ -49,6 +49,11 @@ DEFAULTS: Dict[str, Any] = {
     "win_x": -1,
     "win_y": -1,
     "win_max": False,
+    # Startup behaviour.
+    "start_minimized": False,  # hide window on launch; show tray icon instead
+    # Colour theme.
+    "theme": "system",         # 'system', 'light', 'dark', 'high_contrast'
+    "high_contrast": False,    # kept for backwards compatibility with older settings files
 }
 
 

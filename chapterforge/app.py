@@ -77,7 +77,8 @@ class MainFrame(wx.Frame):
         self._build_menu()
         self._build_ui()
         self.CreateStatusBar()
-        self.SetStatusText("Open a folder of MP3 files to begin.")
+        self.SetStatusText(
+            "Open a folder of MP3 files to begin — or press Ctrl+Shift+P for all commands.")
 
         self._apply_settings_to_ui()
 
@@ -167,6 +168,9 @@ class MainFrame(wx.Frame):
         if autostart.is_supported():
             self.mi_autostart.Check(autostart.is_enabled())
         tools_menu.AppendSeparator()
+        self.mi_palette = tools_menu.Append(
+            wx.ID_ANY, "Command &Palette…\tCtrl+Shift+P",
+            "Search and run any command by name")
         self.mi_settings = tools_menu.Append(
             wx.ID_PREFERENCES, "&Settings…\tCtrl+,",
             "Edit ChapterForge preferences")
@@ -217,6 +221,7 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self._on_silence, self.mi_silence)
         self.Bind(wx.EVT_MENU, self._on_batch, self.mi_batch)
         self.Bind(wx.EVT_MENU, self._on_settings, self.mi_settings)
+        self.Bind(wx.EVT_MENU, self._open_command_palette, self.mi_palette)
         self.Bind(wx.EVT_MENU, self._on_watch_folders, self.mi_watch)
         self.Bind(wx.EVT_MENU, self._on_start_watcher, self.mi_start_watch)
         self.Bind(wx.EVT_MENU, self._on_toggle_autostart, self.mi_autostart)
@@ -234,9 +239,12 @@ class MainFrame(wx.Frame):
         # Ctrl+S = smart save: Build in build mode, Save Changes in edit mode.
         # (Ctrl+Shift+O = Choose Output File; Ctrl+B = explicit Build.)
         _smart_save_id = wx.NewIdRef()
+        _palette_id = wx.NewIdRef()
         self.Bind(wx.EVT_MENU, self._on_smart_save, id=_smart_save_id)
+        self.Bind(wx.EVT_MENU, self._open_command_palette, id=_palette_id)
         self.SetAcceleratorTable(wx.AcceleratorTable([
             (wx.ACCEL_CTRL, ord('S'), _smart_save_id),
+            (wx.ACCEL_CTRL | wx.ACCEL_SHIFT, ord('P'), _palette_id),
         ]))
 
     def _on_smart_save(self, _evt):
@@ -265,17 +273,33 @@ class MainFrame(wx.Frame):
         outer = wx.BoxSizer(wx.VERTICAL)
 
         # --- Source folder row -----------------------------------------
+        _ACV = wx.ALIGN_CENTER_VERTICAL
         src_box = wx.StaticBoxSizer(wx.HORIZONTAL, panel, "Source")
-        src_box.Add(self._label(panel, "Folder of MP3 &files:"),
-                    0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 6)
+        self.src_static_box = src_box.GetStaticBox()
+        src_box.Add(self._label(panel, "&Task:"), 0, _ACV | wx.ALL, 6)
+        self.task_choice = wx.Choice(
+            panel,
+            choices=["Build new master from MP3 files",
+                     "Edit chapters in an existing file"])
+        self.task_choice.SetName("Task — what you want to do")
+        self.task_choice.SetToolTip(
+            "Build: combine a folder of MP3 files into one chaptered master.\n"
+            "Edit: open an existing chaptered MP3 or M4B to rename chapters or fix tags.")
+        self.task_choice.SetSelection(0)
+        self.task_choice.Bind(wx.EVT_CHOICE, self._on_task_choice)
+        src_box.Add(self.task_choice, 0, _ACV | wx.ALL, 6)
+        src_box.Add(wx.StaticLine(panel, style=wx.LI_VERTICAL),
+                    0, wx.EXPAND | wx.TOP | wx.BOTTOM, 8)
+        self.src_label = self._label(panel, "Folder of MP3 files:")
+        src_box.Add(self.src_label, 0, _ACV | wx.ALL, 6)
         self.folder_ctrl = wx.TextCtrl(panel, style=wx.TE_READONLY)
-        self.folder_ctrl.SetName("Source folder")
+        self.folder_ctrl.SetName("Source folder or file")
         self.folder_ctrl.SetHint("No folder chosen yet")
-        src_box.Add(self.folder_ctrl, 1, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 6)
+        src_box.Add(self.folder_ctrl, 1, _ACV | wx.ALL, 6)
         self.btn_browse = wx.Button(panel, label="&Browse…")
         self.btn_browse.SetName("Browse for source folder of MP3 files")
         self.btn_browse.SetToolTip("Open a folder whose MP3 files will become the chapters.")
-        self.btn_browse.Bind(wx.EVT_BUTTON, self._on_open)
+        self.btn_browse.Bind(wx.EVT_BUTTON, self._on_browse_or_open)
         src_box.Add(self.btn_browse, 0, wx.ALL, 6)
         outer.Add(src_box, 0, wx.EXPAND | wx.ALL, 8)
 
@@ -297,6 +321,7 @@ class MainFrame(wx.Frame):
         self.list.Bind(wx.EVT_LIST_ITEM_SELECTED, self._on_list_select)
         self.list.Bind(wx.EVT_LIST_ITEM_DESELECTED, self._on_list_select)
         self.list.Bind(wx.EVT_KEY_DOWN, self._on_list_key)
+        self.list.Bind(wx.EVT_CONTEXT_MENU, self._on_list_context_menu)
         ch_box.Add(self.list, 1, wx.EXPAND | wx.ALL, 4)
 
         # Chapter editing controls
@@ -457,6 +482,7 @@ class MainFrame(wx.Frame):
         opt_row2.Add(self.pod2_chk, 0, ACV | wx.ALL, 6)
         opt_box.Add(opt_row2, 0)
 
+        self._opt_sizer = opt_box
         outer.Add(opt_box, 0, wx.EXPAND | wx.ALL, 8)
 
         # --- Output + build row ----------------------------------------
@@ -472,6 +498,7 @@ class MainFrame(wx.Frame):
         self.btn_output.SetToolTip("Pick the folder and file name for the finished master.")
         self.btn_output.Bind(wx.EVT_BUTTON, self._on_set_output)
         out_box.Add(self.btn_output, 0, wx.ALL, 6)
+        self._out_sizer = out_box
         outer.Add(out_box, 0, wx.EXPAND | wx.ALL, 8)
 
         self.estimate_text = wx.StaticText(panel, label="")
@@ -504,7 +531,7 @@ class MainFrame(wx.Frame):
 
         self.status_text = wx.StaticText(
             panel,
-            label="Open a folder of MP3 files to get started (File → Open Folder, or Ctrl+O).")
+            label="Choose a task above, or press Ctrl+Shift+P to search all commands.")
         self.status_text.SetName("Status")
         outer.Add(self.status_text, 0, wx.EXPAND | wx.ALL, 8)
 
@@ -516,6 +543,7 @@ class MainFrame(wx.Frame):
             on_volume_change=self._on_player_volume)
         outer.Add(self.player, 0, wx.EXPAND | wx.ALL, 8)
 
+        self._outer_sizer = outer
         panel.SetSizer(outer)
         self.panel = panel
 
@@ -554,10 +582,11 @@ class MainFrame(wx.Frame):
                      self.tag_album, self.tag_album_artist, self.tag_genre,
                      self.tag_year, self.tag_comment,
                      self.title_source, self.bitrate_choice, self.normalize_chk,
-                     self.format_choice, self.pod2_chk, self.gap_ctrl):
+                     self.format_choice, self.pod2_chk, self.gap_ctrl,
+                     self.task_choice):
             ctrl.Enable(not building)
-        # Build-only widgets are meaningless while editing an existing master.
-        for ctrl in (self.btn_browse, self.btn_output, self.btn_build,
+        # Build-only widgets are hidden in edit mode; also disable them for safety.
+        for ctrl in (self.btn_output, self.btn_build,
                      self.title_source, self.bitrate_choice, self.normalize_chk,
                      self.format_choice, self.pod2_chk, self.gap_ctrl):
             ctrl.Enable(not building and not edit)
@@ -576,8 +605,16 @@ class MainFrame(wx.Frame):
         self.btn_edit.Enable(not building and sel >= 0)
         # Reorder only makes sense when assembling from source files.
         self.btn_up.Enable(not building and not edit and sel > 0)
-        self.btn_down.Enable(not building and not edit
-                             and 0 <= sel < count - 1)
+        self.btn_down.Enable(not building and not edit and 0 <= sel < count - 1)
+        _reorder_tip = (
+            "Reordering is not available in edit mode — "
+            "chapter order is determined by start times.")
+        self.btn_up.SetToolTip(
+            _reorder_tip if edit else
+            "Move the selected chapter one position earlier in the list.")
+        self.btn_down.SetToolTip(
+            _reorder_tip if edit else
+            "Move the selected chapter one position later in the list.")
         # Remove deletes a source chapter (build) or merges a boundary (edit).
         self.btn_remove.Enable(not building and sel >= 0
                                and (not edit or count > 1))
@@ -648,6 +685,12 @@ class MainFrame(wx.Frame):
             self.list.EnsureVisible(select)
         self._update_command_state()
         self._update_estimate()
+        # Auto-size the Title and last columns to their content.
+        if self.list.GetItemCount() > 0:
+            self.list.SetColumnWidth(1, wx.LIST_AUTOSIZE)
+            self.list.SetColumnWidth(1, max(120, min(self.list.GetColumnWidth(1), 360)))
+            self.list.SetColumnWidth(4, wx.LIST_AUTOSIZE)
+            self.list.SetColumnWidth(4, max(80,  min(self.list.GetColumnWidth(4), 260)))
 
     # ------------------------------------------------------------------
     # Folder / output / cover
@@ -721,7 +764,7 @@ class MainFrame(wx.Frame):
         self._announce(msg)
         self._push_recent(folder)
         self._update_estimate()
-        self.title_ctrl.SetFocus()
+        self.list.SetFocus()
 
     def _current_output_ext(self) -> str:
         return ".m4b" if self.format_choice.GetSelection() == 1 else ".mp3"
@@ -762,29 +805,35 @@ class MainFrame(wx.Frame):
         self._update_estimate()
 
     def _apply_appearance(self):
-        """Apply the text-scale and high-contrast accessibility preferences to
-        the whole frame, recursively."""
+        """Apply text-scale and colour theme to the whole frame recursively."""
         scale = max(50, min(300, int(self.settings.get("text_scale", 100))))
         base = wx.SystemSettings.GetFont(wx.SYS_DEFAULT_GUI_FONT)
         font = wx.Font(base)
         pt = max(6, int(round(base.GetPointSize() * scale / 100.0)))
         font.SetPointSize(pt)
-        high = bool(self.settings.get("high_contrast", False))
-        fg = wx.Colour(255, 255, 255) if high else wx.NullColour
-        bg = wx.Colour(0, 0, 0) if high else wx.NullColour
+
+        theme = self.settings.get("theme", "system")
+        # Backwards compat: old boolean high_contrast setting
+        if theme == "system" and self.settings.get("high_contrast", False):
+            theme = "high_contrast"
+
+        _THEMES = {
+            "light":         (wx.Colour(255, 255, 255), wx.Colour(0,   0,   0)),
+            "dark":          (wx.Colour(30,  30,  30),  wx.Colour(220, 220, 220)),
+            "high_contrast": (wx.Colour(0,   0,   0),   wx.Colour(255, 255, 255)),
+        }
+        if theme in _THEMES:
+            bg, fg = _THEMES[theme]
+        else:
+            bg, fg = wx.NullColour, wx.NullColour
 
         def walk(win):
-            # Leave the hidden native media control to OS theming.
             if isinstance(win, wx.media.MediaCtrl):
                 return
             try:
                 win.SetFont(font)
-                if high:
-                    win.SetForegroundColour(fg)
-                    win.SetBackgroundColour(bg)
-                else:
-                    win.SetForegroundColour(wx.NullColour)
-                    win.SetBackgroundColour(wx.NullColour)
+                win.SetForegroundColour(fg)
+                win.SetBackgroundColour(bg)
             except Exception:
                 pass
             for child in win.GetChildren():
@@ -929,6 +978,49 @@ class MainFrame(wx.Frame):
             self._move(1)
         else:
             evt.Skip()
+
+    def _on_list_context_menu(self, _evt):
+        sel = self.list.GetFirstSelected()
+        count = self._row_count()
+        edit = self.mode == "edit"
+        building = self._is_building()
+
+        menu = wx.Menu()
+
+        mi_edit = menu.Append(wx.ID_ANY, "Edit Chapter…\tF2")
+        mi_edit.Enable(not building and sel >= 0)
+        self.Bind(wx.EVT_MENU, self._on_edit_chapter, mi_edit)
+
+        if not edit:
+            menu.AppendSeparator()
+            mi_up = menu.Append(wx.ID_ANY, "Move Up\tAlt+Up")
+            mi_up.Enable(not building and sel > 0)
+            self.Bind(wx.EVT_MENU, lambda e: self._move(-1), mi_up)
+
+            mi_dn = menu.Append(wx.ID_ANY, "Move Down\tAlt+Down")
+            mi_dn.Enable(not building and 0 <= sel < count - 1)
+            self.Bind(wx.EVT_MENU, lambda e: self._move(1), mi_dn)
+
+        menu.AppendSeparator()
+
+        mi_play = menu.Append(wx.ID_ANY, "Play Chapter")
+        mi_play.Enable(not building and sel >= 0)
+        self.Bind(wx.EVT_MENU, self._on_play_selected, mi_play)
+
+        if edit:
+            mi_split = menu.Append(wx.ID_ANY, "Split Here")
+            mi_split.Enable(not building and self.player.has_media())
+            self.Bind(wx.EVT_MENU, self._on_split_chapter, mi_split)
+
+        menu.AppendSeparator()
+
+        rm_label = "Merge Up" if edit else "Remove\tDel"
+        mi_rm = menu.Append(wx.ID_ANY, rm_label)
+        mi_rm.Enable(not building and sel >= 0 and (not edit or count > 1))
+        self.Bind(wx.EVT_MENU, lambda e: self._remove_selected(), mi_rm)
+
+        self.list.PopupMenu(menu)
+        menu.Destroy()
 
     def _on_apply_title(self, evt):
         evt.Skip()
@@ -1540,6 +1632,9 @@ class MainFrame(wx.Frame):
     def _enter_edit_mode(self, path, tags, chapters, total_ms):
         self.player.release(recreate=True)
         self.mode = "edit"
+        self.task_choice.SetSelection(1)
+        self._update_source_box()
+        self._show_build_sections(False)
         self.edit_path = path
         self.edit_chapters = list(chapters)
         self.edit_total_ms = total_ms
@@ -1574,6 +1669,9 @@ class MainFrame(wx.Frame):
         col4 = wx.ListItem()
         col4.SetText("Source file")
         self.list.SetColumn(4, col4)
+        self.task_choice.SetSelection(0)
+        self._update_source_box()
+        self._show_build_sections(True)
         self._update_command_state()
 
     def _apply_tags_to_ui(self, tags: core.Tags):
@@ -1954,13 +2052,26 @@ class MainFrame(wx.Frame):
         guide = (
             "ChapterForge — Quick Start\n"
             "\n"
-            "1. Open Folder (Ctrl+O): choose a folder of MP3 files. Each file "
-            "becomes one chapter, in natural (1, 2, 10) order.\n"
-            "2. Review chapters in the list. Rename with Edit Title, reorder "
-            "with Move Up/Down, drop one with Remove.\n"
+            "The Task dropdown at the top controls what you are doing:\n"
+            "\n"
+            "Build new master from MP3 files:\n"
+            "1. Choose 'Build new master' in the Task dropdown, then click "
+            "Browse (or Ctrl+O) to select a folder of MP3 files. Each file "
+            "becomes one chapter, sorted in natural (1, 2, 10) order.\n"
+            "2. Review chapters in the list. Right-click for a context menu. "
+            "Rename with Edit Chapter, reorder with Move Up/Down or "
+            "Alt+Up/Down, remove with Delete.\n"
             "3. Fill in the master tags (title, artist, album, cover, …).\n"
             "4. Click 'Save to…' (Ctrl+Shift+O) to choose where to save, "
             "then Build (Ctrl+B or just Ctrl+S).\n"
+            "\n"
+            "Edit chapters in an existing file:\n"
+            "Choose 'Edit chapters in an existing file' in the Task dropdown "
+            "(or Ctrl+E). Open a chaptered MP3 or M4B. Rename chapters, fix "
+            "tags, merge or split boundaries, then Save Changes (Ctrl+S) "
+            "for MP3 or Save As (Ctrl+Alt+S) for M4B.\n"
+            "\n"
+            "Tip: press Ctrl+Shift+P to search all commands by name.\n"
             "\n"
             "Job files (.cfjob): save the current order, titles and tags with "
             "File → Generate Job File, hand-edit it, and reload with File → "
@@ -2000,8 +2111,9 @@ class MainFrame(wx.Frame):
         keys = (
             "Keyboard shortcuts\n"
             "\n"
-            "Ctrl+O\tOpen folder of MP3 files\n"
-            "Ctrl+E\tOpen an existing chaptered file to edit\n"
+            "Ctrl+Shift+P\tCommand Palette — search and run any command\n"
+            "Ctrl+O\tOpen folder of MP3 files (build mode)\n"
+            "Ctrl+E\tOpen an existing chaptered file (edit mode)\n"
             "Ctrl+S\tBuild (build mode) / Save Changes (edit mode)\n"
             "Ctrl+Shift+O\tChoose output file location\n"
             "Ctrl+B\tBuild master (MP3 or M4B) — explicit\n"
@@ -2011,16 +2123,21 @@ class MainFrame(wx.Frame):
             "Ctrl+L\tLoad a .cfjob job file\n"
             "Ctrl+G\tGenerate a .cfjob job file\n"
             "Ctrl+W\tManage watch folders\n"
-            "Ctrl+,\tSettings\n"
+            "Ctrl+,\tSettings (theme, text size, player, silence detection)\n"
             "F1\tUser guide\n"
             "Ctrl+/\tThis shortcut list\n"
             "\n"
-            "In the chapter list:\n"
+            "Main window — Task combo:\n"
+            "Alt+T\tFocus the Task dropdown (Build / Edit)\n"
+            "Browse / Open File button changes label and action with the mode.\n"
+            "Options and Output sections are hidden automatically in edit mode.\n"
+            "\n"
+            "In the chapter list (right-click or App key for context menu):\n"
             "Up/Down\tMove between chapters\n"
-            "F2 / Enter\tEdit the selected chapter title\n"
-            "Edit Title button\tEdit title, link URL and image\n"
+            "F2\tEdit the selected chapter title inline\n"
+            "Edit Chapter button\tEdit title, link URL and image in a dialog\n"
             "Delete\tRemove the selected chapter (build mode)\n"
-            "Alt+Up / Alt+Down\tReorder the selected chapter (build mode)\n"
+            "Alt+Up / Alt+Down\tReorder the selected chapter (build mode only)\n"
             "\n"
             "In the player (Alt+letter access keys):\n"
             "Play/Pause, Stop\tStart, pause or stop playback\n"
@@ -2186,6 +2303,68 @@ class MainFrame(wx.Frame):
         dlg = AboutDialog(self)
         dlg.ShowModal()
         dlg.Destroy()
+
+    def _on_browse_or_open(self, evt) -> None:
+        """Browse button: opens a folder dialog in build mode, file dialog in edit mode."""
+        if self.mode == "edit":
+            self._on_open_master(evt)
+        else:
+            self._on_open(evt)
+
+    def _on_task_choice(self, _evt) -> None:
+        """Task combo changed: switch mode or open the appropriate dialog."""
+        if self._is_building():
+            self.task_choice.SetSelection(0 if self.mode == "build" else 1)
+            return
+        sel = self.task_choice.GetSelection()
+        if sel == 1:  # Edit existing file
+            self._on_open_master(None)
+            if self.mode != "edit":
+                self.task_choice.SetSelection(0)  # dialog was cancelled
+        else:  # Build new master
+            if self.mode == "edit":
+                if not self._confirm_discard_edits():
+                    self.task_choice.SetSelection(1)  # revert
+                    return
+                self.player.release(recreate=True)
+                self._enter_build_mode()
+                self.folder_ctrl.ChangeValue(self.folder or "")
+                self._refresh_list()
+                self._announce("Switched to build mode. Open a folder of MP3 files to begin.")
+
+    def _show_build_sections(self, show: bool) -> None:
+        """Show or hide the Options and Output sections (build-mode-only UI)."""
+        for s in (self._opt_sizer, self._out_sizer):
+            self._outer_sizer.Show(s, show)
+        self._outer_sizer.Show(self.estimate_text, show)
+        self.panel.Layout()
+
+    def _update_source_box(self) -> None:
+        """Update labels and button text in the Source box to match the current mode."""
+        edit = self.mode == "edit"
+        self.src_static_box.SetLabel("Current file" if edit else "Source")
+        self.src_label.SetLabel("Open file:" if edit else "Folder of MP3 files:")
+        self.btn_browse.SetLabel("&Open File…" if edit else "&Browse…")
+        self.btn_browse.SetName(
+            "Open a chaptered MP3 or M4B file to edit" if edit
+            else "Browse for source folder of MP3 files")
+        self.btn_browse.SetToolTip(
+            "Choose a chaptered MP3 or M4B file to open for editing." if edit
+            else "Open a folder whose MP3 files will become the chapters.")
+        self.folder_ctrl.SetHint(
+            "No file open yet" if edit else "No folder chosen yet")
+
+    def _open_command_palette(self, _evt=None):
+        CommandPaletteDialog(self).show()
+
+    def _setup_startup_tray(self):
+        """Create a tray icon for start-minimized mode (no watcher started)."""
+        from .tray import ChapterForgeTaskBarIcon
+        self._tray = ChapterForgeTaskBarIcon(
+            None,
+            on_open=self._restore_from_tray,
+            on_manage=lambda: self._on_watch_folders(None),
+            on_quit=self._quit_from_tray)
 
     def _on_close(self, evt):
         # When the background watcher is active, closing hides to the tray
@@ -2413,13 +2592,31 @@ class SettingsDialog(wx.Dialog):
             "Scale all text in the app. 100 is the default; 150 is 50% larger.\n"
             "Takes effect after clicking OK.")
 
-        self.high_contrast = grow(
-            "&High-contrast theme:",
+        self.theme_choice = grow(
+            "&Theme:",
+            lambda: wx.Choice(gp, choices=["Follow system", "Light", "Dark",
+                                            "High contrast"]),
+            "Color theme",
+            "Follow system: uses your Windows color scheme.\n"
+            "Light: white background with dark text.\n"
+            "Dark: dark background with light text.\n"
+            "High contrast: black background with white text.\n"
+            "Note: native list and text controls may not fully adopt the chosen\n"
+            "theme on Windows. Takes effect after clicking OK.")
+        _tmap = {"system": 0, "light": 1, "dark": 2, "high_contrast": 3}
+        _stored_theme = str(settings.get("theme", "system"))
+        # Migrate old high_contrast boolean
+        if _stored_theme == "system" and settings.get("high_contrast", False):
+            _stored_theme = "high_contrast"
+        self.theme_choice.SetSelection(_tmap.get(_stored_theme, 0))
+
+        self.start_minimized = grow(
+            "Start &minimized in system tray:",
             lambda: wx.CheckBox(gp, label=""),
-            "High-contrast theme",
-            "Use a black background with white text for improved visibility.\n"
-            "Takes effect after clicking OK.")
-        self.high_contrast.SetValue(bool(settings.get("high_contrast", False)))
+            "Start minimized in system tray",
+            "Hide the main window on launch and show a system tray icon instead.\n"
+            "Double-click the icon to open ChapterForge. Takes effect at next launch.")
+        self.start_minimized.SetValue(bool(settings.get("start_minimized", False)))
 
         gp_sizer = wx.BoxSizer(wx.VERTICAL)
         gp_sizer.Add(gg, 1, wx.EXPAND | wx.ALL, 14)
@@ -2489,7 +2686,10 @@ class SettingsDialog(wx.Dialog):
             "silence_min_seconds": float(self.min_silence.GetValue()),
             "gap_seconds": float(self.gap.GetValue()),
             "text_scale": int(self.text_scale.GetValue()),
-            "high_contrast": self.high_contrast.GetValue(),
+            "theme": ["system", "light", "dark", "high_contrast"][
+                self.theme_choice.GetSelection()],
+            "high_contrast": self.theme_choice.GetSelection() == 3,
+            "start_minimized": self.start_minimized.GetValue(),
         }
 
 
@@ -2566,6 +2766,190 @@ class ChapterEditDialog(wx.Dialog):
         return self.start_ctrl.GetValue().strip()
 
 
+class CommandPaletteDialog:
+    """Searchable command palette (Ctrl+Shift+P), modelled on Quill's palette.
+
+    All currently registered commands are listed and filtered by substring as
+    the user types.  Commands that are unavailable given the current app state
+    are shown dimmed so the user can still discover them.  Down/Up arrows
+    navigate the results list; Enter runs the selected command; Escape closes.
+    """
+
+    def __init__(self, frame: "MainFrame") -> None:
+        self._frame = frame
+        self._commands = self._build_commands()
+        self._visible: list = []
+
+        dlg = wx.Dialog(frame, title="Command Palette",
+                        style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
+        dlg.SetName("Command Palette — type to search, Enter to run, Escape to close")
+        outer = wx.BoxSizer(wx.VERTICAL)
+
+        self.search = wx.SearchCtrl(dlg, style=wx.TE_PROCESS_ENTER)
+        self.search.SetName("Search commands")
+        self.search.SetDescriptiveText("Type a command name…")
+        self.search.ShowSearchButton(True)
+        self.search.ShowCancelButton(True)
+        outer.Add(self.search, 0, wx.EXPAND | wx.ALL, 8)
+
+        self.results = wx.ListBox(dlg, style=wx.LB_SINGLE)
+        self.results.SetName("Command results — use arrows to navigate, Enter to run")
+        outer.Add(self.results, 1, wx.EXPAND | wx.LEFT | wx.RIGHT, 8)
+
+        self.status = wx.StaticText(dlg, label="")
+        self.status.SetName("Command palette status")
+        outer.Add(self.status, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 8)
+        outer.AddSpacer(8)
+
+        dlg.SetSizer(outer)
+        dlg.SetSize((580, 440))
+        dlg.CentreOnParent()
+        self.dialog = dlg
+
+        self.search.Bind(wx.EVT_TEXT, self._on_text)
+        self.search.Bind(wx.EVT_TEXT_ENTER, self._on_accept)
+        self.search.Bind(wx.EVT_SEARCHCTRL_CANCEL_BTN, lambda e: self.search.Clear())
+        self.results.Bind(wx.EVT_LISTBOX_DCLICK, self._on_accept)
+        dlg.Bind(wx.EVT_CHAR_HOOK, self._on_char_hook)
+
+        self._refresh("")
+        self.search.SetFocus()
+
+    # ------------------------------------------------------------------
+    # Command registry
+    # ------------------------------------------------------------------
+    def _build_commands(self):
+        f = self._frame
+        nb = lambda: not f._is_building()
+        edit = lambda: f.mode == "edit"
+        no_edit = lambda: not edit()
+        has_items = lambda: bool(f.items)
+        has_out = lambda: bool(f.output_path)
+        sel = lambda: f.list.GetFirstSelected()
+        n = lambda: f._row_count()
+
+        return [
+            ("Open Folder…",                 "Ctrl+O",         lambda: f._on_open(None),               lambda: nb()),
+            ("Open Existing Master…",         "Ctrl+E",         lambda: f._on_open_master(None),         lambda: nb()),
+            ("Choose Output File…",           "Ctrl+Shift+O",   lambda: f._on_set_output(None),          lambda: nb() and no_edit()),
+            ("Build Master MP3",              "Ctrl+B",         lambda: f._on_build(None),               lambda: nb() and no_edit() and has_items() and has_out()),
+            ("Save Changes",                  "Ctrl+S",         lambda: f._on_save_edit(None),           lambda: edit() and nb() and f._edit_is_mp3()),
+            ("Save As…",                      "Ctrl+Alt+S",     lambda: f._on_save_as(None),             lambda: nb() and n() > 0),
+            ("Cancel Build",                  "Esc",            lambda: f._on_cancel(None),              lambda: f._is_building()),
+            ("Load Job File…",                "Ctrl+L",         lambda: f._on_load_job(None),            lambda: nb()),
+            ("Generate Job File…",            "Ctrl+G",         lambda: f._on_generate_job(None),        lambda: nb() and no_edit() and has_items()),
+            ("Import Chapters…",              None,             lambda: f._on_import_chapters(None),     lambda: nb() and edit()),
+            ("Export Chapters…",              None,             lambda: f._on_export_chapters(None),     lambda: nb() and n() > 0),
+            ("Auto-chapter by Silence…",      None,             lambda: f._on_silence(None),             lambda: nb()),
+            ("Batch Build Folder…",           None,             lambda: f._on_batch(None),               lambda: nb()),
+            ("Watch Folders…",                "Ctrl+W",         lambda: f._on_watch_folders(None),       lambda: True),
+            ("Start Background Watcher",      None,             lambda: f._on_start_watcher(None),       lambda: True),
+            ("Settings…",                     "Ctrl+,",         lambda: f._on_settings(None),            lambda: True),
+            ("Edit Selected Chapter…",        "F2",             lambda: f._on_edit_chapter(None),        lambda: nb() and sel() >= 0),
+            ("Move Chapter Up",               "Alt+Up",         lambda: f._move(-1),                     lambda: nb() and no_edit() and sel() > 0),
+            ("Move Chapter Down",             "Alt+Down",       lambda: f._move(1),                      lambda: nb() and no_edit() and 0 <= sel() < n() - 1),
+            ("Remove Chapter",                "Delete",         lambda: f._remove_selected(),             lambda: nb() and sel() >= 0 and (no_edit() or n() > 1)),
+            ("Play Selected Chapter",         None,             lambda: f._on_play_selected(None),       lambda: nb() and sel() >= 0),
+            ("Split Chapter at Playhead",     None,             lambda: f._on_split_chapter(None),       lambda: nb() and edit() and f.player.has_media()),
+            ("User Guide",                    "F1",             lambda: f._on_guide(None),               lambda: True),
+            ("Keyboard Shortcuts",            "Ctrl+/",         lambda: f._on_keys(None),                lambda: True),
+            ("Check for Updates…",            None,             lambda: f._on_check_updates(None),       lambda: True),
+            ("About ChapterForge",            None,             lambda: f._on_about(None),               lambda: True),
+        ]
+
+    # ------------------------------------------------------------------
+    # Search and display
+    # ------------------------------------------------------------------
+    def _score(self, title: str, query: str) -> int:
+        tl = title.lower()
+        if tl == query:
+            return 100
+        if tl.startswith(query):
+            return 80
+        if query in tl:
+            return 60
+        # Subsequence match
+        idx = 0
+        for ch in query:
+            idx = tl.find(ch, idx)
+            if idx == -1:
+                return 0
+            idx += 1
+        return 20
+
+    def _filtered(self, query: str):
+        q = query.strip().lower()
+        if not q:
+            return list(self._commands)
+        scored = [(self._score(title, q), title, key, handler, en)
+                  for title, key, handler, en in self._commands
+                  if self._score(title, q) > 0]
+        scored.sort(key=lambda r: -r[0])
+        return [(t, k, h, e) for _s, t, k, h, e in scored]
+
+    def _refresh(self, query: str) -> None:
+        self._visible = self._filtered(query)
+        self.results.Clear()
+        for title, key, handler, enabled_fn in self._visible:
+            available = enabled_fn()
+            label = f"{title}  [{key}]" if key else title
+            if not available:
+                label = f"— {label}"  # em-dash prefix for unavailable
+            self.results.Append(label)
+        n = len(self._visible)
+        if n:
+            self.results.SetSelection(0)
+            first_title = self._visible[0][0]
+            self.status.SetLabel(
+                f"{n} command(s). Top match: {first_title}. "
+                "Down/Up to navigate, Enter to run.")
+        else:
+            self.status.SetLabel("No matching commands.")
+
+    # ------------------------------------------------------------------
+    # Event handlers
+    # ------------------------------------------------------------------
+    def _on_text(self, _evt) -> None:
+        self._refresh(self.search.GetValue())
+
+    def _on_char_hook(self, evt) -> None:
+        key = evt.GetKeyCode()
+        if key == wx.WXK_ESCAPE:
+            self.dialog.EndModal(wx.ID_CANCEL)
+            return
+        n = self.results.GetCount()
+        if key in (wx.WXK_DOWN, wx.WXK_UP) and n:
+            cur = self.results.GetSelection()
+            if key == wx.WXK_DOWN:
+                nxt = min(cur + 1, n - 1) if cur >= 0 else 0
+            else:
+                nxt = max(cur - 1, 0) if cur >= 0 else n - 1
+            self.results.SetSelection(nxt)
+            self.results.SetFocus()
+            if 0 <= nxt < len(self._visible):
+                a11y.announce(self._visible[nxt][0])
+            return
+        if key in (wx.WXK_RETURN, wx.WXK_NUMPAD_ENTER):
+            self._on_accept(None)
+            return
+        evt.Skip()
+
+    def _on_accept(self, _evt) -> None:
+        sel = self.results.GetSelection()
+        if sel < 0 or sel >= len(self._visible):
+            return
+        title, key, handler, enabled_fn = self._visible[sel]
+        if not enabled_fn():
+            a11y.announce(f"{title} is not available right now.")
+            return
+        self.dialog.EndModal(wx.ID_OK)
+        wx.CallAfter(handler)
+
+    def show(self) -> None:
+        self.dialog.ShowModal()
+        self.dialog.Destroy()
+
+
 class ChapterForgeApp(wx.App):
     def OnInit(self):
         try:
@@ -2576,7 +2960,10 @@ class ChapterForgeApp(wx.App):
                           wx.OK | wx.ICON_ERROR)
             return False
         frame = MainFrame()
-        frame.Show()
+        if frame.settings.get("start_minimized", False):
+            frame._setup_startup_tray()
+        else:
+            frame.Show()
         self.SetTopWindow(frame)
         return True
 

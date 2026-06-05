@@ -4,6 +4,85 @@ All notable changes to ChapterForge are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.7.0] - 2026-06-04
+
+A UI polish and accessibility release. The app now shows only what is relevant
+to the task you are doing, the chapter list tells you more without you having
+to ask, and light and dark themes are available.
+
+### Added
+- **Task selector combo on the main window.** A dropdown at the top of the
+  Source section now says "Build new master from MP3 files" or "Edit chapters
+  in an existing file." Choosing one switches the mode and opens the right
+  dialog automatically. The combo also acts as a visible mode indicator so you
+  always know which mode you are in, which a screen reader will read on focus.
+- **Build-only sections hide in edit mode.** The Options section (bitrate,
+  format, normalize, gap) and the Output section disappear entirely when you
+  open an existing file to edit. They are not useful in edit mode and were
+  previously just a row of dimmed controls taking up space. They reappear when
+  you switch back to build mode.
+- **Source box adapts its labels and button to the current mode.** In edit mode
+  the box is titled "Current file," the path label reads "Open file:," and the
+  Browse button becomes "Open File…" and opens a file picker instead of a
+  folder picker. In build mode everything reads as before.
+- **Light and dark themes.** Settings > General now has a Theme dropdown with
+  four options: Follow system (default, uses your Windows color scheme), Light
+  (white background with dark text), Dark (dark background with light text),
+  and High contrast (black background with white text). The old High-contrast
+  checkbox is replaced by this single control; existing settings migrate
+  automatically.
+- **Move Up and Move Down have informative tooltips in edit mode.** Instead of
+  just saying "unavailable," hovering over either button when editing an
+  existing master now reads "Reordering is not available in edit mode — chapter
+  order is determined by start times."
+
+### Changed
+- **Focus after loading a folder goes to the chapter list**, not the title
+  field. The title field is empty until a chapter is selected, so landing focus
+  there first was confusing for keyboard and screen-reader users. The list is
+  the primary content control and is where focus belongs.
+- **Chapter list columns auto-size after every load.** The Title column and the
+  Source file or URL column resize themselves to fit the widest value, capped
+  at reasonable maximums so no other column gets pushed off screen.
+- **Status bar and status label updated** to mention Ctrl+Shift+P so new users
+  discover the command palette immediately on first launch.
+
+## [1.6.0] - 2026-06-04
+
+A keyboard accessibility and discoverability release. Every command in the app
+is now reachable from one place, the chapter list has a right-click menu, the
+Alt+F shortcut conflict is resolved, and ChapterForge can start quietly in the
+system tray.
+
+### Added
+- **Command Palette (Ctrl+Shift+P)** — type any part of a command name to find
+  and run it without touching the mouse. All menu and button actions are listed.
+  Commands that are not available in the current state are shown with a dash
+  prefix so you can still discover them. Down and Up arrows move through results;
+  Enter runs the selected command; Escape closes without doing anything. The
+  palette is also reachable from Tools > Command Palette.
+- **Right-click context menu on the chapter list** — right-clicking (or pressing
+  the application key) on any row in the chapter list pops up a small menu with
+  the actions that make sense right now: Edit Chapter, Move Up, Move Down, Play
+  Chapter, Split Here (edit mode), and Remove or Merge Up depending on the mode.
+  Only relevant items are shown; items that cannot be used are dimmed.
+- **Start minimized in system tray** — a new checkbox in Settings > General lets
+  ChapterForge launch directly to the system tray without showing the main window.
+  Double-click the tray icon to open it. The setting takes effect the next time
+  you start the app. This is separate from the background watcher; no watch
+  folders need to be configured.
+
+### Fixed
+- **Alt+F now opens the File menu** as expected. The source folder label had an
+  ampersand on the letter F, which caused Windows to route Alt+F to that label's
+  associated text field instead of dropping down the File menu. The mnemonic has
+  been removed from the label; the Browse button still has its own shortcut.
+- **Build-Release.ps1 step 3 no longer fails** when ffmpeg is on the system PATH
+  but not copied into the project's bin folder. The PyInstaller spec file now
+  looks for ffmpeg and ffprobe in the local bin folder first, then falls back to
+  whatever is on the PATH. If neither location has the tool it reports a clear
+  error message instead of a cryptic PyInstaller path-not-found.
+
 ## [1.5.0] - 2026-06-04
 
 An accessibility and usability overhaul. Every control is now fully described
@@ -176,5 +255,7 @@ First public release.
   MIT license. The in-app **Help** menu opens accessible HTML versions
   (generated by `tools/build_docs.py`) in the browser.
 
+[1.7.0]: https://github.com/bits-acb/chapterforge/releases/tag/v1.7.0
+[1.6.0]: https://github.com/bits-acb/chapterforge/releases/tag/v1.6.0
 [1.1.0]: https://github.com/bits-acb/chapterforge/releases/tag/v1.1.0
 [1.0.0]: https://github.com/bits-acb/chapterforge/releases/tag/v1.0.0
