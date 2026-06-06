@@ -90,9 +90,15 @@ pip install -r requirements.txt
 ## Run from source
 
 ```bash
+# Option 1: from repository root
 python main.py            # graphical app
 python main.py --help     # command-line help
 python main.py --watch    # background tray watcher
+
+# Option 2: as a Python module (from anywhere)
+python -m chapterforge            # graphical app
+python -m chapterforge --help     # command-line help
+python -m chapterforge --watch    # background tray watcher
 ```
 
 ## Graphical app
