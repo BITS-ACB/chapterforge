@@ -4,6 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ChapterForge - Build Chaptered Audiobooks and Podcasts</title>
+    <meta name="description" content="Turn a folder of MP3 files into a professionally chaptered audiobook or podcast. Free for Windows 10 and 11. Fully keyboard accessible with NVDA, JAWS, and Narrator support.">
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="ChapterForge - Build Chaptered Audiobooks and Podcasts">
+    <meta property="og:description" content="Turn a folder of MP3 files into a professionally chaptered audiobook or podcast. Free for Windows. Built for screen reader users and everyone else.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://chapterforge.app">
+    <meta property="og:site_name" content="ChapterForge">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="ChapterForge - Build Chaptered Audiobooks and Podcasts">
+    <meta name="twitter:description" content="Turn a folder of MP3 files into a chaptered audiobook. Free for Windows. Fully accessible.">
+
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -167,13 +181,31 @@
         .a11y-card h4 { color: var(--primary); margin-bottom: .5rem; font-size: 1rem; }
         .a11y-card p { color: var(--text-light); font-size: .95rem; }
 
-        /* Testimonials */
-        .testimonial {
+        /* Use cases */
+        .use-case {
             background: var(--bg); padding: 2rem; border-radius: .75rem;
-            border-left: 4px solid var(--secondary); margin: 1rem 0;
+            border: 1px solid var(--border); margin: 1rem 0;
         }
-        .testimonial p { font-size: 1.1rem; font-style: italic; margin-bottom: .75rem; }
-        .testimonial-author { color: var(--text-light); font-weight: 600; font-size: .95rem; }
+        .use-case h3 { font-size: 1.1rem; color: var(--primary); margin-bottom: .5rem; }
+        .use-case p { color: var(--text-light); line-height: 1.65; }
+        .use-case p a { font-weight: 500; }
+
+        /* FAQ */
+        .faq-list { max-width: 740px; margin: 0 auto; }
+        .faq-list details { border-bottom: 1px solid var(--border); }
+        .faq-list details:first-child { border-top: 1px solid var(--border); }
+        .faq-list summary {
+            cursor: pointer; padding: 1.1rem 0;
+            font-weight: 600; font-size: 1rem;
+            list-style: none;
+            display: flex; justify-content: space-between; align-items: center;
+            gap: 1rem;
+        }
+        .faq-list summary::-webkit-details-marker { display: none; }
+        .faq-list summary::after { content: '+'; font-size: 1.4rem; color: var(--primary); flex-shrink: 0; }
+        .faq-list details[open] summary::after { content: '-'; }
+        .faq-list details p { padding: .25rem 0 1.25rem; color: var(--text-light); line-height: 1.7; }
+        .faq-list details p a { font-weight: 500; }
 
         /* Download CTA */
         .download-cta { text-align: center; padding: 5rem 2rem; background: var(--bg-alt); }
@@ -217,6 +249,7 @@
         <ul class="nav-links">
             <li><a href="#features">Features</a></li>
             <li><a href="#accessibility">Accessibility</a></li>
+            <li><a href="#faq">FAQ</a></li>
             <li><a href="#download">Download</a></li>
             <li><a href="html/USER_GUIDE.html">User Guide</a></li>
         </ul>
@@ -235,9 +268,9 @@
             Free, accessible, and built to stay out of your way.
         </p>
         <div class="cta-group">
-            <a href="https://github.com/BITS-ACB/chapterforge/releases/download/v1.0.0/ChapterForge-Setup.exe"
+            <a href="https://github.com/BITS-ACB/chapterforge/releases/latest/download/ChapterForge-Setup.exe"
                class="btn btn-primary">Download - Standard Installer</a>
-            <a href="https://github.com/BITS-ACB/chapterforge/releases/download/v1.0.0/ChapterForge-Portable.exe"
+            <a href="https://github.com/BITS-ACB/chapterforge/releases/latest/download/ChapterForge-Portable.exe"
                class="btn btn-secondary">Download - Portable</a>
         </div>
         <p class="hero-note">Free. Windows 10 and 11. No other software required.</p>
@@ -369,37 +402,91 @@
         </div>
     </section>
 
-    <section class="section" aria-labelledby="testimonials-heading">
+    <section class="section" aria-labelledby="uses-heading">
         <div class="section-inner">
-            <h2 id="testimonials-heading">What users say</h2>
-            <div class="testimonial">
-                <p>"ChapterForge has transformed how I manage my audiobook projects. The accessibility features are unmatched - I can do professional audio production entirely with my screen reader."</p>
-                <div class="testimonial-author">- Audiobook Creator, NVDA user</div>
+            <h2 id="uses-heading">Who uses ChapterForge</h2>
+            <p class="section-sub">A few of the situations where ChapterForge fits naturally.</p>
+
+            <div class="use-case">
+                <h3>Audiobook creators and narrators</h3>
+                <p>You record each chapter as a separate MP3. ChapterForge combines them into a single M4B or chaptered MP3, fills in the author, title, and cover, and produces exactly what you upload to ACX, Findaway Voices, or hand off directly to listeners. The <a href="html/USER_GUIDE.html#21-chapter-management-panel">chapter editor</a> lets you rename, reorder, merge, or split before anything is encoded.</p>
             </div>
-            <div class="testimonial">
-                <p>"As a podcaster producing 50 episodes a year, having ChapterForge watch my recording folder and build chapters automatically has saved me hours every single month."</p>
-                <div class="testimonial-author">- Podcast Producer</div>
+
+            <div class="use-case">
+                <h3>Podcasters adding chapter markers</h3>
+                <p>Listeners who use Overcast, Pocket Casts, or AntennaPod can jump directly to a segment if you embed chapter markers. ChapterForge builds them in from your existing segment files, lets you set per-chapter URLs and images for <a href="html/AUPHONIC_INTEGRATION.html">Podcasting 2.0</a>, and produces a file your RSS host accepts unchanged.</p>
             </div>
-            <div class="testimonial">
-                <p>"I digitized 200 cassette tapes of old radio plays. The silence detection found every chapter break in every recording. What would have taken weeks took a weekend."</p>
-                <div class="testimonial-author">- Audio Archivist</div>
+
+            <div class="use-case">
+                <h3>Audio archivists and collectors</h3>
+                <p>You have a hard drive of digitized cassettes, old radio recordings, or lectures - long single files with no natural track breaks. Drop them into ChapterForge and use <a href="html/USER_GUIDE.html#21-chapter-management-panel">auto-chapter by silence</a> to let the app find the breaks, then review and adjust. The <a href="html/USER_GUIDE.html#42-background-watcher-system">background watcher</a> can process entire archives overnight while you do something else.</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="section alt" id="faq" aria-labelledby="faq-heading">
+        <div class="section-inner">
+            <h2 id="faq-heading">Frequently asked questions</h2>
+            <p class="section-sub">Quick answers to common questions before you download.</p>
+            <div class="faq-list">
+
+                <details>
+                    <summary>What audio formats does ChapterForge accept?</summary>
+                    <p>ChapterForge works with MP3, FLAC, WAV, AAC, M4A, OGG, WMA, OPUS, and MP2 files as input. Output is either MP3 with embedded chapter markers or M4B audiobook format. When all your source files share the same format and bitrate, ChapterForge copies them losslessly - no quality loss at all. When they differ, it re-encodes cleanly with optional loudness normalization. See <a href="html/USER_GUIDE.html#22-metadata-and-tagging-panel">output options in the User Guide.</a></p>
+                </details>
+
+                <details>
+                    <summary>Do I need to install anything else?</summary>
+                    <p>No. FFmpeg - the engine that does the audio work - is bundled inside ChapterForge. You do not need to install Python, FFmpeg, or any other software separately. Just run the installer and you are ready to build.</p>
+                </details>
+
+                <details>
+                    <summary>What is the difference between Standard and Portable?</summary>
+                    <p>The Standard installer adds ChapterForge to your Program Files folder, creates Start menu and desktop shortcuts, and registers an uninstaller. The Portable version is a single self-contained executable you can run from any folder, USB drive, or network share - nothing is written to the registry and no uninstaller is needed. Both are fully featured; the only difference is how they are installed and where they store their settings.</p>
+                </details>
+
+                <details>
+                    <summary>Can I fix an audiobook I already have?</summary>
+                    <p>Yes. Use <strong>File &gt; Open Existing Master</strong> to open any chaptered MP3 or M4B. You can then edit chapter titles, adjust start times, merge or split chapters, update tags, replace the cover art, and save the changes - without re-encoding the audio. <a href="html/USER_GUIDE.html#22-metadata-and-tagging-panel">Full details in the User Guide.</a></p>
+                </details>
+
+                <details>
+                    <summary>Does ChapterForge need an internet connection?</summary>
+                    <p>No. Everything works offline. ChapterForge optionally checks for updates in the background - that is the only network request it makes, and it can be turned off in Tools &gt; Settings.</p>
+                </details>
+
+                <details>
+                    <summary>My files are different bitrates or quality levels. Will that cause problems?</summary>
+                    <p>ChapterForge runs pre-flight checks before every build and warns you if your source files have mismatched sample rates or channels. When files are compatible it copies them losslessly. When they differ it re-encodes to a consistent output, with loudness normalization available to even out volume differences between tracks.</p>
+                </details>
+
+                <details>
+                    <summary>Is it really free? Are there any catches?</summary>
+                    <p>ChapterForge is free, open source, and MIT licensed. There is no subscription, no account, no usage limit, and no data collected. The source code is on <a href="https://github.com/BITS-ACB/chapterforge">GitHub</a>. The only "catch" is that the packaged installer bundles FFmpeg, which carries its own open license - see <a href="html/THIRD_PARTY.html">Third-Party Notices</a> for the full details.</p>
+                </details>
+
+                <details>
+                    <summary>I have a question that is not answered here. How do I get help?</summary>
+                    <p>Start with the <a href="html/USER_GUIDE.html">User Guide</a> - it covers every feature in detail. If you have found a bug or something is not working as expected, <a href="https://github.com/BITS-ACB/chapterforge/issues">open an issue on GitHub</a>. For anything else, email <a href="mailto:info@chapterforge.org">info@chapterforge.org</a> and the BITS team will get back to you.</p>
+                </details>
+
             </div>
         </div>
     </section>
 
     <section class="download-cta" id="download" aria-labelledby="download-heading">
-        <h2 id="download-heading">Download ChapterForge 1.0.0</h2>
+        <h2 id="download-heading">Download ChapterForge</h2>
         <p class="lead">Free for Windows 10 and 11. No subscription, no account, no data collected.</p>
         <div class="download-options">
             <div class="download-option">
-                <a href="https://github.com/BITS-ACB/chapterforge/releases/download/v1.0.0/ChapterForge-Setup.exe"
+                <a href="https://github.com/BITS-ACB/chapterforge/releases/latest/download/ChapterForge-Setup.exe"
                    class="btn btn-primary" style="font-size: 1.05rem; padding: 1rem 2.5rem;">
                     Standard Installer
                 </a>
                 <small>Installs to Program Files with Start menu and desktop shortcuts</small>
             </div>
             <div class="download-option">
-                <a href="https://github.com/BITS-ACB/chapterforge/releases/download/v1.0.0/ChapterForge-Portable.exe"
+                <a href="https://github.com/BITS-ACB/chapterforge/releases/latest/download/ChapterForge-Portable.exe"
                    class="btn btn-secondary" style="font-size: 1.05rem; padding: 1rem 2.5rem;">
                     Portable
                 </a>
@@ -409,6 +496,7 @@
         <p style="color: var(--text-light); font-size: .9rem;">
             Read the <a href="html/CHANGELOG.html">release notes</a> or browse the
             <a href="html/USER_GUIDE.html">User Guide</a> before you install.
+            Questions? Email <a href="mailto:info@chapterforge.org">info@chapterforge.org</a>.
         </p>
     </section>
 
@@ -424,6 +512,7 @@
             <li><a href="html/USER_GUIDE.html">User Guide</a></li>
             <li><a href="html/CHANGELOG.html">What's New</a></li>
             <li><a href="html/AUPHONIC_INTEGRATION.html">Auphonic Integration</a></li>
+            <li><a href="mailto:info@chapterforge.org">Contact</a></li>
             <li><a href="https://github.com/BITS-ACB/chapterforge/issues">Report an Issue</a></li>
             <li><a href="html/LICENSE.txt">License (MIT)</a></li>
             <li><a href="html/THIRD_PARTY.html">Third-Party Notices</a></li>

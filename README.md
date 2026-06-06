@@ -66,3 +66,9 @@ ChapterForge is free and open source, released under the **MIT License** - see
 
 The installer includes third-party components (FFmpeg and others). See
 [THIRD_PARTY.md](THIRD_PARTY.md) for full license details and attributions.
+
+## For developers
+
+The codebase lives under `chapterforge/`. Build and release instructions are in
+[`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md). Issues and pull requests are welcome
+on [GitHub](https://github.com/BITS-ACB/chapterforge).
