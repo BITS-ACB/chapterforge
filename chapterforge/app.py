@@ -32,6 +32,11 @@ from . import settings as settings_mod
 from .notify import Notifier
 from .player import PlayerPanel
 
+# Token for issue submission. Resolved at runtime from environment or
+# build-injected constant. Never hardcode a real token here.
+# Set CHAPTERFORGE_GITHUB_TOKEN env var or inject via build pipeline.
+_FEEDBACK_GITHUB_TOKEN = os.environ.get("CHAPTERFORGE_GITHUB_TOKEN", "")
+
 
 # ----------------------------------------------------------------------------
 # Undo / redo infrastructure
@@ -369,6 +374,9 @@ class MainFrame(wx.Frame):
             wx.ID_ANY, "All D&ocumentation…",
             "Open the documentation home page")
         help_menu.AppendSeparator()
+        self.mi_report_issue = help_menu.Append(
+            wx.ID_ANY, "&Report an Issue…",
+            "Submit a bug report or feature request directly to the ChapterForge team")
         self.mi_diagnostics = help_menu.Append(
             wx.ID_ANY, "Get &Help Information…",
             "Save a text report of versions and settings for support")
@@ -431,6 +439,7 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self._on_keys, self.mi_keys)
         self.Bind(wx.EVT_MENU, self._on_changelog_doc, self.mi_changelog)
         self.Bind(wx.EVT_MENU, self._on_docs_home, self.mi_docs_home)
+        self.Bind(wx.EVT_MENU, self._on_report_issue, self.mi_report_issue)
         self.Bind(wx.EVT_MENU, self._on_save_diagnostics, self.mi_diagnostics)
         self.Bind(wx.EVT_MENU, self._on_check_updates, self.mi_update)
         self.Bind(wx.EVT_MENU, self._on_about, id=wx.ID_ABOUT)
@@ -2134,6 +2143,35 @@ class MainFrame(wx.Frame):
     # ------------------------------------------------------------------
     # Diagnostics
     # ------------------------------------------------------------------
+    def _on_report_issue(self, _evt):
+        from pathlib import Path
+        try:
+            from feedback_hub import load_schema
+            from feedback_hub.wx_dialog import FeedbackDialog
+        except ImportError:
+            wx.MessageBox(
+                "The feedback-hub library is not installed.\n"
+                "Please visit https://github.com/BITS-ACB/chapterforge/issues to report this issue.",
+                "Report an Issue",
+                wx.OK | wx.ICON_INFORMATION,
+                self,
+            )
+            return
+
+        schema_path = Path(__file__).parent.parent / "schemas" / "chapterforge.json"
+        if not schema_path.exists():
+            schema_path = Path(__file__).parent / "schemas" / "chapterforge.json"
+
+        schema = load_schema(schema_path)
+        dlg = FeedbackDialog(
+            self,
+            schema=schema,
+            github_token=_FEEDBACK_GITHUB_TOKEN,
+            app_version=__version__,
+        )
+        dlg.ShowModal()
+        dlg.Destroy()
+
     def _on_save_diagnostics(self, _evt):
         dlg = wx.FileDialog(
             self, "Save diagnostics", defaultFile="chapterforge-diagnostics.txt",
