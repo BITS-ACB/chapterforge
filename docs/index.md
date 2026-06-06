@@ -2,7 +2,7 @@
 redirect_to: /chapterforge/landing.html
 ---
 
-# ChapterForge 2.0.0
+# ChapterForge 1.0.0
 
 Visit the [ChapterForge website](landing.html) for more information.
 

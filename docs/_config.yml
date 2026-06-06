@@ -11,7 +11,7 @@ exclude:
   - DEPLOYMENT.md
   - CODE_QUALITY.md
   - LINTING.md
-  - press-release-v2.0.0.md
+  - press-release-v1.0.0.md
   - roadmap
 
 # Include files

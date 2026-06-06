@@ -1,18 +1,18 @@
 # FOR IMMEDIATE RELEASE
 
-## ChapterForge 2.0.0 Launches as the Premier Accessible Audio Chapter Management Solution
+## ChapterForge 1.0.0 Launches as the Premier Accessible Audio Chapter Management Solution
 
 ### Revolutionary Software Delivers Unprecedented Accessibility and Professional-Grade Tools for Audiobook Creators, Podcasters, and Visually Impaired Users
 
-**Tucson, AZ — June 5, 2026** — Blind Information Technology Solutions (BITS), a leader in accessible technology solutions, today announced the official launch of ChapterForge 2.0.0, their acclaimed audio chapter management software. This inaugural release introduces comprehensive format compatibility, a completely accessible interface, and professional tools that make audio chapter management accessible to everyone.
+**Tucson, AZ — June 5, 2026** — Blind Information Technology Solutions (BITS), a leader in accessible technology solutions, today announced the official launch of ChapterForge 1.0.0, their acclaimed audio chapter management software. This inaugural release introduces comprehensive format compatibility, a completely accessible interface, and professional tools that make audio chapter management accessible to everyone.
 
-ChapterForge 2.0.0 transforms how users convert collections of audio files into professionally chaptered audiobooks, podcasts, or educational content.
+ChapterForge 1.0.0 transforms how users convert collections of audio files into professionally chaptered audiobooks, podcasts, or educational content.
 
 "This release represents the culmination of years of development focused on accessibility and user experience," said Jeff Bishop, President of BITS. "We've created a tool that ensures everyone, regardless of ability, can create professional-quality audio content independently."
 
 ### Unmatched Accessibility for All Users
 
-Built from the ground up with full keyboard navigation, comprehensive screen reader support, and customizable accessibility features, ChapterForge 2.0.0 makes professional audio editing possible for everyone. The software includes:
+Built from the ground up with full keyboard navigation, comprehensive screen reader support, and customizable accessibility features, ChapterForge 1.0.0 makes professional audio editing possible for everyone. The software includes:
 
 - Full keyboard control with standard shortcuts
 - Intelligent screen reader announcements with context-aware feedback
@@ -21,7 +21,7 @@ Built from the ground up with full keyboard navigation, comprehensive screen rea
 
 ### Universal Format Support and Professional Features
 
-ChapterForge 2.0.0 supports import from and export to popular audio formats, including MP3, FLAC, WAV, AAC, M4A, OGG, WMA, OPUS, and MP2. Professional-grade features include:
+ChapterForge 1.0.0 supports import from and export to popular audio formats, including MP3, FLAC, WAV, AAC, M4A, OGG, WMA, OPUS, and MP2. Professional-grade features include:
 
 - Comprehensive ID3 tag editor with custom field support
 - Album art embedding with automatic cover art detection
@@ -39,9 +39,9 @@ The interface features a clean design with a dark/light theme toggle. An intuiti
 
 ### Official Launch Marks Milestone in Accessible Technology
 
-As the first official release of ChapterForge, version 2.0.0 represents a significant milestone in accessible audio software development. The software incorporates feedback from beta testers and accessibility advocates to deliver a robust, professional tool.
+As the first official release of ChapterForge, version 1.0.0 represents a significant milestone in accessible audio software development. The software incorporates feedback from beta testers and accessibility advocates to deliver a robust, professional tool.
 
-### Key Features in ChapterForge 2.0.0
+### Key Features in ChapterForge 1.0.0
 
 #### Multi-Format Audio Processing
 Support for popular audio formats including MP3, FLAC, WAV, AAC, M4A, OGG, WMA, OPUS, and MP2. Import from any supported format and export to MP3 with ID3v2 CHAP/CTOC chapters or M4B/AAC with native MP4 chapters.
@@ -95,13 +95,13 @@ Automatically detect chapter breaks in long audio recordings by analyzing silenc
 
 ### Availability and Pricing
 
-ChapterForge 2.0.0 is available immediately as a free download for Windows 10 and 11. The software is released under the MIT License, making it free for personal and commercial use.
+ChapterForge 1.0.0 is available immediately as a free download for Windows 10 and 11. The software is released under the MIT License, making it free for personal and commercial use.
 
 ### About Blind Information Technology Solutions (BITS)
 
 Founded in 2020, Blind Information Technology Solutions (BITS) is dedicated to creating accessible technology solutions that empower users of all abilities. The company's flagship product, ChapterForge, has been downloaded over 50,000 times and is used by content creators, educators, and accessibility advocates worldwide.
 
-For more information about ChapterForge 2.0.0 or to schedule a demonstration, visit [chapterforge.org](https://chapterforge.org) or contact the BITS team at [info@chapterforge.org](mailto:info@chapterforge.org).
+For more information about ChapterForge 1.0.0 or to schedule a demonstration, visit [chapterforge.org](https://chapterforge.org) or contact the BITS team at [info@chapterforge.org](mailto:info@chapterforge.org).
 
 ---
 
@@ -118,7 +118,7 @@ Available upon request
 
 ---
 
-*ChapterForge 2.0.0 - Where Accessibility Meets Professional Power*
+*ChapterForge 1.0.0 - Where Accessibility Meets Professional Power*
 
 *Note: ChapterForge is developed by Blind Information Technology Solutions (BITS). All other trademarks are the property of their respective owners.*
 
@@ -160,7 +160,7 @@ Every feature built with accessibility in mind:
 
 ### Availability and Pricing
 
-ChapterForge 2.0.0 is available immediately as a free download for Windows 10 and 11 from [chapterforge.org](https://chapterforge.org). The software is released under the MIT License, making it free for personal and commercial use.
+ChapterForge 1.0.0 is available immediately as a free download for Windows 10 and 11 from [chapterforge.org](https://chapterforge.org). The software is released under the MIT License, making it free for personal and commercial use.
 
 Professional support, priority updates, and enterprise licensing options are available for organizations requiring additional features or dedicated assistance.
 
@@ -168,7 +168,7 @@ Professional support, priority updates, and enterprise licensing options are ava
 
 Founded in 2020, Blind Information Technology Solutions (BITS) is dedicated to creating accessible technology solutions that empower users of all abilities. The company's flagship product, ChapterForge, has been downloaded over 50,000 times and is used by content creators, educators, and accessibility advocates worldwide.
 
-For more information about ChapterForge 2.0.0 or to schedule a demonstration, visit [chapterforge.org](https://chapterforge.org) or contact the BITS team at [info@chapterforge.org](mailto:info@chapterforge.org).
+For more information about ChapterForge 1.0.0 or to schedule a demonstration, visit [chapterforge.org](https://chapterforge.org) or contact the BITS team at [info@chapterforge.org](mailto:info@chapterforge.org).
 
 ---
 
@@ -185,6 +185,6 @@ Available upon request
 
 ---
 
-*ChapterForge 2.0.0 - Where Accessibility Meets Professional Power*
+*ChapterForge 1.0.0 - Where Accessibility Meets Professional Power*
 
 *Note: ChapterForge is developed by Blind Information Technology Solutions (BITS). All other trademarks are the property of their respective owners.*

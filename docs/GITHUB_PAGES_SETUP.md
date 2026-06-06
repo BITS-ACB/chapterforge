@@ -49,7 +49,7 @@ The following files are excluded from the published website (see `_config.yml`):
 - DEPLOYMENT.md - Build instructions (developers only)
 - CODE_QUALITY.md - Quality guidelines (developers only)
 - LINTING.md - Linting configuration (developers only)
-- press-release-v2.0.0.md - Press release content
+- press-release-v1.0.0.md - Press release content
 
 ## Build and Deployment
 

@@ -1,16 +1,16 @@
-﻿# ChapterForge 2.0.0 - Revolutionizing Audio Chapter Management
+# ChapterForge 1.0.0 - Revolutionizing Audio Chapter Management
 
 **The Ultimate Accessible Audio Book and Podcast Production Suite**
 
-Transform your collection of audio files into professionally chaptered masterpieces with ChapterForge 2.0.0 - the most advanced, accessible, and feature-rich audio chapter management solution available today. Whether you're a visually impaired user requiring full keyboard navigation and screen reader support, a content creator producing audiobooks, or a podcaster looking to enhance your episodes with precise chapter markers, ChapterForge 2.0.0 delivers an unparalleled experience.
+Transform your collection of audio files into professionally chaptered masterpieces with ChapterForge 1.0.0 - the most advanced, accessible, and feature-rich audio chapter management solution available today. Whether you're a visually impaired user requiring full keyboard navigation and screen reader support, a content creator producing audiobooks, or a podcaster looking to enhance your episodes with precise chapter markers, ChapterForge 1.0.0 delivers an unparalleled experience.
 
 > *"ChapterForge has completely transformed how I create and manage my audiobook library. The AI-powered chapter detection saves me hours of manual work, and the accessibility features make it possible for me to use independently for the first time."* - Maria S., Audiobook Creator
 
-## Why ChapterForge 2.0.0?
+## Why ChapterForge 1.0.0?
 
-In a world where audio content is king, ChapterForge 2.0.0 stands as the definitive solution for anyone who needs to transform raw audio files into professionally organized, accessible, and playback-optimized masterpieces. This revolutionary update represents over two years of intensive development, user feedback integration, and technological advancement.
+In a world where audio content is king, ChapterForge 1.0.0 stands as the definitive solution for anyone who needs to transform raw audio files into professionally organized, accessible, and playback-optimized masterpieces. This revolutionary update represents over two years of intensive development, user feedback integration, and technological advancement.
 
-### The ChapterForge 2.0.0 Difference:
+### The ChapterForge 1.0.0 Difference:
 
 1. **Unmatched Accessibility**: Built from the ground up with full keyboard navigation, comprehensive screen reader support, and customizable accessibility features that make professional audio editing possible for everyone.
 
@@ -263,7 +263,7 @@ on libraries (Mutagen is GPL-licensed) that carry their own license terms. If
 you redistribute a packaged build, review [`THIRD_PARTY.md`](THIRD_PARTY.md) and
 comply with those licenses; the MIT license covers only ChapterForge's own code.
 
-## Key Features That Set ChapterForge 2.0.0 Apart
+## Key Features That Set ChapterForge 1.0.0 Apart
 
 ### 🚀 **Revolutionary Chapter Editing Interface**
 - Intuitive drag-and-drop chapter reordering with visual feedback
@@ -319,25 +319,13 @@ comply with those licenses; the MIT license covers only ChapterForge's own code.
 - Real-time playback preview with instant chapter navigation
 - Audio quality analysis and issue detection
 
-## 🌟 What's New in ChapterForge 2.0.0
-
-Version 2.0.0 represents the most significant leap forward in ChapterForge's history. We've completely rewritten the core engine, redesigned the user interface, and introduced groundbreaking AI-powered features that make creating professionally chaptered audio files easier than ever before.
-
-### Revolutionary Features Introduced in v2.0.0:
-- **Smart Chapter Detection AI**: Our proprietary AI analyzes your audio content to automatically suggest optimal chapter break points
-- **Real-time Waveform Visualization**: See your audio as you edit with our enhanced visualization tools
-- **Cloud Integration**: Seamlessly work with files stored in Dropbox, Google Drive, and OneDrive
-- **Batch Processing Wizard**: Convert entire libraries of audiobooks with a single setup
-- **Enhanced Accessibility Suite**: New voice announcements, improved keyboard navigation, and customizable themes
-- **Universal Format Support**: Import from and export to virtually any audio format
-- **Multi-threaded Processing Engine**: Experience up to 5x faster builds compared to v1.x
 
 ## 🏆 Professional Grade Tools for Everyone
 
-Unlike other audio chaptering solutions that either sacrifice accessibility for features or limit functionality to maintain simplicity, ChapterForge 2.0.0 delivers both professional capabilities and universal accessibility. Whether you're a visually impaired user who depends on screen readers, a content creator producing commercial audiobooks, or an educator organizing lecture recordings, ChapterForge provides the tools you need with the accessibility you require.
+Unlike other audio chaptering solutions that either sacrifice accessibility for features or limit functionality to maintain simplicity, ChapterForge 1.0.0 delivers both professional capabilities and universal accessibility. Whether you're a visually impaired user who depends on screen readers, a content creator producing commercial audiobooks, or an educator organizing lecture recordings, ChapterForge provides the tools you need with the accessibility you require.
 
 ### For Content Creators:
-- **Time-Saving Automation**: AI-driven chapter detection reduces manual work by up to 80%
+- **Time-Saving Automation**: Silence-based chapter detection and batch processing reduce manual work
 - **Professional Output**: Create files compatible with all major podcast platforms and audiobook retailers
 - **Quality Assurance**: Built-in audio analysis prevents common issues that cause player compatibility problems
 - **Metadata Management**: Comprehensive tagging system ensures your content displays correctly everywhere
@@ -358,7 +346,7 @@ Unlike other audio chaptering solutions that either sacrifice accessibility for 
 
 ### Installation
 
-ChapterForge 2.0.0 offers multiple installation options to suit your needs:
+ChapterForge 1.0.0 offers multiple installation options to suit your needs:
 
 1. **Standard Installer** (Recommended)
    - Full features with automatic updates
@@ -405,7 +393,7 @@ ChapterForge 2.0.0 offers multiple installation options to suit your needs:
 
 ## 🛠️ Command Line Usage
 
-For power users and automated workflows, ChapterForge 2.0.0 provides a comprehensive command-line interface:
+For power users and automated workflows, ChapterForge 1.0.0 provides a comprehensive command-line interface:
 
 ```bash
 # Basic conversion
@@ -461,7 +449,7 @@ Automatically process new audio folders with the background watcher:
 
 ## 🤝 Support and Community
 
-ChapterForge 2.0.0 is backed by Blind Information Technology Solutions (BITS), a leader in accessible technology solutions. We're committed to providing excellent support and continuously improving our software based on user feedback.
+ChapterForge 1.0.0 is backed by Blind Information Technology Solutions (BITS), a leader in accessible technology solutions. We're committed to providing excellent support and continuously improving our software based on user feedback.
 
 ### Resources
 - **Official Website**: [chapterforge.org](https://chapterforge.org)
@@ -479,7 +467,7 @@ We welcome contributions from the community:
 
 ## 📄 License and Credits
 
-ChapterForge 2.0.0 is released under the MIT License, making it free for personal and commercial use. Developed by Blind Information Technology Solutions (BITS) with contributions from the open-source community.
+ChapterForge 1.0.0 is released under the MIT License, making it free for personal and commercial use. Developed by Blind Information Technology Solutions (BITS) with contributions from the open-source community.
 
 ### Third-Party Components
 ChapterForge incorporates several excellent open-source libraries and tools:
@@ -490,8 +478,8 @@ ChapterForge incorporates several excellent open-source libraries and tools:
 
 ## 🚀 Ready to Get Started?
 
-Download ChapterForge 2.0.0 today and experience the future of accessible audio chapter management. Transform your audio files into professionally organized, playback-optimized masterpieces with just a few clicks.
+Download ChapterForge 1.0.0 today and experience the future of accessible audio chapter management. Transform your audio files into professionally organized, playback-optimized masterpieces with just a few clicks.
 
 [Download Now](https://chapterforge.org/download) | [View Documentation](https://chapterforge.org/docs) | [Join Community](https://chapterforge.org/community)
 
-*ChapterForge 2.0.0 - Where Accessibility Meets Professional Power*
+*ChapterForge 1.0.0 - Where Accessibility Meets Professional Power*

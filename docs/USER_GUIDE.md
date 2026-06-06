@@ -1,18 +1,18 @@
-# ChapterForge 2.0.0 — Comprehensive User Guide
+# ChapterForge 1.0.0 — Comprehensive User Guide
 
-Welcome to ChapterForge 2.0.0, an accessible audio chapter management solution. This comprehensive user guide will walk you through every feature, function, and workflow to help you create chaptered audio content.
+Welcome to ChapterForge 1.0.0, an accessible audio chapter management solution. This comprehensive user guide will walk you through every feature, function, and workflow to help you create chaptered audio content.
 
 Whether you're a visually impaired user requiring full keyboard navigation and screen reader support, a content creator producing audiobooks, or a podcaster looking to enhance your episodes with precise chapter markers, this guide has everything you need to succeed.
 
-ChapterForge 2.0.0 is designed to help you create chaptered audio content from collections of audio files. With support for popular audio formats and accessibility features, ChapterForge empowers users to create quality audio content.
+ChapterForge 1.0.0 is designed to help you create chaptered audio content from collections of audio files. With support for popular audio formats and accessibility features, ChapterForge empowers users to create quality audio content.
 
 ---
 
-## 1. Getting Started with ChapterForge 2.0.0
+## 1. Getting Started with ChapterForge 1.0.0
 
 ### 1.1 Launching the Application
 
-ChapterForge 2.0.0 can be launched in multiple ways to suit your workflow:
+ChapterForge 1.0.0 can be launched in multiple ways to suit your workflow:
 
 - **Graphical Interface**: Click the ChapterForge shortcut in your Start Menu or desktop
 - **Command Line**: Type `chapterforge` in your terminal or command prompt
@@ -22,7 +22,7 @@ Upon launch, you'll be greeted with a clean, intuitive interface designed for ma
 
 ### 1.2 Understanding the Interface
 
-The ChapterForge 2.0.0 interface is organized into two main sections for efficient workflow:
+The ChapterForge 1.0.0 interface is organized into two main sections for efficient workflow:
 
 1. **Chapter Management Panel** (Left): Organize and edit your chapter list
 2. **Metadata and Tagging Panel** (Right): Set ID3 tags, cover art, and export options
@@ -32,7 +32,7 @@ Each panel is fully accessible with keyboard navigation and screen reader suppor
 ### 1.3 Quick Start Workflow
 
 #### Method 1: Basic Chapter Creation from Folder
-1. Launch ChapterForge 2.0.0
+1. Launch ChapterForge 1.0.0
 2. **File → Open Folder** (`Ctrl+Shift+O`) and select a folder containing your audio files
 3. Review the automatically generated chapter list in the Chapter Management Panel
 4. Make any necessary adjustments to chapter titles or order
@@ -42,7 +42,7 @@ Each panel is fully accessible with keyboard navigation and screen reader suppor
 8. Click **Build Master File** (`Ctrl+B`) to create your chaptered audio file
 
 #### Method 2: Advanced Workflow with Silence Detection
-1. Launch ChapterForge 2.0.0
+1. Launch ChapterForge 1.0.0
 2. **File → Open File** (`Ctrl+O`) and select a single long audio recording
 3. Enable **Auto-chapter by Silence** in the processing options
 4. Adjust silence detection parameters (threshold and minimum duration)
@@ -51,7 +51,7 @@ Each panel is fully accessible with keyboard navigation and screen reader suppor
 7. Proceed with metadata configuration and building as above
 
 #### Method 3: Using Job Files
-1. Launch ChapterForge 2.0.0
+1. Launch ChapterForge 1.0.0
 2. **File → Open Job File** (`Ctrl+L`) and select an existing .cfjob file
 3. Review the loaded configuration
 4. Make any necessary adjustments
@@ -93,7 +93,7 @@ The Chapter Management Panel is where you organize, edit, and optimize your chap
 
 ### 2.2 Metadata and Tagging Panel
 
-ChapterForge 2.0.0 includes a professional-grade metadata editor that supports all standard ID3 fields and advanced tagging features.
+ChapterForge 1.0.0 includes a professional-grade metadata editor that supports all standard ID3 fields and advanced tagging features.
 
 #### Basic Tags
 - **Title**: The main title of your audio work
@@ -133,7 +133,7 @@ The Preview and Control Panel provides playback controls for reviewing your audi
 
 ### 2.4 Audio Trimming and Cutting Tools
 
-ChapterForge 2.0.0 includes powerful audio editing tools for precise trimming and cutting:
+ChapterForge 1.0.0 includes powerful audio editing tools for precise trimming and cutting:
 
 #### Lossless Audio Trimming
 - **Set Begin/End Points**: Mark precise trim boundaries using the current playhead position
@@ -153,7 +153,7 @@ ChapterForge 2.0.0 includes powerful audio editing tools for precise trimming an
 
 ### 3.1 Comprehensive Keyboard Navigation
 
-ChapterForge 2.0.0 is designed from the ground up for full keyboard accessibility:
+ChapterForge 1.0.0 is designed from the ground up for full keyboard accessibility:
 
 #### Global Shortcuts
 | Key Combination | Action |
@@ -220,7 +220,7 @@ ChapterForge 2.0.0 is designed from the ground up for full keyboard accessibilit
 
 ### 3.2 Screen Reader Integration
 
-ChapterForge 2.0.0 includes advanced screen reader support:
+ChapterForge 1.0.0 includes advanced screen reader support:
 - **Context-Aware Announcements**: Only relevant information is announced to avoid noise
 - **Customizable Verbosity**: Adjust how much detail is announced during operations
 - **Progress Reporting**: Real-time progress updates during long operations
@@ -237,12 +237,12 @@ Job files are powerful, human-readable text files that store complete project co
 
 #### Job File Structure
 ```ini
-# ChapterForge 2.0.0 Job File - Professional Audiobook Project
+# ChapterForge 1.0.0 Job File - Professional Audiobook Project
 # Created: 2026-06-05
 # Author: [Your Name]
 
 # Global Settings
-@version     = 2.0.0
+@version     = 1.0.0
 @title       = The Complete Guide to Audio Chaptering
 @artist      = Jane Author
 @album       = Audiobook Masterclass Series
@@ -359,7 +359,7 @@ Automatically detect chapter boundaries in long recordings using silence detecti
 
 ## 5. Command Line Interface
 
-ChapterForge 2.0.0 includes a comprehensive CLI for automation and scripting:
+ChapterForge 1.0.0 includes a comprehensive CLI for automation and scripting:
 
 ### Basic Commands
 ```bash
@@ -559,10 +559,10 @@ chapterforge --batch "C:\Audiobooks" --recursive --normalize --target-lufs -16.0
 
 ---
 
-*ChapterForge 2.0.0 User Guide - Where Accessibility Meets Professional Power*
+*ChapterForge 1.0.0 User Guide - Where Accessibility Meets Professional Power*
 
 #### Method 1: Basic Chapter Creation
-1. Launch ChapterForge 2.0.0
+1. Launch ChapterForge 1.0.0
 2. **File → Open Folder** (`Ctrl+Shift+O`) and select a folder containing your audio files
 3. Review the automatically generated chapter list in the Chapter Management Panel
 4. Click **Set Tags & Build** to proceed to metadata configuration
@@ -616,7 +616,7 @@ The Chapter Management Panel is where you organize, edit, and optimize your chap
 - **Batch Edit**: Select multiple chapters using `Ctrl+Click` or `Shift+Click` for bulk operations
 
 #### Smart Chapter Detection AI
-One of the most revolutionary features in ChapterForge 2.0.0 is our proprietary Smart Chapter Detection AI:
+One of the most revolutionary features in ChapterForge 1.0.0 is our proprietary Smart Chapter Detection AI:
 1. Select one or more chapters you want to optimize
 2. Click **AI Analyze Selection** or press `Ctrl+Shift+A`
 3. The AI will analyze the audio content and suggest optimal chapter boundaries
@@ -633,7 +633,7 @@ The enhanced waveform visualization provides real-time visual feedback:
 
 ### 2.2 Metadata and Tagging Panel
 
-ChapterForge 2.0.0 includes a professional-grade metadata editor:
+ChapterForge 1.0.0 includes a professional-grade metadata editor:
 
 #### Basic Tags
 - **Title**: The main title of your audio work
@@ -688,7 +688,7 @@ The Preview and Control Panel provides comprehensive playback and analysis tools
 
 ### 3.1 Comprehensive Keyboard Navigation
 
-ChapterForge 2.0.0 is designed from the ground up for full keyboard accessibility:
+ChapterForge 1.0.0 is designed from the ground up for full keyboard accessibility:
 
 #### Global Shortcuts
 | Key Combination | Action |
@@ -747,7 +747,7 @@ ChapterForge 2.0.0 is designed from the ground up for full keyboard accessibilit
 
 ### 3.2 Screen Reader Integration
 
-ChapterForge 2.0.0 includes advanced screen reader support:
+ChapterForge 1.0.0 includes advanced screen reader support:
 - **Context-Aware Announcements**: Only relevant information is announced to avoid noise
 - **Customizable Verbosity**: Adjust how much detail is announced during operations
 - **Progress Reporting**: Real-time progress updates during long operations
@@ -761,12 +761,12 @@ ChapterForge 2.0.0 includes advanced screen reader support:
 Job files are powerful, human-readable text files that store complete project configurations:
 
 ```ini
-# ChapterForge 2.0.0 Job File - Professional Audiobook Project
+# ChapterForge 1.0.0 Job File - Professional Audiobook Project
 # Created: 2026-06-05
 # Author: [Your Name]
 
 # Global Settings
-@version     = 2.0.0
+@version     = 1.0.0
 @title       = The Complete Guide to Audio Chaptering
 @artist      = Jane Author
 @album       = Audiobook Masterclass Series
@@ -863,7 +863,7 @@ Process entire libraries with minimal setup:
 
 ## 5. Command Line Interface
 
-ChapterForge 2.0.0 includes a comprehensive CLI for automation and scripting:
+ChapterForge 1.0.0 includes a comprehensive CLI for automation and scripting:
 
 ### Basic Commands
 ```bash
@@ -1019,4 +1019,4 @@ chapterforge .\chapters --report report.txt
 
 ---
 
-*ChapterForge 2.0.0 User Guide - Where Accessibility Meets Professional Power*
+*ChapterForge 1.0.0 User Guide - Where Accessibility Meets Professional Power*

@@ -1,6 +1,6 @@
-# ChapterForge 2.0.0 — Comprehensive Deployment Guide
+# ChapterForge 1.0.0 — Comprehensive Deployment Guide
 
-This document provides detailed instructions for building, packaging, releasing, and updating ChapterForge 2.0.0 on Windows. This guide covers everything from development environment setup to production deployment strategies.
+This document provides detailed instructions for building, packaging, releasing, and updating ChapterForge 1.0.0 on Windows. This guide covers everything from development environment setup to production deployment strategies.
 
 ---
 
@@ -8,7 +8,7 @@ This document provides detailed instructions for building, packaging, releasing,
 
 ### 1.1 Development Environment
 
-**ChapterForge 2.0.0 requires the following development environment:**
+**ChapterForge 1.0.0 requires the following development environment:**
 
 - **Python 3.10+** (developed and tested on Python 3.12)
   - Required packages are listed in `requirements.txt`
@@ -54,7 +54,7 @@ This document provides detailed instructions for building, packaging, releasing,
 
 ## 2. Versioning Strategy
 
-ChapterForge 2.0.0 follows Semantic Versioning (SemVer) principles: `MAJOR.MINOR.PATCH`
+ChapterForge 1.0.0 follows Semantic Versioning (SemVer) principles: `MAJOR.MINOR.PATCH`
 
 ### 2.1 Version Number Components
 
@@ -70,22 +70,22 @@ ChapterForge 2.0.0 follows Semantic Versioning (SemVer) principles: `MAJOR.MINOR
    ```toml
    [project]
    name = "chapterforge"
-   version = "2.0.0"  # ← Update this
+   version = "1.0.0"  # ← Update this
    ```
 
 2. **`chapterforge/__init__.py`** → `__version__` variable
    ```python
-   __version__ = "2.0.0"  # ← Update this
+   __version__ = "1.0.0"  # ← Update this
    ```
 
 3. **`installer/ChapterForge.iss`** → Inno Setup defines
    ```pascal
-   #define AppVersion "2.0.0"  # ← Update this
+   #define AppVersion "1.0.0"  # ← Update this
    ```
 
 4. **`CHANGELOG.md`** → Add new version section with release date
    ```markdown
-   ## [2.0.0] - 2026-06-05
+   ## [1.0.0] - 2026-06-05
    ### Added
    - New features...
    ```
@@ -95,11 +95,11 @@ ChapterForge 2.0.0 follows Semantic Versioning (SemVer) principles: `MAJOR.MINOR
 
 ### 2.3 Git Tagging Convention
 
-- **Tag Format**: `vMAJOR.MINOR.PATCH` (e.g., `v2.0.0`)
+- **Tag Format**: `vMAJOR.MINOR.PATCH` (e.g., `v1.0.0`)
 - **Tagging Command**: 
   ```bash
-  git tag -a v2.0.0 -m "Release version 2.0.0"
-  git push origin v2.0.0
+  git tag -a v1.0.0 -m "Release version 1.0.0"
+  git push origin v1.0.0
   ```
 
 ---
@@ -163,7 +163,7 @@ Before each release, perform manual testing of:
 
 ---
 
-## 4. Building ChapterForge 2.0.0
+## 4. Building ChapterForge 1.0.0
 
 ### 4.1 Development Build
 
@@ -185,7 +185,7 @@ python main.py --watch
 
 ### 4.2 PyInstaller Build Process
 
-ChapterForge 2.0.0 uses PyInstaller for creating distributable builds:
+ChapterForge 1.0.0 uses PyInstaller for creating distributable builds:
 
 ```bash
 # Ensure PyInstaller is installed
@@ -231,7 +231,7 @@ The `ChapterForge.spec` file controls the PyInstaller build process:
 # Key configuration options in ChapterForge.spec:
 
 # Application version
-version = '2.0.0'
+version = '1.0.0'
 
 # Build directories
 distpath = 'dist'
@@ -260,7 +260,7 @@ Set environment variables to customize builds:
 
 ```bash
 # Set build version
-set CF_VERSION=2.0.0
+set CF_VERSION=1.0.0
 
 # Enable debug logging
 set CF_DEBUG=1
@@ -291,7 +291,7 @@ pyinstaller ChapterForge.spec
 "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer\ChapterForge.iss
 
 # Output location
-# installer_output\ChapterForge-Setup-2.0.0.exe
+# installer_output\ChapterForge-Setup-1.0.0.exe
 ```
 
 #### Inno Setup Script Configuration
@@ -300,7 +300,7 @@ Key settings in `installer/ChapterForge.iss`:
 
 ```pascal
 #define AppName "ChapterForge"
-#define AppVersion "2.0.0"
+#define AppVersion "1.0.0"
 #define AppPublisher "Blind Information Technology Solutions (BITS)"
 #define AppURL "https://chapterforge.org"
 #define AppExeName "ChapterForge.exe"
@@ -331,7 +331,7 @@ Create the portable edition:
 pyinstaller ChapterForge.spec
 
 # Package as portable ZIP
-powershell Compress-Archive -Path "dist\ChapterForge" -DestinationPath "installer_output\ChapterForge-Portable-2.0.0.zip"
+powershell Compress-Archive -Path "dist\ChapterForge" -DestinationPath "installer_output\ChapterForge-Portable-1.0.0.zip"
 
 # Or use Inno Setup for portable installer
 "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer\ChapterForge-Portable.iss
@@ -346,7 +346,7 @@ For server or automated environments:
 pyinstaller ChapterForge-cli.spec
 
 # Package for distribution
-powershell Compress-Archive -Path "dist\chapterforge-cli" -DestinationPath "installer_output\ChapterForge-CLI-2.0.0.zip"
+powershell Compress-Archive -Path "dist\chapterforge-cli" -DestinationPath "installer_output\ChapterForge-CLI-1.0.0.zip"
 ```
 
 ---
@@ -406,7 +406,7 @@ pip install -r requirements.txt
 # 2. Run complete test suite
 python -m pytest -v
 
-# 3. Update version numbers to 2.0.0
+# 3. Update version numbers to 1.0.0
 # (Already done in previous steps)
 
 # 4. Create PyInstaller build
@@ -430,16 +430,16 @@ pyinstaller ChapterForge.spec
 
 ```bash
 # 1. Create and push Git tag
-git tag -a v2.0.0 -m "Release version 2.0.0"
-git push origin v2.0.0
+git tag -a v1.0.0 -m "Release version 1.0.0"
+git push origin v1.0.0
 
 # 2. Create GitHub release
-gh release create v2.0.0 \
-  --title "ChapterForge 2.0.0" \
-  --notes "Release notes for version 2.0.0" \
-  installer_output\ChapterForge-Setup-2.0.0.exe \
-  installer_output\ChapterForge-Portable-2.0.0.zip \
-  installer_output\ChapterForge-CLI-2.0.0.zip
+gh release create v1.0.0 \
+  --title "ChapterForge 1.0.0" \
+  --notes "Release notes for version 1.0.0" \
+  installer_output\ChapterForge-Setup-1.0.0.exe \
+  installer_output\ChapterForge-Portable-1.0.0.zip \
+  installer_output\ChapterForge-CLI-1.0.0.zip
 ```
 
 ### 7.4 Post-Release Activities
@@ -504,7 +504,7 @@ Test on multiple configurations:
 
 ### 9.1 GitHub Releases Integration
 
-ChapterForge 2.0.0 uses GitHub Releases for update distribution:
+ChapterForge 1.0.0 uses GitHub Releases for update distribution:
 
 1. **Update Check Process**:
    - Application checks `https://api.github.com/repos/BITS-ACB/chapterforge/releases/latest`
@@ -526,12 +526,12 @@ ChapterForge 2.0.0 uses GitHub Releases for update distribution:
 # (As described in previous sections)
 
 # 3. Calculate checksums
-certutil -hashfile installer_output\ChapterForge-Setup-2.0.0.exe SHA256
+certutil -hashfile installer_output\ChapterForge-Setup-1.0.0.exe SHA256
 
 # 4. Create GitHub release with assets
-gh release create v2.0.0 --generate-notes \
-  installer_output\ChapterForge-Setup-2.0.0.exe \
-  installer_output\ChapterForge-Portable-2.0.0.zip
+gh release create v1.0.0 --generate-notes \
+  installer_output\ChapterForge-Setup-1.0.0.exe \
+  installer_output\ChapterForge-Portable-1.0.0.zip
 
 # 5. Update latest release pointer
 # (Handled automatically by GitHub)
@@ -584,7 +584,7 @@ console=True
 
 ---
 
-*ChapterForge 2.0.0 Deployment Guide - Professional Deployment for Everyone*
+*ChapterForge 1.0.0 Deployment Guide - Professional Deployment for Everyone*
 
 ---
 

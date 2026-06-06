@@ -18,7 +18,7 @@ state of each path:
 | Path | Status | Why |
 |------|--------|-----|
 | Running from source (`python main.py`) | Broken | Token env var not set |
-| Installed binary (current v2.0.0 installer) | Broken | Binary was built before this change |
+| Installed binary (current v1.0.0 installer) | Broken | Binary was built before this change |
 | Next release binary (built via CI) | Working | Build workflow injects the token |
 | Dev machine with env var set | Working | Set `CHAPTERFORGE_GITHUB_TOKEN` |
 
