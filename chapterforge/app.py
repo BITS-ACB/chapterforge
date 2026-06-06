@@ -31,6 +31,7 @@ from . import manifest as manifest_mod
 from . import settings as settings_mod
 from .notify import Notifier
 from .player import PlayerPanel
+from .auphonic import AuphonicService
 
 # Token for issue submission. Resolved at runtime from environment or
 # build-injected constant. Never hardcode a real token here.
@@ -149,6 +150,10 @@ class MainFrame(wx.Frame):
         self.notifier = Notifier(parent=self)
         self._tray = None
         self._watch_controller = None
+        self._auphonic = AuphonicService(
+            client_id=os.environ.get("AUPHONIC_CLIENT_ID", ""),
+            client_secret=os.environ.get("AUPHONIC_CLIENT_SECRET", ""),
+        )
         self._force_quit = False
         self._list_col = 0  # currently announced column for keyboard column navigation
         self._undo = _UndoStack()
@@ -357,6 +362,20 @@ class MainFrame(wx.Frame):
         }.get(_t, self.mi_theme_system).Check(True)
         menubar.Append(view_menu, "&View")
 
+        auphonic_menu = wx.Menu()
+        self.mi_auphonic_connect = auphonic_menu.Append(
+            wx.ID_ANY, "&Connect Account…",
+            "Connect your Auphonic account and view your credit balance")
+        self.mi_auphonic_new = auphonic_menu.Append(
+            wx.ID_ANY, "&New Production…",
+            "Submit audio to Auphonic for processing")
+        self.mi_auphonic_history = auphonic_menu.Append(
+            wx.ID_ANY, "&Job History…",
+            "View submitted Auphonic jobs and download results")
+        menubar.Append(auphonic_menu, "&Auphonic")
+        # Disabled by default; enabled when "beta_features" setting is on.
+        menubar.EnableTop(4, bool(self.settings.get("beta_features", False)))
+
         help_menu = wx.Menu()
         self.mi_wizard = help_menu.Append(
             wx.ID_ANY, "Setup &Wizard…",
@@ -443,6 +462,10 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self._on_save_diagnostics, self.mi_diagnostics)
         self.Bind(wx.EVT_MENU, self._on_check_updates, self.mi_update)
         self.Bind(wx.EVT_MENU, self._on_about, id=wx.ID_ABOUT)
+
+        self.Bind(wx.EVT_MENU, self._on_auphonic_connect, self.mi_auphonic_connect)
+        self.Bind(wx.EVT_MENU, self._on_auphonic_new, self.mi_auphonic_new)
+        self.Bind(wx.EVT_MENU, self._on_auphonic_history, self.mi_auphonic_history)
 
         # Ctrl+S = smart save: Build in build mode, Save Changes in edit mode.
         # (Ctrl+B = explicit Build.)
@@ -1153,6 +1176,8 @@ class MainFrame(wx.Frame):
         self._apply_column_visibility()
         # Feature 13: apply keyboard overrides
         self._apply_key_overrides()
+        # Gate the Auphonic menu on the beta_features setting.
+        self.GetMenuBar().EnableTop(4, bool(s.get("beta_features", False)))
 
     def _apply_column_visibility(self):
         """Show or hide list columns based on settings (Feature 10)."""
@@ -2141,6 +2166,37 @@ class MainFrame(wx.Frame):
                 f"Applied {n} chapter title(s) from {os.path.basename(path)}.")
 
     # ------------------------------------------------------------------
+    # Auphonic integration
+    # ------------------------------------------------------------------
+    def _on_auphonic_connect(self, _evt):
+        from .auphonic_dialogs import AuphonicConnectDialog
+        dlg = AuphonicConnectDialog(self, self._auphonic)
+        dlg.ShowModal()
+
+    def _on_auphonic_new(self, _evt):
+        if not self._auphonic.is_connected():
+            if wx.MessageBox(
+                "You are not connected to Auphonic.\n\nConnect your account now?",
+                "Auphonic - Not Connected",
+                wx.YES_NO | wx.ICON_QUESTION,
+                self,
+            ) == wx.YES:
+                from .auphonic_dialogs import AuphonicConnectDialog
+                dlg = AuphonicConnectDialog(self, self._auphonic)
+                dlg.ShowModal()
+                if not self._auphonic.is_connected():
+                    return
+            else:
+                return
+        from .auphonic_dialogs import NewProductionDialog
+        dlg = NewProductionDialog(self, self._auphonic)
+        dlg.ShowModal()
+
+    def _on_auphonic_history(self, _evt):
+        from .auphonic_dialogs import JobHistoryDialog
+        dlg = JobHistoryDialog(self, self._auphonic)
+        dlg.ShowModal()
+
     # Diagnostics
     # ------------------------------------------------------------------
     def _on_report_issue(self, _evt):
@@ -3518,6 +3574,14 @@ class SettingsDialog(wx.Dialog):
         self.check_updates_startup.SetValue(
             bool(settings.get("check_updates_startup", True)))
 
+        self.beta_features = gcheck(
+            "Enable &beta features (Auphonic integration)",
+            "Enable beta features",
+            "Enables the Auphonic menu for audio post-production.\n"
+            "Beta features may change in future releases.\n"
+            "Requires an Auphonic account (auphonic.com).")
+        self.beta_features.SetValue(bool(settings.get("beta_features", False)))
+
         gp_sizer = wx.BoxSizer(wx.VERTICAL)
         gp_sizer.Add(gg, 1, wx.EXPAND | wx.ALL, 14)
         gp.SetSizer(gp_sizer)
@@ -3863,6 +3927,7 @@ class SettingsDialog(wx.Dialog):
             "high_contrast": self.theme_choice.GetSelection() == 3,
             "start_minimized": self.start_minimized.GetValue(),
             "check_updates_startup": self.check_updates_startup.GetValue(),
+            "beta_features": self.beta_features.GetValue(),
             # Feature 8
             "per_file_normalize": self.per_file_norm.GetValue(),
             "normalize_lufs": float(self.lufs_target.GetValue()),

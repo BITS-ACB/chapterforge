@@ -531,7 +531,44 @@ chapterforge --batch "C:\Audiobooks" --recursive --normalize --target-lufs -16.0
 
 ---
 
-## 8. Glossary of Terms
+## 8. Auphonic Integration
+
+ChapterForge includes a built-in Auphonic integration for professional audio post-production. You connect your own Auphonic account and process audio using your own Auphonic credits. See [AUPHONIC_INTEGRATION.md](AUPHONIC_INTEGRATION.md) for the full reference. Key points:
+
+### Access
+
+Open the **Auphonic** menu (between View and Help):
+
+| Menu item | Action |
+|---|---|
+| Connect Account | OAuth connect / view credit balance |
+| New Production | Submit audio to Auphonic for processing |
+| Job History | View submitted jobs and download results |
+
+### Workflow
+
+1. **Auphonic > Connect Account** - click Connect Auphonic, complete login in your browser, return to ChapterForge.
+2. Your available credit balance is shown in the connect dialog.
+3. **Auphonic > New Production** - browse for an audio file, choose a preset, enter a title, click Submit.
+4. ChapterForge validates the file (rejects video streams), estimates credits, and submits to Auphonic.
+5. Processing runs in the background. When complete, open **Job History** to download results.
+
+### Built-in Presets
+
+- Podcast Cleanup (-16 LUFS, denoise, MP3)
+- Podcast Cleanup + Transcript (adds SRT/WebVTT captions and transcript HTML/TXT)
+- Audiobook / ACX Draft (-18 LUFS, WAV + FLAC)
+- Lecture Cleanup (silence cutting, MP3 + captions)
+- Meeting / Interview Multitrack (host/guest tracks)
+- Archive Master (minimal processing, FLAC + WAV)
+
+### Audio-only policy
+
+Only audio files are accepted. Any file containing a video stream is rejected at the validation step. Video output formats are blocked even if Auphonic returns them.
+
+---
+
+## 9. Glossary of Terms
 
 **Chapter Marker**: A timestamp in an audio file that indicates the start of a named section
 
@@ -557,9 +594,11 @@ chapterforge --batch "C:\Audiobooks" --recursive --normalize --target-lufs -16.0
 
 **Background Watcher**: System tray application that automatically processes new audio folders
 
+**Auphonic**: Cloud audio post-production service used via the Auphonic menu for leveling, noise reduction, transcription, and more.
+
 ---
 
-*ChapterForge 1.0.0 User Guide - Where Accessibility Meets Professional Power*
+*ChapterForge User Guide - Where Accessibility Meets Professional Power*
 
 #### Method 1: Basic Chapter Creation
 1. Launch ChapterForge 1.0.0
