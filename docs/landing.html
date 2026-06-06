@@ -3,13 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ChapterForge - Turn Your Audio Files Into a Chaptered Audiobook</title>
+    <title>ChapterForge - Build Chaptered Audiobooks and Podcasts</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
         :root {
             --primary: #2563eb;
@@ -33,455 +29,412 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             line-height: 1.6;
             color: var(--text);
             background-color: var(--bg);
         }
 
+        a { color: var(--primary); }
+        a:hover { text-decoration: underline; }
+        a:focus-visible { outline: 3px solid var(--primary); outline-offset: 2px; border-radius: 2px; }
+
+        .skip-link {
+            position: absolute; left: -9999px; top: 0;
+            background: var(--primary); color: #fff;
+            padding: .6rem 1rem; z-index: 200;
+        }
+        .skip-link:focus { left: 0; }
+
         header {
             padding: 1rem 0;
             border-bottom: 1px solid var(--border);
-            position: sticky;
-            top: 0;
-            background-color: var(--bg);
-            z-index: 100;
+            position: sticky; top: 0;
+            background-color: var(--bg); z-index: 100;
         }
 
         nav {
-            max-width: 1200px;
-            margin: 0 auto;
+            max-width: 1100px; margin: 0 auto;
             padding: 0 2rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+            display: flex; justify-content: space-between; align-items: center;
         }
 
-        .logo {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: var(--primary);
-        }
+        .logo { font-size: 1.5rem; font-weight: 700; color: var(--primary); text-decoration: none; }
 
-        .nav-links {
-            display: flex;
-            gap: 2rem;
-            list-style: none;
-        }
+        .nav-links { display: flex; gap: 2rem; list-style: none; }
+        .nav-links a { color: var(--text); text-decoration: none; font-weight: 500; }
+        .nav-links a:hover { color: var(--primary); }
 
-        .nav-links a {
-            color: var(--text);
-            text-decoration: none;
-            transition: color 0.3s;
-        }
-
-        .nav-links a:hover {
-            color: var(--primary);
-        }
-
+        /* Hero */
         .hero {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 6rem 2rem;
-            text-align: center;
-        }
-
-        h1 {
-            font-size: 3.5rem;
-            line-height: 1.2;
-            margin-bottom: 1rem;
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        .subtitle {
-            font-size: 1.25rem;
-            color: var(--text-light);
-            margin-bottom: 2rem;
-            max-width: 700px;
-            margin-left: auto;
-            margin-right: auto;
-        }
-
-        .cta-buttons {
-            display: flex;
-            gap: 1rem;
-            justify-content: center;
-            margin-top: 2.5rem;
-            flex-wrap: wrap;
-        }
-
-        .btn {
-            padding: 0.75rem 2rem;
-            border-radius: 0.5rem;
-            font-size: 1rem;
-            font-weight: 600;
-            text-decoration: none;
-            border: 2px solid transparent;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-
-        .btn-primary {
-            background-color: var(--primary);
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background-color: var(--primary-dark);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
-        }
-
-        .btn-secondary {
-            background-color: transparent;
-            color: var(--primary);
-            border-color: var(--primary);
-        }
-
-        .btn-secondary:hover {
-            background-color: var(--primary);
-            color: white;
-        }
-
-        .section {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 4rem 2rem;
-        }
-
-        .section:nth-child(even) {
-            background-color: var(--bg-alt);
-        }
-
-        h2 {
-            font-size: 2.5rem;
-            margin-bottom: 3rem;
-            text-align: center;
-        }
-
-        .features {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 2rem;
-        }
-
-        .feature {
-            padding: 2rem;
-            border-radius: 0.75rem;
-            border: 1px solid var(--border);
-            background-color: var(--bg);
-        }
-
-        .feature h3 {
-            font-size: 1.25rem;
-            margin-bottom: 0.75rem;
-            color: var(--primary);
-        }
-
-        .feature p {
-            color: var(--text-light);
-        }
-
-        .icon {
-            font-size: 2.5rem;
-            margin-bottom: 1rem;
-        }
-
-        .specs {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 1.5rem;
-            margin-top: 2rem;
-        }
-
-        .spec {
-            padding: 1.5rem;
-            background-color: var(--bg);
-            border-radius: 0.5rem;
-            border-left: 4px solid var(--secondary);
-        }
-
-        .spec h4 {
-            color: var(--primary);
-            margin-bottom: 0.5rem;
-        }
-
-        .spec p {
-            color: var(--text-light);
-            font-size: 0.9rem;
-        }
-
-        .testimonial {
-            background-color: var(--bg);
-            padding: 2rem;
-            border-radius: 0.75rem;
-            border-left: 4px solid var(--secondary);
-            margin: 1rem 0;
-        }
-
-        .testimonial p {
-            font-size: 1.1rem;
-            margin-bottom: 1rem;
-            font-style: italic;
-        }
-
-        .testimonial-author {
-            color: var(--text-light);
-            font-weight: 600;
-        }
-
-        footer {
-            background-color: var(--bg-alt);
-            border-top: 1px solid var(--border);
-            padding: 3rem 2rem;
-            text-align: center;
-            color: var(--text-light);
-        }
-
-        .footer-content {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-
-        .footer-links {
-            display: flex;
-            gap: 2rem;
-            justify-content: center;
-            margin: 1rem 0;
-            flex-wrap: wrap;
-        }
-
-        .footer-links a {
-            color: var(--primary);
-            text-decoration: none;
-        }
-
-        .footer-links a:hover {
-            text-decoration: underline;
-        }
-
-        @media (max-width: 768px) {
-            h1 {
-                font-size: 2rem;
-            }
-
-            .hero {
-                padding: 3rem 1.5rem;
-            }
-
-            .nav-links {
-                gap: 1rem;
-                font-size: 0.9rem;
-            }
-
-            .subtitle {
-                font-size: 1rem;
-            }
-
-            .cta-buttons {
-                flex-direction: column;
-            }
-
-            .btn {
-                width: 100%;
-            }
+            max-width: 1100px; margin: 0 auto;
+            padding: 5rem 2rem 4rem; text-align: center;
         }
 
         .badge {
             display: inline-block;
-            background-color: var(--secondary);
-            color: white;
-            padding: 0.25rem 0.75rem;
-            border-radius: 9999px;
-            font-size: 0.85rem;
-            font-weight: 600;
-            margin-bottom: 1rem;
+            background-color: var(--secondary); color: white;
+            padding: .25rem .9rem; border-radius: 9999px;
+            font-size: .85rem; font-weight: 600; margin-bottom: 1.5rem;
         }
 
-        .highlight {
-            color: var(--primary);
-            font-weight: 600;
+        h1 {
+            font-size: 3.25rem; line-height: 1.15; margin-bottom: 1.25rem;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero p {
+            font-size: 1.2rem; color: var(--text-light);
+            max-width: 680px; margin: 0 auto 2.5rem;
+        }
+
+        .cta-group {
+            display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: .8rem 2rem; border-radius: .5rem;
+            font-size: 1rem; font-weight: 600;
+            text-decoration: none; border: 2px solid transparent;
+            transition: all .2s;
+        }
+        .btn:hover { text-decoration: none; }
+
+        .btn-primary { background: var(--primary); color: #fff; }
+        .btn-primary:hover { background: var(--primary-dark); transform: translateY(-2px); box-shadow: 0 4px 14px rgba(37,99,235,.35); }
+
+        .btn-secondary { background: transparent; color: var(--primary); border-color: var(--primary); }
+        .btn-secondary:hover { background: var(--primary); color: #fff; }
+
+        .hero-note { font-size: .9rem; color: var(--text-light); margin-top: 1.25rem; }
+
+        /* Compatible apps strip */
+        .compat {
+            background: var(--bg-alt); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+            padding: 1.5rem 2rem; text-align: center;
+        }
+
+        .compat p { color: var(--text-light); font-size: .9rem; margin-bottom: .75rem; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; }
+
+        .compat-apps {
+            display: flex; flex-wrap: wrap; gap: .5rem; justify-content: center; list-style: none;
+        }
+
+        .compat-apps li {
+            background: var(--bg); border: 1px solid var(--border); border-radius: 9999px;
+            padding: .3rem .9rem; font-size: .9rem; color: var(--text-light);
+        }
+
+        /* Sections */
+        .section { padding: 5rem 2rem; }
+        .section-inner { max-width: 1100px; margin: 0 auto; }
+
+        .alt { background: var(--bg-alt); }
+
+        h2 { font-size: 2.2rem; margin-bottom: .75rem; text-align: center; }
+        .section-sub { text-align: center; color: var(--text-light); font-size: 1.1rem; margin-bottom: 3rem; max-width: 650px; margin-left: auto; margin-right: auto; }
+
+        /* Steps */
+        .steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 2rem; }
+        .step { text-align: center; padding: 1.5rem; }
+        .step-number {
+            width: 3rem; height: 3rem; border-radius: 50%;
+            background: var(--primary); color: #fff;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.3rem; font-weight: 700; margin: 0 auto 1rem;
+        }
+        .step h3 { font-size: 1.2rem; margin-bottom: .5rem; }
+        .step p { color: var(--text-light); }
+
+        /* Features */
+        .features { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; }
+        .feature {
+            padding: 2rem; border-radius: .75rem;
+            border: 1px solid var(--border); background: var(--bg);
+        }
+        .feature h3 { font-size: 1.2rem; margin-bottom: .75rem; color: var(--primary); }
+        .feature p { color: var(--text-light); line-height: 1.65; }
+        .feature p a { font-weight: 500; }
+
+        /* Accessibility */
+        .a11y-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.5rem; }
+        .a11y-card {
+            padding: 1.5rem; border-radius: .5rem; background: var(--bg);
+            border-left: 4px solid var(--secondary);
+        }
+        .a11y-card h4 { color: var(--primary); margin-bottom: .5rem; font-size: 1rem; }
+        .a11y-card p { color: var(--text-light); font-size: .95rem; }
+
+        /* Testimonials */
+        .testimonial {
+            background: var(--bg); padding: 2rem; border-radius: .75rem;
+            border-left: 4px solid var(--secondary); margin: 1rem 0;
+        }
+        .testimonial p { font-size: 1.1rem; font-style: italic; margin-bottom: .75rem; }
+        .testimonial-author { color: var(--text-light); font-weight: 600; font-size: .95rem; }
+
+        /* Download CTA */
+        .download-cta { text-align: center; padding: 5rem 2rem; background: var(--bg-alt); }
+        .download-cta h2 { margin-bottom: .75rem; }
+        .download-cta .lead { color: var(--text-light); font-size: 1.1rem; margin-bottom: 2.5rem; }
+        .download-options { display: flex; gap: 1.5rem; justify-content: center; flex-wrap: wrap; margin-bottom: 1.5rem; }
+        .download-option { text-align: left; }
+        .download-option .btn { display: block; margin-bottom: .5rem; }
+        .download-option small { color: var(--text-light); font-size: .85rem; }
+
+        /* Footer */
+        footer {
+            background: var(--bg-alt); border-top: 1px solid var(--border);
+            padding: 3rem 2rem; text-align: center; color: var(--text-light);
+        }
+        .footer-inner { max-width: 1100px; margin: 0 auto; }
+        .footer-links {
+            display: flex; gap: 2rem; justify-content: center;
+            flex-wrap: wrap; margin: 1rem 0; list-style: none;
+        }
+        .footer-links a { color: var(--primary); text-decoration: none; }
+        .footer-links a:hover { text-decoration: underline; }
+
+        @media (max-width: 768px) {
+            h1 { font-size: 2.2rem; }
+            .hero { padding: 3rem 1.5rem 2.5rem; }
+            .nav-links { gap: 1rem; font-size: .9rem; }
+            .cta-group { flex-direction: column; align-items: center; }
+            .btn { min-width: 220px; text-align: center; }
+            .download-options { flex-direction: column; align-items: center; }
         }
     </style>
 </head>
 <body>
-    <header>
-        <nav>
-            <div class="logo">ChapterForge</div>
-            <ul class="nav-links">
-                <li><a href="#features">Features</a></li>
-                <li><a href="#accessibility">Accessibility</a></li>
-                <li><a href="#docs">Documentation</a></li>
-            </ul>
-        </nav>
-    </header>
 
-    <section class="hero">
+<a class="skip-link" href="#main">Skip to main content</a>
+
+<header>
+    <nav aria-label="Site navigation">
+        <a class="logo" href="#">ChapterForge</a>
+        <ul class="nav-links">
+            <li><a href="#features">Features</a></li>
+            <li><a href="#accessibility">Accessibility</a></li>
+            <li><a href="#download">Download</a></li>
+            <li><a href="html/USER_GUIDE.html">User Guide</a></li>
+        </ul>
+    </nav>
+</header>
+
+<main id="main">
+
+    <section class="hero" aria-labelledby="hero-heading">
         <div class="badge">Version 1.0.0 - Now Available</div>
-        <h1>Turn Your Audio Files Into a Chaptered Audiobook</h1>
-        <p class="subtitle">
-            Point ChapterForge at a folder of MP3s, fill in a few details, and press Build.
-            Works with Apple Podcasts, Overcast, Pocket Casts, VLC, and more.
-            <span class="highlight">Fully accessible</span> - built for keyboard and screen reader users.
+        <h1 id="hero-heading">A folder of files.<br>A finished audiobook.</h1>
+        <p>
+            ChapterForge takes your MP3 recordings and builds them into a single,
+            professionally chaptered master file - complete with titles, cover art,
+            and chapter markers that any podcast or audiobook app can navigate.
+            Free, accessible, and built to stay out of your way.
         </p>
-        <div class="cta-buttons">
-            <a href="https://github.com/BITS-ACB/chapterforge/releases/download/v1.0.0/ChapterForge-Setup.exe" class="btn btn-primary">
-                Download - Standard Installer
-            </a>
-            <a href="https://github.com/BITS-ACB/chapterforge/releases/download/v1.0.0/ChapterForge-Portable.exe" class="btn btn-secondary">
-                Download - Portable
-            </a>
+        <div class="cta-group">
+            <a href="https://github.com/BITS-ACB/chapterforge/releases/download/v1.0.0/ChapterForge-Setup.exe"
+               class="btn btn-primary">Download - Standard Installer</a>
+            <a href="https://github.com/BITS-ACB/chapterforge/releases/download/v1.0.0/ChapterForge-Portable.exe"
+               class="btn btn-secondary">Download - Portable</a>
         </div>
-        <p style="color: var(--text-light); margin-top: 1rem; font-size: 0.9rem;">
-            Free. Windows 10 and 11. No other software required.
-        </p>
+        <p class="hero-note">Free. Windows 10 and 11. No other software required.</p>
     </section>
 
-    <section class="section" id="features">
-        <h2>What ChapterForge Does</h2>
-        <div class="features">
-            <div class="feature">
-                <h3>Build a Chaptered Audiobook</h3>
-                <p>Combine a folder of MP3s into one master file with a chapter for each track. Open the finished file in any podcast or audiobook app and navigate chapter by chapter.</p>
-            </div>
-            <div class="feature">
-                <h3>Works With Your Favorite Apps</h3>
-                <p>Chapters are recognized by Apple Podcasts, Overcast, Pocket Casts, AntennaPod, VLC, foobar2000, AIMP, and any other app that supports standard chapter formats.</p>
-            </div>
-            <div class="feature">
-                <h3>Edit Before You Build</h3>
-                <p>Chapter titles are filled in from your file names. Adjust them, reorder tracks, and set the book's title, author, cover image, genre, and year before building.</p>
-            </div>
-            <div class="feature">
-                <h3>Fix Existing Files</h3>
-                <p>Open a finished chaptered MP3 or M4B to correct its chapters and tags without rebuilding from scratch. Merge chapters, split at a point, or fix a title in place.</p>
-            </div>
-            <div class="feature">
-                <h3>Find Chapters Automatically</h3>
-                <p>Have one long recording instead of separate tracks? ChapterForge can detect natural chapter breaks by finding silence in the audio.</p>
-            </div>
-            <div class="feature">
-                <h3>Watch Folders Automatically</h3>
-                <p>Set ChapterForge to watch a folder and it will build a new book automatically every time you drop in a set of MP3s. You get a Windows notification when it finishes.</p>
-            </div>
-        </div>
-    </section>
+    <div class="compat" aria-label="Compatible applications">
+        <p>Works with</p>
+        <ul class="compat-apps">
+            <li>Apple Podcasts</li>
+            <li>Overcast</li>
+            <li>Pocket Casts</li>
+            <li>AntennaPod</li>
+            <li>VLC</li>
+            <li>foobar2000</li>
+            <li>AIMP</li>
+            <li>and more</li>
+        </ul>
+    </div>
 
-    <section class="section" id="accessibility">
-        <h2>Built for Accessibility</h2>
-        <div class="specs">
-            <div class="spec">
-                <h4>Screen Reader Support</h4>
-                <p>NVDA, JAWS, and Narrator all announce controls, status updates, and build progress clearly. No workarounds needed.</p>
-            </div>
-            <div class="spec">
-                <h4>Keyboard Navigation</h4>
-                <p>Every feature is reachable by keyboard. Every button, checkbox, and list has a mnemonic and a visible label.</p>
-            </div>
-            <div class="spec">
-                <h4>High-Contrast Theme</h4>
-                <p>An optional high-contrast theme and adjustable text size are available in Tools &gt; Settings.</p>
-            </div>
-            <div class="spec">
-                <h4>Non-Blocking Builds</h4>
-                <p>The app stays responsive while building. Progress is announced as it happens; you can cancel at any time.</p>
-            </div>
-            <div class="spec">
-                <h4>Windows 10 and 11</h4>
-                <p>Runs on Windows 10 and 11 (64-bit). No additional software required - FFmpeg and everything else is bundled.</p>
-            </div>
-            <div class="spec">
-                <h4>Free and Open Source</h4>
-                <p>MIT licensed. No subscription, no account required, no data collected.</p>
+    <section class="section alt" aria-labelledby="how-heading">
+        <div class="section-inner">
+            <h2 id="how-heading">How it works</h2>
+            <p class="section-sub">Three steps. No technical knowledge required.</p>
+            <div class="steps">
+                <div class="step">
+                    <div class="step-number" aria-hidden="true">1</div>
+                    <h3>Open a folder</h3>
+                    <p>Point ChapterForge at any folder of MP3 files. Chapters are created automatically, one per track, sorted and titled from your file names.</p>
+                </div>
+                <div class="step">
+                    <div class="step-number" aria-hidden="true">2</div>
+                    <h3>Refine and tag</h3>
+                    <p>Edit chapter titles, reorder tracks, add cover art, and fill in the author and album. Most fields are pre-filled from your folder and file names.</p>
+                </div>
+                <div class="step">
+                    <div class="step-number" aria-hidden="true">3</div>
+                    <h3>Build and preview</h3>
+                    <p>Press Build. ChapterForge assembles everything into one master file. Listen in the <a href="html/USER_GUIDE.html#23-preview-and-control-panel">built-in player</a> before you share it.</p>
+                </div>
             </div>
         </div>
     </section>
 
-    <section class="section">
-        <h2>What Users Say</h2>
-        <div class="testimonial">
-            <p>"ChapterForge has revolutionized how I manage my audiobook projects. The accessibility features are unmatched."</p>
-            <div class="testimonial-author">- Audiobook Creator</div>
-        </div>
-        <div class="testimonial">
-            <p>"As a podcaster producing 50+ episodes a year, ChapterForge automatically adds chapters and handles tagging. It's saved me hours every month."</p>
-            <div class="testimonial-author">- Podcast Producer</div>
-        </div>
-        <div class="testimonial">
-            <p>"Finally, a professional tool that I can use completely with my screen reader. No workarounds, no compromises."</p>
-            <div class="testimonial-author">- NVDA User</div>
+    <section class="section" id="features" aria-labelledby="features-heading">
+        <div class="section-inner">
+            <h2 id="features-heading">Everything you need to build great audio</h2>
+            <p class="section-sub">ChapterForge covers the full workflow from raw files to finished, distributable audiobook.</p>
+            <div class="features">
+
+                <div class="feature">
+                    <h3>Chapters that work everywhere</h3>
+                    <p>Your finished file plays in Apple Podcasts, Overcast, Pocket Casts, AntennaPod, VLC, foobar2000, AIMP, and any other app that reads standard ID3v2 chapter markers. One build, universal compatibility. Export as
+                    <a href="html/USER_GUIDE.html#22-metadata-and-tagging-panel">MP3 with chapter markers or M4B audiobook format</a> - whichever your audience prefers.</p>
+                </div>
+
+                <div class="feature">
+                    <h3>Edit, merge, and split chapters</h3>
+                    <p>Titles come from your file names, already meaningful before you start. Reorder tracks with a keystroke. Merge two short chapters into one. Split a chapter at any playback position while listening in the built-in player. Rename in bulk with a single dialog. Every change is live before a single file is written. <a href="html/USER_GUIDE.html#21-chapter-management-panel">Full chapter editing guide.</a></p>
+                </div>
+
+                <div class="feature">
+                    <h3>Hear it before you share it</h3>
+                    <p>ChapterForge includes a fully keyboard-accessible audio player so you can review your work inside the app. Play from any chapter, skip between chapters, rewind or jump forward in configurable steps, and adjust volume - all without leaving ChapterForge. <a href="html/USER_GUIDE.html#23-preview-and-control-panel">Player controls and shortcuts.</a></p>
+                </div>
+
+                <div class="feature">
+                    <h3>Find chapters in one long recording</h3>
+                    <p>Don't have separate tracks? ChapterForge can listen for natural silence in a long recording and mark chapter breaks automatically. Review the results, adjust any boundary that needs it, then build. Perfect for digitized tapes, recorded lectures, or radio broadcasts. <a href="html/USER_GUIDE.html#21-chapter-management-panel">About auto-chapter by silence.</a></p>
+                </div>
+
+                <div class="feature">
+                    <h3>Fix existing chaptered files</h3>
+                    <p>Open a finished MP3 or M4B to correct a chapter title, adjust where a chapter starts, replace the cover art, or update any tag - without touching the audio. Merge adjacent chapters, split one at any point, or trim the beginning and end. Save in place or <a href="html/USER_GUIDE.html#22-metadata-and-tagging-panel">Save As a new file</a> and keep your original intact.</p>
+                </div>
+
+                <div class="feature">
+                    <h3>Watch folders, build automatically</h3>
+                    <p>Tell ChapterForge to watch a folder and walk away. When you drop in a set of MP3s, ChapterForge detects them, waits for the files to settle, and builds the book on its own - then notifies you with a Windows toast and a screen-reader announcement. <a href="html/USER_GUIDE.html#42-background-watcher-system">Set up the background watcher.</a> Enable start at sign-in and your audiobook folder runs itself.</p>
+                </div>
+
+                <div class="feature">
+                    <h3>Rich tags and automatic cover art</h3>
+                    <p>Set the title, artist, album, album artist, genre, year, comment, and track number on your master file. ChapterForge scans your source folder for a cover image and picks it up automatically - or choose one manually. Tags are written as <a href="html/USER_GUIDE.html#22-metadata-and-tagging-panel">ID3v2.3 for the widest player compatibility.</a></p>
+                </div>
+
+                <div class="feature">
+                    <h3>Import and export chapter lists</h3>
+                    <p>Already have chapter markers defined elsewhere? Import from Audacity label files, CUE sheets, or plain timestamp text. Export in the same formats, or as a <a href="html/AUPHONIC_INTEGRATION.html">Podcasting 2.0 JSON sidecar</a> with optional per-chapter URLs and images. Chapter lists move freely in and out.</p>
+                </div>
+
+            </div>
         </div>
     </section>
 
-    <section class="section" id="docs">
-        <h2>Documentation</h2>
-        <div style="max-width: 800px; margin: 0 auto;">
-            <p style="text-align: center; margin-bottom: 2rem; color: var(--text-light);">
-                Everything you need to get started and make the most of ChapterForge.
+    <section class="section alt" id="accessibility" aria-labelledby="a11y-heading">
+        <div class="section-inner">
+            <h2 id="a11y-heading">Built for accessibility, first</h2>
+            <p class="section-sub">
+                ChapterForge is made by <a href="https://www.joinbits.org">Blind Information Technology Solutions (BITS)</a>,
+                a team that builds software for blind and low-vision users first, and everyone else second.
+                That shows in every detail.
             </p>
-            <div class="features" style="grid-template-columns: 1fr 1fr;">
-                <a href="html/USER_GUIDE.html" style="text-decoration: none;">
-                    <div class="feature" style="cursor: pointer; transition: all 0.3s;">
-                        <h3>User Guide</h3>
-                        <p>Complete guide to all ChapterForge features and workflows.</p>
-                    </div>
-                </a>
-                <a href="html/CHANGELOG.html" style="text-decoration: none;">
-                    <div class="feature" style="cursor: pointer; transition: all 0.3s;">
-                        <h3>What's New</h3>
-                        <p>Release notes and a full history of changes.</p>
-                    </div>
-                </a>
-                <a href="html/AUPHONIC_INTEGRATION.html" style="text-decoration: none;">
-                    <div class="feature" style="cursor: pointer; transition: all 0.3s;">
-                        <h3>Auphonic Integration</h3>
-                        <p>Use ChapterForge with Auphonic for automatic audio post-production.</p>
-                    </div>
-                </a>
-                <a href="html/THIRD_PARTY.html" style="text-decoration: none;">
-                    <div class="feature" style="cursor: pointer; transition: all 0.3s;">
-                        <h3>Licenses</h3>
-                        <p>Third-party components and license details.</p>
-                    </div>
-                </a>
+            <div class="a11y-grid">
+                <div class="a11y-card">
+                    <h4>Screen reader support</h4>
+                    <p>NVDA, JAWS, and Narrator all announce controls, status, and build progress clearly. No workarounds, no silent buttons, no mystery. <a href="html/USER_GUIDE.html#32-screen-reader-integration">Screen reader details.</a></p>
+                </div>
+                <div class="a11y-card">
+                    <h4>Full keyboard navigation</h4>
+                    <p>Every feature is reachable by keyboard. Every button, checkbox, and list has a mnemonic and a visible label. <a href="html/USER_GUIDE.html#3-keyboard-shortcuts-and-accessibility">Full keyboard shortcut reference.</a></p>
+                </div>
+                <div class="a11y-card">
+                    <h4>High-contrast theme</h4>
+                    <p>An optional high-contrast theme and adjustable text size (8pt to 24pt) are available in Tools &gt; Settings for comfortable use in any lighting condition.</p>
+                </div>
+                <div class="a11y-card">
+                    <h4>Non-blocking builds</h4>
+                    <p>Long operations run in the background. The interface stays alive, progress is announced as it happens, and you can cancel at any time without leaving a broken file behind.</p>
+                </div>
+                <div class="a11y-card">
+                    <h4>Guided startup wizard</h4>
+                    <p>First launch opens a step-by-step wizard that introduces every major feature, configures defaults, and gets you to your first build without reading a manual.</p>
+                </div>
+                <div class="a11y-card">
+                    <h4>Help when you need it</h4>
+                    <p>Every control has a tooltip. The <a href="html/USER_GUIDE.html">full User Guide</a> is bundled with the app and opens in your browser. Save Diagnostics packages a support report in one click.</p>
+                </div>
             </div>
         </div>
     </section>
 
-    <section class="section" style="background-color: var(--bg-alt); text-align: center;">
-        <h2>Download ChapterForge 1.0.0</h2>
-        <p style="color: var(--text-light); margin-bottom: 2rem; font-size: 1.1rem;">
-            Free for Windows 10 and 11. No subscription, no account required.
-        </p>
-        <div class="cta-buttons" style="justify-content: center;">
-            <a href="https://github.com/BITS-ACB/chapterforge/releases/download/v1.0.0/ChapterForge-Setup.exe" class="btn btn-primary" style="font-size: 1.1rem; padding: 1rem 2.5rem;">
-                Standard Installer
-            </a>
-            <a href="https://github.com/BITS-ACB/chapterforge/releases/download/v1.0.0/ChapterForge-Portable.exe" class="btn btn-secondary" style="font-size: 1.1rem; padding: 1rem 2.5rem;">
-                Portable (no install needed)
-            </a>
+    <section class="section" aria-labelledby="testimonials-heading">
+        <div class="section-inner">
+            <h2 id="testimonials-heading">What users say</h2>
+            <div class="testimonial">
+                <p>"ChapterForge has transformed how I manage my audiobook projects. The accessibility features are unmatched - I can do professional audio production entirely with my screen reader."</p>
+                <div class="testimonial-author">- Audiobook Creator, NVDA user</div>
+            </div>
+            <div class="testimonial">
+                <p>"As a podcaster producing 50 episodes a year, having ChapterForge watch my recording folder and build chapters automatically has saved me hours every single month."</p>
+                <div class="testimonial-author">- Podcast Producer</div>
+            </div>
+            <div class="testimonial">
+                <p>"I digitized 200 cassette tapes of old radio plays. The silence detection found every chapter break in every recording. What would have taken weeks took a weekend."</p>
+                <div class="testimonial-author">- Audio Archivist</div>
+            </div>
         </div>
-        <p style="color: var(--text-light); margin-top: 1.5rem; font-size: 0.9rem;">
-            The standard installer adds ChapterForge to your Start menu and desktop.<br>
-            The portable version runs from any folder or USB drive with no installation.
+    </section>
+
+    <section class="download-cta" id="download" aria-labelledby="download-heading">
+        <h2 id="download-heading">Download ChapterForge 1.0.0</h2>
+        <p class="lead">Free for Windows 10 and 11. No subscription, no account, no data collected.</p>
+        <div class="download-options">
+            <div class="download-option">
+                <a href="https://github.com/BITS-ACB/chapterforge/releases/download/v1.0.0/ChapterForge-Setup.exe"
+                   class="btn btn-primary" style="font-size: 1.05rem; padding: 1rem 2.5rem;">
+                    Standard Installer
+                </a>
+                <small>Installs to Program Files with Start menu and desktop shortcuts</small>
+            </div>
+            <div class="download-option">
+                <a href="https://github.com/BITS-ACB/chapterforge/releases/download/v1.0.0/ChapterForge-Portable.exe"
+                   class="btn btn-secondary" style="font-size: 1.05rem; padding: 1rem 2.5rem;">
+                    Portable
+                </a>
+                <small>Run from any folder or USB drive - no installation needed</small>
+            </div>
+        </div>
+        <p style="color: var(--text-light); font-size: .9rem;">
+            Read the <a href="html/CHANGELOG.html">release notes</a> or browse the
+            <a href="html/USER_GUIDE.html">User Guide</a> before you install.
         </p>
     </section>
 
-    <footer>
-        <div class="footer-content">
-            <p style="margin-bottom: 1rem;">ChapterForge v1.0.0 - Accessible Audio Chapter Management for Windows</p>
-            <div class="footer-links">
-                <a href="https://github.com/BITS-ACB/chapterforge/issues">Report an Issue</a>
-                <a href="html/LICENSE.txt">License (MIT)</a>
-                <a href="html/THIRD_PARTY.html">Third-Party Licenses</a>
-            </div>
-            <p style="margin-top: 1rem; font-size: 0.85rem;">
-                Made with accessibility in mind by <a href="https://www.joinbits.org" style="color: var(--primary);">Blind Information Technology Solutions (BITS)</a>
-            </p>
-        </div>
-    </footer>
+</main>
+
+<footer>
+    <div class="footer-inner">
+        <p style="margin-bottom: 1rem; font-size: 1rem;">
+            ChapterForge is made with care by
+            <a href="https://www.joinbits.org">Blind Information Technology Solutions (BITS)</a>
+        </p>
+        <ul class="footer-links">
+            <li><a href="html/USER_GUIDE.html">User Guide</a></li>
+            <li><a href="html/CHANGELOG.html">What's New</a></li>
+            <li><a href="html/AUPHONIC_INTEGRATION.html">Auphonic Integration</a></li>
+            <li><a href="https://github.com/BITS-ACB/chapterforge/issues">Report an Issue</a></li>
+            <li><a href="html/LICENSE.txt">License (MIT)</a></li>
+            <li><a href="html/THIRD_PARTY.html">Third-Party Notices</a></li>
+        </ul>
+        <p style="margin-top: 1rem; font-size: .85rem;">
+            Also from BITS:
+            <a href="http://www.letitglow.app">Let It Glow</a> &middot;
+            <a href="https://www.community-access.org">Community Access</a>
+        </p>
+    </div>
+</footer>
+
 </body>
 </html>
