@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ChapterForge — Product Requirements</title>
+<style>:root {
+  --bg: #ffffff; --fg: #1b1b1b; --muted: #555; --accent: #0b5fa5;
+  --border: #d0d7de; --code-bg: #f3f4f6; --nav-bg: #f6f8fa;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0d1117; --fg: #e6edf3; --muted: #9da7b1; --accent: #58a6ff;
+    --border: #30363d; --code-bg: #161b22; --nav-bg: #161b22;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0; background: var(--bg); color: var(--fg);
+  font: 1rem/1.6 -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+}
+.skip {
+  position: absolute; left: -999px; top: 0; background: var(--accent);
+  color: #fff; padding: .6rem 1rem; z-index: 100;
+}
+.skip:focus { left: 0; }
+header.site {
+  border-bottom: 1px solid var(--border); background: var(--nav-bg);
+  padding: .5rem 1rem;
+}
+header.site nav ul {
+  list-style: none; display: flex; flex-wrap: wrap; gap: .25rem 1rem;
+  margin: 0; padding: 0;
+}
+header.site nav a { text-decoration: none; color: var(--accent); padding: .25rem 0; }
+header.site nav a[aria-current="page"] { font-weight: 700; text-decoration: underline; }
+.wrap { max-width: 52rem; margin: 0 auto; padding: 1rem 1.25rem 4rem; }
+main { outline: none; }
+h1 { font-size: 2rem; line-height: 1.2; margin: 1rem 0 .5rem; }
+h2 { font-size: 1.5rem; margin-top: 2.2rem; border-bottom: 1px solid var(--border); padding-bottom: .2rem; }
+h3 { font-size: 1.2rem; margin-top: 1.6rem; }
+a { color: var(--accent); }
+a:focus-visible, button:focus-visible, input:focus-visible {
+  outline: 3px solid var(--accent); outline-offset: 2px;
+}
+code { background: var(--code-bg); padding: .1rem .35rem; border-radius: 4px;
+  font-family: Consolas, "SFMono-Regular", Menlo, monospace; font-size: .9em; }
+pre { background: var(--code-bg); padding: 1rem; border-radius: 8px;
+  overflow: auto; border: 1px solid var(--border); }
+pre code { background: none; padding: 0; }
+table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+th, td { border: 1px solid var(--border); padding: .5rem .7rem; text-align: left; vertical-align: top; }
+thead th { background: var(--nav-bg); }
+li.task { list-style: none; margin-left: -1.2rem; }
+li.task input { margin-right: .4rem; }
+nav.toc { background: var(--nav-bg); border: 1px solid var(--border);
+  border-radius: 8px; padding: .75rem 1rem; margin: 1.5rem 0; }
+nav.toc p { margin: 0 0 .4rem; font-weight: 700; }
+nav.toc ul { margin: 0; padding-left: 1.2rem; }
+nav.toc li.lvl3 { margin-left: 1rem; list-style: circle; }
+footer.site { color: var(--muted); border-top: 1px solid var(--border);
+  margin-top: 3rem; padding: 1rem 1.25rem; font-size: .9rem; }</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="site"><nav aria-label="Documentation"><ul><li><a href="index.html">Home</a></li><li><a href="USER_GUIDE.html">User Guide</a></li><li><a href="AUPHONIC_INTEGRATION.html">Auphonic</a></li><li><a href="CHANGELOG.html">Changelog</a></li><li><a href="THIRD_PARTY.html">Third-Party Notices</a></li></ul></nav></header>
+<div class="wrap">
+<main id="main" tabindex="-1">
+<nav class="toc" aria-label="On this page"><p>On this page</p><ul><li><a href="#1-executive-summary">1. Executive Summary</a></li><li><a href="#2-goals">2. Goals</a></li><li><a href="#3-non-goals">3. Non-Goals</a></li><li><a href="#4-target-users">4. Target Users</a></li><li class="lvl3"><a href="#41-blind-low-vision-audiobook-producer">4.1 Blind / Low-Vision Audiobook Producer</a></li><li class="lvl3"><a href="#42-sighted-podcast-creator">4.2 Sighted Podcast Creator</a></li><li class="lvl3"><a href="#43-lecture-conference-archivist">4.3 Lecture / Conference Archivist</a></li><li class="lvl3"><a href="#44-audiobook-publisher-small-studio">4.4 Audiobook Publisher (Small Studio)</a></li><li><a href="#5-system-requirements">5. System Requirements</a></li><li><a href="#6-architecture">6. Architecture</a></li><li><a href="#7-core-features">7. Core Features</a></li><li class="lvl3"><a href="#71-folder-to-master-build">7.1 Folder-to-Master Build</a></li><li class="lvl3"><a href="#72-chapter-management">7.2 Chapter Management</a></li><li class="lvl3"><a href="#73-edit-mode-single-file-editing">7.3 Edit Mode (Single-File Editing)</a></li><li class="lvl3"><a href="#74-in-app-audio-player">7.4 In-App Audio Player</a></li><li class="lvl3"><a href="#75-lossless-trim-and-cut">7.5 Lossless Trim and Cut</a></li><li class="lvl3"><a href="#76-split-one-long-recording-into-chapters">7.6 Split One Long Recording into Chapters</a></li><li class="lvl3"><a href="#77-silence-based-auto-chaptering">7.7 Silence-Based Auto-Chaptering</a></li><li class="lvl3"><a href="#78-metadata-tagging">7.8 Metadata Tagging</a></li><li class="lvl3"><a href="#79-audio-processing-options">7.9 Audio Processing Options</a></li><li class="lvl3"><a href="#710-reusable-build-presets">7.10 Reusable Build Presets</a></li><li class="lvl3"><a href="#711-job-files-cfjob">7.11 Job Files (.cfjob)</a></li><li class="lvl3"><a href="#712-background-folder-watcher">7.12 Background Folder Watcher</a></li><li class="lvl3"><a href="#713-command-line-interface">7.13 Command Line Interface</a></li><li class="lvl3"><a href="#714-diagnostics">7.14 Diagnostics</a></li><li><a href="#8-accessibility-requirements">8. Accessibility Requirements</a></li><li class="lvl3"><a href="#81-screen-reader-compatibility">8.1 Screen Reader Compatibility</a></li><li class="lvl3"><a href="#82-accessible-name-rules-wxpython">8.2 Accessible Name Rules (wxPython)</a></li><li class="lvl3"><a href="#83-keyboard-navigation">8.3 Keyboard Navigation</a></li><li class="lvl3"><a href="#84-visual-accessibility">8.4 Visual Accessibility</a></li><li class="lvl3"><a href="#85-keyboard-shortcuts-primary">8.5 Keyboard Shortcuts (primary)</a></li><li><a href="#9-chapter-format-compatibility">9. Chapter Format Compatibility</a></li><li><a href="#10-settings">10. Settings</a></li><li><a href="#11-build-and-distribution">11. Build and Distribution</a></li><li><a href="#12-auphonic-integration-beta">12. Auphonic Integration (Beta)</a></li><li class="lvl3"><a href="#121-purpose">12.1 Purpose</a></li><li class="lvl3"><a href="#122-authentication">12.2 Authentication</a></li><li class="lvl3"><a href="#123-menu-actions">12.3 Menu Actions</a></li><li class="lvl3"><a href="#124-new-production-workflow">12.4 New Production Workflow</a></li><li class="lvl3"><a href="#125-built-in-presets">12.5 Built-in Presets</a></li><li class="lvl3"><a href="#126-audio-only-policy">12.6 Audio-Only Policy</a></li><li class="lvl3"><a href="#127-local-storage">12.7 Local Storage</a></li><li class="lvl3"><a href="#128-credential-injection">12.8 Credential Injection</a></li><li><a href="#13-notifications">13. Notifications</a></li><li><a href="#14-security-considerations">14. Security Considerations</a></li><li><a href="#15-testing">15. Testing</a></li><li><a href="#16-open-items-and-future-work">16. Open Items and Future Work</a></li></ul></nav>
+<h1>ChapterForge 1.0.0 — Product Requirements Document</h1>
+<p><strong>Product</strong>: ChapterForge <strong>Version</strong>: 1.0.0 <strong>Date</strong>: 2026-06-06 <strong>Status</strong>: Shipped</p>
+<hr>
+<h2 id="1-executive-summary">1. Executive Summary</h2>
+<p>ChapterForge is a Windows desktop application that converts a folder of audio files into a single master audio file with embedded, navigable chapter markers. It targets content creators — audiobook producers, podcasters, and lecture archivists — with a first-class requirement that the tool be fully operable by blind and low-vision users using only a keyboard and screen reader.</p>
+<p>The application ships with a GUI (wxPython), a CLI (Click), a background folder-watching engine with system-tray controller, and a beta Auphonic audio post-production integration. All core audio work is delegated to FFmpeg and Mutagen; ChapterForge provides the workflow, accessibility layer, and chapter-format expertise on top.</p>
+<hr>
+<h2 id="2-goals">2. Goals</h2>
+<ol>
+<li>Make professional-grade chapter-marked audio production accessible to users who cannot use a mouse.</li>
+<li>Produce chapter markers that are compatible with major podcast and audiobook players (Overcast, Pocket Casts, AntennaPod, Apple Books, Prologue).</li>
+<li>Keep the core build pipeline headless so that CLI and background-watcher workflows are first-class, not afterthoughts.</li>
+<li>Never block the GUI thread; all long operations run on a background worker thread.</li>
+<li>Provide an upgrade path to Auphonic cloud post-production for users who want leveling, noise reduction, and transcripts without a separate tool.</li>
+</ol>
+<hr>
+<h2 id="3-non-goals">3. Non-Goals</h2>
+<ul>
+<li>ChapterForge is not a DAW. It does not support real-time recording, mixing tracks, or non-destructive editing beyond lossless copy operations.</li>
+<li>ChapterForge is not a podcast hosting platform. It does not publish to RSS feeds or podcast directories.</li>
+<li>ChapterForge does not resell or proxy third-party services. The Auphonic integration uses the user&#x27;s own Auphonic account and credits.</li>
+<li>ChapterForge does not support video input or video output at any point in its pipeline.</li>
+</ul>
+<hr>
+<h2 id="4-target-users">4. Target Users</h2>
+<h3 id="41-blind-low-vision-audiobook-producer">4.1 Blind / Low-Vision Audiobook Producer</h3>
+<p>Needs full keyboard navigation, accurate screen-reader announcements at every step, and a tool that works without a mouse. This user is the accessibility constraint: if a feature cannot be used by this person, it is not done.</p>
+<h3 id="42-sighted-podcast-creator">4.2 Sighted Podcast Creator</h3>
+<p>Uses the GUI for quick chapter editing, cover art, and one-click builds. May use the watcher system to automate weekly episode processing.</p>
+<h3 id="43-lecture-conference-archivist">4.3 Lecture / Conference Archivist</h3>
+<p>Processes large batches of recordings via the CLI or batch watcher. Values natural sort, silence-based auto-chaptering, and reliable output naming.</p>
+<h3 id="44-audiobook-publisher-small-studio">4.4 Audiobook Publisher (Small Studio)</h3>
+<p>Produces ACX-spec audiobooks. Needs per-file normalization to LUFS targets, FLAC output for archiving, and reproducible builds via job files. May use the Auphonic beta integration for final audio cleanup.</p>
+<hr>
+<h2 id="5-system-requirements">5. System Requirements</h2>
+<ul>
+<li><strong>OS</strong>: Windows 10 / 11 (64-bit)</li>
+<li><strong>RAM</strong>: 4 GB minimum, 8 GB recommended</li>
+<li><strong>Disk</strong>: 500 MB for application plus space for audio files and temporary processing</li>
+<li><strong>FFmpeg</strong>: Bundled in production releases under <code>_internal/</code>; must be on PATH in development</li>
+<li><strong>Screen readers</strong>: NVDA, JAWS, Windows Narrator (NVDA is the primary test target)</li>
+<li><strong>Python runtime</strong>: Bundled in production releases via PyInstaller</li>
+</ul>
+<hr>
+<h2 id="6-architecture">6. Architecture</h2>
+<p>The app is structured as a Python package under <code>chapterforge/</code> with clean separation between layers:</p>
+<table>
+<thead><tr><th>Module</th><th>Responsibility</th></tr></thead>
+<tbody>
+<tr><td><code>core.py</code></td><td>All UI-free audio logic: scan, probe, concatenate, tag</td></tr>
+<tr><td><code>app.py</code></td><td>wxPython GUI; long ops on background thread, results via wx events</td></tr>
+<tr><td><code>cli.py</code></td><td>Click CLI that calls <code>core.py</code> directly</td></tr>
+<tr><td><code>player.py</code></td><td>In-app chapter-aware audio player</td></tr>
+<tr><td><code>watcher.py</code> / <code>tray.py</code></td><td>Background folder watcher and system-tray controller</td></tr>
+<tr><td><code>settings.py</code></td><td>Persistent JSON settings at <code>%APPDATA%\ChapterForge\settings.json</code></td></tr>
+<tr><td><code>manifest.py</code></td><td><code>.cfjob</code> job-file parsing and writing</td></tr>
+<tr><td><code>notify.py</code></td><td>Toast, screen-reader, and JSON-log notifications</td></tr>
+<tr><td><code>a11y.py</code></td><td>Prism screen-reader bridge (optional <code>prismatoid</code> package)</td></tr>
+<tr><td><code>updates.py</code></td><td>GitHub Releases update checker</td></tr>
+<tr><td><code>auphonic/</code></td><td>Auphonic integration: client, auth, service, models, DB, polling</td></tr>
+<tr><td><code>auphonic_dialogs.py</code></td><td>Auphonic wxPython dialogs</td></tr>
+</tbody></table>
+<p>Entry points: <code>main.py</code> (GUI / watcher), <code>cli_main.py</code> (CLI console).</p>
+<hr>
+<h2 id="7-core-features">7. Core Features</h2>
+<h3 id="71-folder-to-master-build">7.1 Folder-to-Master Build</h3>
+<p>The primary workflow: open a folder of audio files, review the automatically assembled chapter list, set metadata, and build a single master file with embedded chapter markers.</p>
+<ul>
+<li>Supported input formats: MP3, FLAC, WAV, OGG, M4A, AAC, Opus, WMA, MP2</li>
+<li>Output formats: MP3 (ID3v2 CHAP/CTOC), M4B (native MP4 chapters), FLAC lossless (Vorbis Comment chapters)</li>
+<li>Bitrate options: 128k to 320k for lossy outputs; lossless copy for FLAC source-to-FLAC output</li>
+<li>Cover art: auto-detected from folder or manually selected; embedded in output</li>
+<li>Natural sort for track ordering (<code>track2</code> before <code>track10</code>)</li>
+<li>Progress announced to screen reader via <code>a11y.announce()</code></li>
+<li>Build runs on background thread; UI remains responsive</li>
+</ul>
+<h3 id="72-chapter-management">7.2 Chapter Management</h3>
+<ul>
+<li>Add, remove, reorder (Alt+Up / Alt+Down), merge adjacent chapters</li>
+<li>Inline title editing (F2) and batch title editing (transforms: title case, strip track numbers, strip underscores, find-and-replace, number pattern)</li>
+<li>Undo / Redo (Ctrl+Z / Ctrl+Y) for all chapter list operations; stack depth 50; cleared on new load or build</li>
+<li>Chapter list column visibility: toggle #, Title, Start, Duration, Source columns (View &gt; Columns)</li>
+<li>CUE sheet import (applies chapter titles by position in both build and edit modes)</li>
+<li>CSV chapter export (chapter number, title, start, duration, link URL, image path)</li>
+<li>File renaming from chapter titles (pattern: <code>{n}</code>, <code>{n:02d}</code>, <code>{title}</code>, <code>{ext}</code>; live preview before applying)</li>
+<li>Chapter validation: automatic checking for boundary issues</li>
+</ul>
+<h3 id="73-edit-mode-single-file-editing">7.3 Edit Mode (Single-File Editing)</h3>
+<p>Open an existing chaptered master file to re-edit chapter boundaries and titles without rebuilding from source files.</p>
+<ul>
+<li>Split a chapter at the current playhead position</li>
+<li>Merge chapters up</li>
+<li>Save changes back to the open file (lossless ID3 rewrite via Mutagen)</li>
+</ul>
+<h3 id="74-in-app-audio-player">7.4 In-App Audio Player</h3>
+<p>Fully keyboard-accessible, chapter-aware audio player:</p>
+<ul>
+<li>Play / Pause (Space), Stop, Previous/Next Chapter</li>
+<li>Rewind / Fast-forward by configurable step (default 10 seconds)</li>
+<li>Volume control</li>
+<li>Go to Time dialog (Ctrl+G): accepts HH:MM:SS, MM:SS, or decimal seconds</li>
+</ul>
+<h3 id="75-lossless-trim-and-cut">7.5 Lossless Trim and Cut</h3>
+<ul>
+<li>Set begin and end trim markers from the current playhead position</li>
+<li>Pre-listen as cut: plays from just before the cut point</li>
+<li>Save trimmed selection to a new file using FFmpeg lossless copy (no quality loss)</li>
+<li>Trim state resets when a new file is loaded</li>
+</ul>
+<h3 id="76-split-one-long-recording-into-chapters">7.6 Split One Long Recording into Chapters</h3>
+<ul>
+<li>Open a single long recording in edit mode</li>
+<li>Mark chapter boundaries using Split Here</li>
+<li>File &gt; Save as Individual Chapter Files: splits into one file per chapter using FFmpeg lossless copy</li>
+</ul>
+<h3 id="77-silence-based-auto-chaptering">7.7 Silence-Based Auto-Chaptering</h3>
+<p>Automatically detect chapter boundaries by analyzing silence gaps:</p>
+<ul>
+<li>Configurable noise threshold (default -30 dB)</li>
+<li>Configurable minimum silence duration (default 0.8 seconds)</li>
+<li>Available in GUI and CLI</li>
+</ul>
+<h3 id="78-metadata-tagging">7.8 Metadata Tagging</h3>
+<p>Full ID3v2 and MP4/FLAC metadata support:</p>
+<ul>
+<li>Standard fields: Title, Artist, Album Artist, Genre, Year, Track Number, Comment</li>
+<li>Cover art (embedded)</li>
+<li>Podcasting 2.0 chapter sidecar (optional)</li>
+<li>Sticky tag defaults: remembered between projects in settings</li>
+</ul>
+<h3 id="79-audio-processing-options">7.9 Audio Processing Options</h3>
+<ul>
+<li><strong>Global normalization</strong>: FFmpeg loudnorm pass over the final output</li>
+<li><strong>Per-file normalization</strong>: normalize each source file individually before concatenating (target LUFS configurable, default -16.0)</li>
+<li><strong>Chapter transition fades</strong>: fade-out then fade-in at each chapter boundary (0-5 seconds, default 0); forces re-encoding of boundary portions</li>
+</ul>
+<h3 id="710-reusable-build-presets">7.10 Reusable Build Presets</h3>
+<p>Settings dialog includes a preset bar:</p>
+<ul>
+<li>Three built-in presets: Podcast MP3, Audiobook M4B, FLAC Archive</li>
+<li>Users can save any combination of build settings as a named preset</li>
+<li>Presets stored in <code>settings.json</code> under <code>&quot;presets&quot;</code></li>
+</ul>
+<h3 id="711-job-files-cfjob">7.11 Job Files (.cfjob)</h3>
+<p>Human-readable, UTF-8 text files storing complete project configurations:</p>
+<ul>
+<li>Version-controllable; can be shared or committed to Git</li>
+<li>Supports all metadata fields, output configuration, and chapter list</li>
+<li>Load via File &gt; Open Job File (Ctrl+L); save via File &gt; Save Job</li>
+</ul>
+<h3 id="712-background-folder-watcher">7.12 Background Folder Watcher</h3>
+<p>Automated processing engine with system-tray integration:</p>
+<ul>
+<li>Watch one or more folders for new audio content</li>
+<li>Configurable naming templates for output files (<code>{folder}</code>, <code>{date}</code>, <code>{datetime}</code>, etc.)</li>
+<li>Stability detection: waits for folder content to stabilize before processing</li>
+<li>Atomic <code>.chapterforge_processing</code> lock files prevent double-processing</li>
+<li><code>.chapterforge_done</code> markers make folders one-shot</li>
+<li><code>.chapterforge_failed</code> files retry only after content changes</li>
+<li>Output written to <code>_ChapterForge</code> sub-folder to avoid re-triggering the watch</li>
+<li>Start at sign-in option for persistent watching</li>
+<li>Progress via toast and screen-reader notifications</li>
+</ul>
+<h3 id="713-command-line-interface">7.13 Command Line Interface</h3>
+<p>Full-featured CLI for automation and scripting (Click-based):</p>
+<pre><code>chapterforge &lt;folder&gt;                        # Build from folder
+chapterforge -i .\chapters -o book.mp3       # Explicit in/out
+chapterforge .\chapters --normalize          # With loudness normalization
+chapterforge .\chapters --dry-run --list     # Preview without building
+chapterforge --job mybook.cfjob              # Process from job file
+chapterforge --batch &quot;C:\Audiobooks&quot; --recursive  # Batch mode
+chapterforge --split-silence --noise-db -30 --min-silence 0.8 long.mp3</code></pre>
+<p>Return codes: 0 success, 1 general error, 2 invalid arguments, 3 processing error, 4 file not found, 5 insufficient permissions.</p>
+<h3 id="714-diagnostics">7.14 Diagnostics</h3>
+<p>Tools &gt; Save Diagnostics: exports a report for support including FFmpeg version, Python version, settings, and system info.</p>
+<hr>
+<h2 id="8-accessibility-requirements">8. Accessibility Requirements</h2>
+<p>Accessibility is a first-class, binding requirement. Every interactive control must have an accessible name and a visible label.</p>
+<h3 id="81-screen-reader-compatibility">8.1 Screen Reader Compatibility</h3>
+<ul>
+<li>Primary target: NVDA on Windows 10/11</li>
+<li>Secondary targets: JAWS, Windows Narrator</li>
+<li>Prism screen-reader bridge via optional <code>prismatoid</code> package</li>
+<li><code>a11y.announce()</code> used for all background operation milestones (start, progress, completion, errors)</li>
+<li>Verbosity configurable: quiet, normal, verbose</li>
+</ul>
+<h3 id="82-accessible-name-rules-wxpython">8.2 Accessible Name Rules (wxPython)</h3>
+<p>These rules are binding and must not be violated:</p>
+<table>
+<thead><tr><th>Control type</th><th>How to set the accessible name</th></tr></thead>
+<tbody>
+<tr><td><code>wx.CheckBox</code></td><td><code>label=</code> constructor parameter (Win32 button window text)</td></tr>
+<tr><td><code>wx.SpinCtrl</code> / <code>wx.SpinCtrlDouble</code></td><td><code>ctrl.SetAccessible(_NamedAccessible(ctrl, &quot;description&quot;))</code></td></tr>
+<tr><td>All other controls</td><td><code>ctrl.SetName(&quot;description&quot;)</code></td></tr>
+</tbody></table>
+<h3 id="83-keyboard-navigation">8.3 Keyboard Navigation</h3>
+<ul>
+<li>All features reachable without a mouse</li>
+<li>Tab order follows logical visual order</li>
+<li>No keyboard traps</li>
+<li>First meaningful control receives focus when a dialog opens (<code>ctrl.SetFocus()</code>)</li>
+<li>Command palette (Ctrl+Shift+P): search all commands by name</li>
+</ul>
+<h3 id="84-visual-accessibility">8.4 Visual Accessibility</h3>
+<ul>
+<li>High-contrast color theme option</li>
+<li>Text scaling: 80-150% (Ctrl+= / Ctrl+-)</li>
+<li>System theme, light, dark, and high-contrast theme modes</li>
+<li>Color alone is never used as the sole indicator of state</li>
+</ul>
+<h3 id="85-keyboard-shortcuts-primary">8.5 Keyboard Shortcuts (primary)</h3>
+<table>
+<thead><tr><th>Shortcut</th><th>Action</th></tr></thead>
+<tbody>
+<tr><td>Ctrl+Shift+O</td><td>Open folder of audio files</td></tr>
+<tr><td>Ctrl+O</td><td>Open existing chaptered file</td></tr>
+<tr><td>Ctrl+B</td><td>Build master file</td></tr>
+<tr><td>Ctrl+S</td><td>Build (build mode) / Save changes (edit mode)</td></tr>
+<tr><td>Ctrl+L</td><td>Load job file</td></tr>
+<tr><td>Ctrl+G</td><td>Go to time (player)</td></tr>
+<tr><td>Ctrl+W</td><td>Set up automatic building (watcher)</td></tr>
+<tr><td>Ctrl+,</td><td>Settings</td></tr>
+<tr><td>Ctrl+Shift+P</td><td>Command palette</td></tr>
+<tr><td>Ctrl+Z / Ctrl+Y</td><td>Undo / Redo</td></tr>
+<tr><td>F2</td><td>Edit selected chapter title</td></tr>
+<tr><td>Alt+Up / Alt+Down</td><td>Move chapter up / down</td></tr>
+<tr><td>Space</td><td>Play / Pause</td></tr>
+<tr><td>Ctrl+Left / Ctrl+Right</td><td>Previous / Next chapter</td></tr>
+</tbody></table>
+<p>Keyboard shortcut overrides: users can remap any command via Settings (stored in <code>settings.json</code> under <code>&quot;key_overrides&quot;</code>).</p>
+<hr>
+<h2 id="9-chapter-format-compatibility">9. Chapter Format Compatibility</h2>
+<p>Chapter markers are written as ID3v2 CHAP + CTOC frames (MP3) and native MP4 chapter atoms (M4B) via Mutagen. The format must remain compatible with:</p>
+<ul>
+<li>Overcast (iOS)</li>
+<li>Pocket Casts (iOS, Android, web)</li>
+<li>AntennaPod (Android)</li>
+<li>Apple Books / Prologue (M4B)</li>
+<li>Podlove Web Player (HTML5)</li>
+</ul>
+<p>FLAC output uses Vorbis Comment chapters (CHAPTER001 / CHAPTER001NAME convention).</p>
+<p>Do not alter the frame structure without testing playback compatibility.</p>
+<hr>
+<h2 id="10-settings">10. Settings</h2>
+<p>All settings persist in <code>%APPDATA%\ChapterForge\settings.json</code>. Loading never raises; a missing or corrupt file yields defaults.</p>
+<p>Key configurable settings:</p>
+<table>
+<thead><tr><th>Setting</th><th>Default</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td><code>output_format</code></td><td><code>&quot;mp3&quot;</code></td><td>mp3, m4b, or flac</td></tr>
+<tr><td><code>bitrate</code></td><td><code>&quot;192k&quot;</code></td><td>Output bitrate for lossy formats</td></tr>
+<tr><td><code>normalize</code></td><td><code>false</code></td><td>Global loudness normalization</td></tr>
+<tr><td><code>per_file_normalize</code></td><td><code>false</code></td><td>Per-file normalization before concat</td></tr>
+<tr><td><code>normalize_lufs</code></td><td><code>-16.0</code></td><td>LUFS target for per-file normalization</td></tr>
+<tr><td><code>gap_seconds</code></td><td><code>0.0</code></td><td>Silence inserted between chapters</td></tr>
+<tr><td><code>fade_ms</code></td><td><code>0</code></td><td>Chapter transition fade duration (ms)</td></tr>
+<tr><td><code>write_pod2</code></td><td><code>false</code></td><td>Also write Podcasting 2.0 chapters sidecar</td></tr>
+<tr><td><code>announce_verbosity</code></td><td><code>&quot;normal&quot;</code></td><td>Screen reader verbosity</td></tr>
+<tr><td><code>text_scale</code></td><td><code>100</code></td><td>UI font scaling percent</td></tr>
+<tr><td><code>theme</code></td><td><code>&quot;system&quot;</code></td><td>system, light, dark, high_contrast</td></tr>
+<tr><td><code>skip_seconds</code></td><td><code>10</code></td><td>Player rewind/fast-forward step</td></tr>
+<tr><td><code>start_minimized</code></td><td><code>false</code></td><td>Hide window on launch, show tray icon</td></tr>
+<tr><td><code>check_updates_startup</code></td><td><code>true</code></td><td>Silent update check at launch</td></tr>
+<tr><td><code>beta_features</code></td><td><code>false</code></td><td>Enables beta features (Auphonic integration)</td></tr>
+<tr><td><code>silence_noise_db</code></td><td><code>-30.0</code></td><td>Silence detection threshold</td></tr>
+<tr><td><code>silence_min_seconds</code></td><td><code>0.8</code></td><td>Minimum silence duration for chapter break</td></tr>
+</tbody></table>
+<hr>
+<h2 id="11-build-and-distribution">11. Build and Distribution</h2>
+<ul>
+<li><strong>PyInstaller spec</strong>: <code>ChapterForge.spec</code>, produces one-folder build under <code>dist/ChapterForge/</code></li>
+<li><strong>Two executables</strong>: <code>ChapterForge.exe</code> (windowed GUI), <code>chapterforge-cli.exe</code> (console CLI)</li>
+<li><strong>Shared runtime</strong>: <code>_internal/</code> contains Python runtime, all packages, and bundled FFmpeg</li>
+<li><strong>Installer</strong>: Inno Setup (<code>installer/ChapterForge.iss</code>), produces <code>ChapterForge-Setup-x.x.x.exe</code></li>
+<li><strong>Portable installer</strong>: <code>installer/ChapterForge-Portable.iss</code>, produces a portable zip</li>
+<li><strong>Version</strong>: Set in four places - <code>pyproject.toml</code>, <code>chapterforge/__init__.py</code>, <code>installer/ChapterForge.iss</code>, <code>CHANGELOG.md</code></li>
+<li><strong>Build workflow</strong>: GitHub Actions <code>build-release.yml</code>; injects <code>CHAPTERFORGE_GITHUB_TOKEN</code> and Auphonic OAuth credentials from BITS-ACB org secrets at build time</li>
+<li><strong>Update checker</strong>: <code>updates.py</code> compares against GitHub Releases; runs silently at startup if <code>check_updates_startup</code> is true</li>
+<li><strong>Feedback</strong>: Help &gt; Report an Issue opens an in-app dialog that files a GitHub issue on BITS-ACB/chapterforge via the <code>feedback-hub</code> library</li>
+</ul>
+<hr>
+<h2 id="12-auphonic-integration-beta">12. Auphonic Integration (Beta)</h2>
+<p>Auphonic integration is an opt-in beta feature. Enable it under <strong>Tools &gt; Settings &gt; General &gt; Enable beta features</strong>. The Auphonic menu appears between View and Help after saving.</p>
+<h3 id="121-purpose">12.1 Purpose</h3>
+<p>Connect a user&#x27;s own Auphonic account to apply professional audio post-production (leveling, noise reduction, transcripts, captions) to audio files without leaving ChapterForge. Auphonic charges the user&#x27;s own credits directly; ChapterForge does not resell or proxy Auphonic billing.</p>
+<h3 id="122-authentication">12.2 Authentication</h3>
+<ul>
+<li>OAuth 2.0 RFC 8252 loopback redirect pattern for desktop apps</li>
+<li>Opens browser for Auphonic login; a local HTTP server on a random port captures the authorization code</li>
+<li>Access and refresh tokens stored encrypted at rest using Windows DPAPI (ctypes) with a base64 + machine-key fallback</li>
+<li>Token stored at <code>%APPDATA%\ChapterForge\auphonic_token.bin</code></li>
+<li>Disconnect removes stored tokens</li>
+</ul>
+<h3 id="123-menu-actions">12.3 Menu Actions</h3>
+<table>
+<thead><tr><th>Menu item</th><th>Action</th></tr></thead>
+<tbody>
+<tr><td>Auphonic &gt; Connect Account</td><td>OAuth connect / view credit balance / disconnect</td></tr>
+<tr><td>Auphonic &gt; New Production</td><td>Submit an audio file for Auphonic processing</td></tr>
+<tr><td>Auphonic &gt; Job History</td><td>View submitted jobs and download results</td></tr>
+</tbody></table>
+<h3 id="124-new-production-workflow">12.4 New Production Workflow</h3>
+<ol>
+<li>Browse for a local audio file</li>
+<li>File validated: extension check + ffprobe inspection; any file containing a video stream is rejected</li>
+<li>Choose a preset (built-in or from Auphonic account)</li>
+<li>Enter a production title</li>
+<li>Credit estimate calculated (3-minute minimum applied for short files); warning shown if credits appear insufficient</li>
+<li>Submit: creates Auphonic production, uploads file, starts processing</li>
+<li>Background polling with exponential backoff (5s initial, 1.5x factor, 60s cap)</li>
+<li>On completion: open Job History to download results</li>
+</ol>
+<h3 id="125-built-in-presets">12.5 Built-in Presets</h3>
+<table>
+<thead><tr><th>Preset</th><th>Target</th><th>Outputs</th></tr></thead>
+<tbody>
+<tr><td>Podcast Cleanup</td><td>-16 LUFS, denoise, leveler</td><td>MP3</td></tr>
+<tr><td>Podcast Cleanup + Transcript</td><td>same</td><td>MP3 + SRT + WebVTT + transcript HTML/TXT</td></tr>
+<tr><td>Audiobook / ACX Draft</td><td>-18 LUFS, careful denoise</td><td>WAV + FLAC</td></tr>
+<tr><td>Lecture Cleanup</td><td>denoise, silence cutting</td><td>MP3 + captions</td></tr>
+<tr><td>Meeting / Interview Multitrack</td><td>host/guest tracks</td><td>MP3</td></tr>
+<tr><td>Archive Master</td><td>minimal processing</td><td>FLAC + WAV + stats</td></tr>
+</tbody></table>
+<h3 id="126-audio-only-policy">12.6 Audio-Only Policy</h3>
+<ul>
+<li>Only audio file extensions accepted (MP3, FLAC, WAV, OGG, M4A, AAC, Opus, etc.)</li>
+<li><code>ffprobe</code> inspection confirms at least one audio stream and zero video streams before submission</li>
+<li>Video output formats blocked in results even if Auphonic returns them</li>
+<li>SSRF protection on remote URLs: HTTPS only, blocks localhost, private IP ranges, link-local addresses</li>
+</ul>
+<h3 id="127-local-storage">12.7 Local Storage</h3>
+<ul>
+<li>Job history and output metadata: SQLite at <code>%APPDATA%\ChapterForge\auphonic.db</code></li>
+<li>Tables: <code>auphonic_jobs</code>, <code>auphonic_outputs</code>, <code>auphonic_schema_cache</code>, <code>auphonic_credit_snapshots</code></li>
+<li>Downloaded result files: written to user-chosen folder via Job History &gt; Download Results</li>
+</ul>
+<h3 id="128-credential-injection">12.8 Credential Injection</h3>
+<p>Production builds inject <code>AUPHONIC_CLIENT_ID</code> and <code>AUPHONIC_CLIENT_SECRET</code> from BITS-ACB org secrets at build time (same pattern as the GitHub feedback token). Development: set as environment variables before launching.</p>
+<hr>
+<h2 id="13-notifications">13. Notifications</h2>
+<p><code>notify.py</code> provides three notification channels:</p>
+<ul>
+<li><strong>Toast</strong>: Windows system toast notifications (build complete, watcher events)</li>
+<li><strong>Screen reader</strong>: <code>a11y.announce()</code> calls via Prism bridge</li>
+<li><strong>JSON log</strong>: Machine-readable log of all notifications at <code>%APPDATA%\ChapterForge\notify.log</code></li>
+</ul>
+<hr>
+<h2 id="14-security-considerations">14. Security Considerations</h2>
+<ul>
+<li>OAuth tokens encrypted at rest (DPAPI)</li>
+<li>GitHub feedback token injected at build time; never stored in source</li>
+<li>Auphonic OAuth credentials injected at build time; never stored in source</li>
+<li>SSRF protection in Auphonic URL validation</li>
+<li>No credentials in logs or diagnostic exports</li>
+</ul>
+<hr>
+<h2 id="15-testing">15. Testing</h2>
+<p>Tests live in <code>tests/</code>. The suite synthesizes small MP3s via FFmpeg and is skipped if FFmpeg is not on PATH.</p>
+<pre><code>python -m pytest -q          # All tests
+python -m pytest tests/test_core.py -q  # Single file</code></pre>
+<p>Test coverage areas:</p>
+<ul>
+<li>Core audio logic (scan, probe, concatenate, tag, trim, split, fades, normalization)</li>
+<li>Auphonic client (mocked HTTP)</li>
+<li>Auphonic models and dataclasses</li>
+<li>Auphonic audio validation (extension allowlist, ffprobe inspection, SSRF blocking)</li>
+<li>GitHub token integration (skipped unless <code>CHAPTERFORGE_GITHUB_TOKEN</code> env var is set)</li>
+</ul>
+<hr>
+<h2 id="16-open-items-and-future-work">16. Open Items and Future Work</h2>
+<p>The following are known gaps or areas for future consideration. They are not requirements for 1.0.0.</p>
+<ol>
+<li><strong>Auphonic multitrack UI</strong> - the service layer supports multitrack submissions, but the New Production dialog is singletrack-only in 1.0.0.</li>
+<li><strong>Auphonic advanced algorithm controls</strong> - basic preset selection only; per-algorithm tuning UI not yet built.</li>
+<li><strong>Auphonic review-before-publish</strong> - polling and download work; the Publish button in Job History is present but publishing to external Auphonic services is not exposed in the UI.</li>
+<li><strong>Transcript viewer</strong> - downloaded transcript files open in the system default app; no in-app viewer.</li>
+<li><strong>Webhooks</strong> - the polling fallback is implemented; a proper webhook receiver for faster status updates is not (desktop apps are not well-suited to this; polling is the right default).</li>
+<li><strong>macOS / Linux</strong> - the codebase is cross-platform Python but the installer, DPAPI encryption, and system-tray integration are Windows-only.</li>
+<li><strong>Waveform visualization</strong> - referenced in some documentation but not implemented in 1.0.0.</li>
+<li><strong>AI chapter detection</strong> - not implemented; referenced in early documentation drafts only.</li>
+</ol>
+</main>
+</div>
+<footer class="site">© 2026 Blind Information Technology Solutions (BITS). ChapterForge documentation, generated from Markdown.</footer>
+</body>
+</html>

@@ -38,11 +38,17 @@ PAGES = [
     ("README.md", "index.html", "Home", "ChapterForge", True),
     (os.path.join("docs", "USER_GUIDE.md"), "USER_GUIDE.html",
      "User Guide", "ChapterForge \u2014 User Guide", True),
+    (os.path.join("docs", "AUPHONIC_INTEGRATION.md"), "AUPHONIC_INTEGRATION.html",
+     "Auphonic", "ChapterForge \u2014 Auphonic Integration", True),
     (os.path.join("docs", "DEPLOYMENT.md"), "DEPLOYMENT.html",
      "Deployment", "ChapterForge \u2014 Deployment Guide", False),
     ("CHANGELOG.md", "CHANGELOG.html", "Changelog", "ChapterForge \u2014 Changelog", True),
     ("THIRD_PARTY.md", "THIRD_PARTY.html", "Third-Party Notices",
      "ChapterForge \u2014 Third-Party Notices", True),
+    (os.path.join("docs", "PRD.md"), "PRD.html",
+     "PRD", "ChapterForge \u2014 Product Requirements", False),
+    (os.path.join("docs", "press-release-v1.0.0.md"), "press-release-v1.0.0.html",
+     "Press Release", "ChapterForge 1.0.0 \u2014 Press Release", False),
 ]
 
 # Map known local markdown targets to their generated HTML page.
@@ -50,10 +56,14 @@ MD_TO_HTML = {
     "readme.md": "index.html",
     "docs/user_guide.md": "USER_GUIDE.html",
     "user_guide.md": "USER_GUIDE.html",
+    "docs/auphonic_integration.md": "AUPHONIC_INTEGRATION.html",
+    "auphonic_integration.md": "AUPHONIC_INTEGRATION.html",
     "docs/deployment.md": "DEPLOYMENT.html",
     "deployment.md": "DEPLOYMENT.html",
     "changelog.md": "CHANGELOG.html",
     "third_party.md": "THIRD_PARTY.html",
+    "docs/prd.md": "PRD.html",
+    "prd.md": "PRD.html",
     "license": "LICENSE.txt",
 }
 
