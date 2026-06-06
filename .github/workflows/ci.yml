@@ -28,5 +28,10 @@ jobs:
       - name: Run tests
         run: python -m pytest -q
 
+      - name: Run feedback token integration test
+        env:
+          CHAPTERFORGE_GITHUB_TOKEN: ${{ secrets.CHAPTERFORGE_GITHUB_TOKEN }}
+        run: python -m pytest tests/test_feedback.py -v
+
       - name: Build documentation
         run: python tools/build_docs.py
