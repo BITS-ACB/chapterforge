@@ -1,16 +1,14 @@
 ---
-redirect_to: /chapterforge/landing.html
+redirect_to: /landing.html
 ---
 
-# ChapterForge 1.0.0
+# ChapterForge
 
-Visit the [ChapterForge website](landing.html) for more information.
+Visit the [ChapterForge website](landing.html) to download and learn more.
 
 ## Quick Links
 
-- **[User Guide](html/USER_GUIDE.html)** — Complete guide to all features
-- **[PRD](PRD.md)** — Full product requirements and feature reference
-- **[Auphonic Integration](AUPHONIC_INTEGRATION.md)** — Audio post-production with Auphonic
-- **[GitHub Repository](https://github.com/BITS-ACB/chapterforge)** — Source code and issues
-- **[Changelog](html/CHANGELOG.html)** — What's new in this version
-- **[License](html/LICENSE.txt)** — MIT License
+- **[User Guide](html/USER_GUIDE.html)** - Complete guide to all features
+- **[What's New](html/CHANGELOG.html)** - Release notes and history
+- **[Auphonic Integration](html/AUPHONIC_INTEGRATION.html)** - Audio post-production with Auphonic
+- **[Licenses](html/THIRD_PARTY.html)** - Third-party notices
