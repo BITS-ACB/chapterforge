@@ -709,7 +709,9 @@ published — no separate update server is required.
 - [ ] Version bumped in `pyproject.toml`, `__init__`, `.iss`, `CHANGELOG.md`.
 - [ ] `python -m pytest -q` passes.
 - [ ] `GITHUB_OWNER`/`GITHUB_REPO` set correctly in `updates.py`.
+- [ ] `AUPHONIC_CLIENT_ID` and `AUPHONIC_CLIENT_SECRET` stored as org secrets in BITS-ACB (same pattern as `CHAPTERFORGE_GITHUB_TOKEN`). The build workflow must inject them before PyInstaller runs so the binary has them baked in.
 - [ ] `pyinstaller ChapterForge.spec` succeeds; both exes smoke-tested.
+- [ ] Auphonic OAuth flow tested in the built binary (Connect Account > browser > returns to app).
 - [ ] `ISCC.exe installer\ChapterForge.iss` produces `ChapterForge-Setup.exe`.
 - [ ] Installer test-installed and launched on a clean user profile.
 - [ ] Git tag `vX.Y.Z` pushed.

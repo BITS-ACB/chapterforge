@@ -5,6 +5,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
 
+## [1.1.0] - 2026-06-06
+
+### Added
+
+- **Auphonic Integration** - Full audio post-production workflow via the new
+  **Auphonic** menu (between View and Help). Connect your Auphonic account via
+  OAuth 2.0, view your credit balance, submit singletrack and multitrack
+  productions, and download results (audio, transcripts, captions, stats,
+  chapters). Six built-in presets: Podcast Cleanup, Podcast Cleanup + Transcript,
+  Audiobook / ACX Draft, Lecture Cleanup, Meeting / Interview Multitrack, and
+  Archive Master. Audio-only policy enforced at every stage via ffprobe inspection
+  - video files and video outputs are blocked. OAuth tokens stored encrypted via
+  Windows DPAPI. Job history and results stored locally in SQLite under
+  `%APPDATA%\ChapterForge\auphonic.db`.
+
+---
+
 ## [1.95] - 2026-06-05
 
 ### Added
