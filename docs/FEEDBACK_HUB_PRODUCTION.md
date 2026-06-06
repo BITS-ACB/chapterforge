@@ -31,11 +31,12 @@ state of each path:
 The token currently stored in GitHub Secrets is a broad OAuth token.
 Replace it with a minimal fine-grained PAT that can only write issues.
 
-1. Open: https://github.com/settings/personal-access-tokens/new
+1. Open: https://github.com/organizations/BITS-ACB/settings/personal-access-tokens/new
+   (This creates the token under the BITS-ACB org, so the resource owner is pre-set.)
 2. Fill in:
    - **Name**: `chapterforge-feedback-hub`
    - **Expiration**: 1 year
-   - **Repository access**: Only select repositories -> `BITS-ACB/chapterforge`
+   - **Repository access**: Only select repositories -> `chapterforge`
    - **Permissions**: Issues = Read and Write (everything else = No access)
 3. Click **Generate token** and copy it
 4. Store it as an org-level secret in BITS-ACB (run this in the terminal):
