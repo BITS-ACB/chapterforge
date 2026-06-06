@@ -3383,10 +3383,10 @@ class AboutDialog(wx.Dialog):
         outer.Add(wx.StaticLine(self), 0, wx.EXPAND | wx.ALL, 10)
 
         website_btn = wx.Button(self, label="Visit Project Website")
-        website_btn.SetName("Visit ChapterForge project website on GitHub")
-        website_btn.SetToolTip("https://github.com/BITS-ACB/chapterforge")
+        website_btn.SetName("Visit ChapterForge project website")
+        website_btn.SetToolTip("https://chapterforge.app")
         website_btn.Bind(wx.EVT_BUTTON, lambda _e: wx.LaunchDefaultBrowser(
-            "https://github.com/BITS-ACB/chapterforge"))
+            "https://chapterforge.app"))
         outer.Add(website_btn, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 12)
 
         btns = self.CreateButtonSizer(wx.OK)

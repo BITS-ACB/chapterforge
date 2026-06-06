@@ -74,10 +74,10 @@ def open_doc(page: str = HOME, anchor: str = "") -> bool:
         except Exception:
             pass
 
-    # Fall back to GitHub Pages
+    # Fall back to chapterforge.app
     try:
         webbrowser.open(_with_anchor(
-            f"https://bits-acb.github.io/chapterforge/html/{page}"))
+            f"https://chapterforge.app/{page}"))
         return True
     except Exception:
         return False

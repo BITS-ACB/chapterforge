@@ -46,8 +46,8 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/bits-acb/chapterforge"
-Documentation = "https://github.com/bits-acb/chapterforge/blob/main/docs/USER_GUIDE.md"
+Homepage = "https://chapterforge.app"
+Documentation = "https://chapterforge.app/USER_GUIDE.html"
 Issues = "https://github.com/bits-acb/chapterforge/issues"
 
 [project.scripts]
