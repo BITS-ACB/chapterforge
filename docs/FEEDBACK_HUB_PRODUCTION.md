@@ -38,11 +38,13 @@ Replace it with a minimal fine-grained PAT that can only write issues.
    - **Repository access**: Only select repositories -> `BITS-ACB/chapterforge`
    - **Permissions**: Issues = Read and Write (everything else = No access)
 3. Click **Generate token** and copy it
-4. Store it as the repo secret (run this in the terminal):
+4. Store it as an org-level secret in BITS-ACB (run this in the terminal):
 
 ```
-! echo "github_pat_YOUR_NEW_TOKEN_HERE" | gh secret set CHAPTERFORGE_GITHUB_TOKEN --repo BITS-ACB/chapterforge
+! echo "github_pat_YOUR_NEW_TOKEN_HERE" | gh secret set CHAPTERFORGE_GITHUB_TOKEN --org BITS-ACB --visibility selected --repos chapterforge
 ```
+
+Storing at the org level (rather than repo level) keeps secrets centrally managed under BITS-ACB and makes it easy to reuse the pattern for other repos later. The `--visibility selected --repos chapterforge` flag restricts access to only this repo.
 
 ### Step 2 - Install feedback-hub as a proper dependency (2 minutes)
 
@@ -105,7 +107,7 @@ CHAPTERFORGE_GITHUB_TOKEN=your-token-here
 The fine-grained PAT expires in 1 year. When it does:
 1. Create a new one at https://github.com/settings/personal-access-tokens
 2. Same settings: `BITS-ACB/chapterforge`, Issues read/write only
-3. Run: `! echo "github_pat_NEW_TOKEN" | gh secret set CHAPTERFORGE_GITHUB_TOKEN --repo BITS-ACB/chapterforge`
+3. Run: `! echo "github_pat_NEW_TOKEN" | gh secret set CHAPTERFORGE_GITHUB_TOKEN --org BITS-ACB --visibility selected --repos chapterforge`
 4. Trigger a new release build to bake it in
 
 ---
