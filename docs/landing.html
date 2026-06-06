@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChapterForge - Professional Accessible Audio Chapter Management</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1e40af;
+            --secondary: #06b6d4;
+            --text: #1f2937;
+            --text-light: #6b7280;
+            --bg: #ffffff;
+            --bg-alt: #f9fafb;
+            --border: #e5e7eb;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --text: #f3f4f6;
+                --text-light: #d1d5db;
+                --bg: #111827;
+                --bg-alt: #1f2937;
+                --border: #374151;
+            }
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: var(--text);
+            background-color: var(--bg);
+        }
+
+        header {
+            padding: 1rem 0;
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            background-color: var(--bg);
+            z-index: 100;
+        }
+
+        nav {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: var(--text);
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+
+        .nav-links a:hover {
+            color: var(--primary);
+        }
+
+        .hero {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 6rem 2rem;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 3.5rem;
+            line-height: 1.2;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            font-size: 1.25rem;
+            color: var(--text-light);
+            margin-bottom: 2rem;
+            max-width: 700px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .cta-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-top: 2.5rem;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 0.75rem 2rem;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            font-weight: 600;
+            text-decoration: none;
+            border: 2px solid transparent;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+        }
+
+        .btn-secondary {
+            background-color: transparent;
+            color: var(--primary);
+            border-color: var(--primary);
+        }
+
+        .btn-secondary:hover {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .section {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 4rem 2rem;
+        }
+
+        .section:nth-child(even) {
+            background-color: var(--bg-alt);
+        }
+
+        h2 {
+            font-size: 2.5rem;
+            margin-bottom: 3rem;
+            text-align: center;
+        }
+
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
+        }
+
+        .feature {
+            padding: 2rem;
+            border-radius: 0.75rem;
+            border: 1px solid var(--border);
+            background-color: var(--bg);
+        }
+
+        .feature h3 {
+            font-size: 1.25rem;
+            margin-bottom: 0.75rem;
+            color: var(--primary);
+        }
+
+        .feature p {
+            color: var(--text-light);
+        }
+
+        .icon {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .specs {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .spec {
+            padding: 1.5rem;
+            background-color: var(--bg);
+            border-radius: 0.5rem;
+            border-left: 4px solid var(--secondary);
+        }
+
+        .spec h4 {
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .spec p {
+            color: var(--text-light);
+            font-size: 0.9rem;
+        }
+
+        .testimonial {
+            background-color: var(--bg);
+            padding: 2rem;
+            border-radius: 0.75rem;
+            border-left: 4px solid var(--secondary);
+            margin: 1rem 0;
+        }
+
+        .testimonial p {
+            font-size: 1.1rem;
+            margin-bottom: 1rem;
+            font-style: italic;
+        }
+
+        .testimonial-author {
+            color: var(--text-light);
+            font-weight: 600;
+        }
+
+        footer {
+            background-color: var(--bg-alt);
+            border-top: 1px solid var(--border);
+            padding: 3rem 2rem;
+            text-align: center;
+            color: var(--text-light);
+        }
+
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .footer-links {
+            display: flex;
+            gap: 2rem;
+            justify-content: center;
+            margin: 1rem 0;
+            flex-wrap: wrap;
+        }
+
+        .footer-links a {
+            color: var(--primary);
+            text-decoration: none;
+        }
+
+        .footer-links a:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2rem;
+            }
+
+            .hero {
+                padding: 3rem 1.5rem;
+            }
+
+            .nav-links {
+                gap: 1rem;
+                font-size: 0.9rem;
+            }
+
+            .subtitle {
+                font-size: 1rem;
+            }
+
+            .cta-buttons {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+            }
+        }
+
+        .badge {
+            display: inline-block;
+            background-color: var(--secondary);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+
+        .highlight {
+            color: var(--primary);
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <nav>
+            <div class="logo">ChapterForge</div>
+            <ul class="nav-links">
+                <li><a href="#features">Features</a></li>
+                <li><a href="#specs">Specifications</a></li>
+                <li><a href="#docs">Documentation</a></li>
+                <li><a href="https://github.com/BITS-ACB/chapterforge" target="_blank">GitHub</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <section class="hero">
+        <div class="badge">Version 2.0.0 - Now Available</div>
+        <h1>Professional Audio Chapter Management</h1>
+        <p class="subtitle">
+            Create professional audiobooks and podcasts with embedded chapter markers.
+            <span class="highlight">100% accessible</span> — built from the ground up for keyboard navigation and screen readers.
+        </p>
+        <div class="cta-buttons">
+            <a href="https://github.com/BITS-ACB/chapterforge/releases/download/v2.0.0/ChapterForge-Portable.exe" class="btn btn-primary">
+                Download Now
+            </a>
+            <a href="#docs" class="btn btn-secondary">
+                Learn More
+            </a>
+        </div>
+    </section>
+
+    <section class="section" id="features">
+        <h2>Powerful Features</h2>
+        <div class="features">
+            <div class="feature">
+                <div class="icon">🎵</div>
+                <h3>Multi-Format Support</h3>
+                <p>Import from MP3, FLAC, WAV, AAC, M4A, OGG, WMA, OPUS, and MP2. Export to MP3 with ID3v2 chapters or M4B audiobooks.</p>
+            </div>
+            <div class="feature">
+                <div class="icon">♿</div>
+                <h3>Full Accessibility</h3>
+                <p>Keyboard-only operation, comprehensive screen reader support (NVDA, JAWS, Narrator), and customizable high-contrast themes.</p>
+            </div>
+            <div class="feature">
+                <div class="icon">⚡</div>
+                <h3>Intelligent Detection</h3>
+                <p>Automatically detect chapter breaks in long audio recordings by analyzing silence gaps with configurable precision.</p>
+            </div>
+            <div class="feature">
+                <div class="icon">🎯</div>
+                <h3>Professional Tagging</h3>
+                <p>Comprehensive ID3 tag editor with custom field support and automatic album art detection and embedding.</p>
+            </div>
+            <div class="feature">
+                <div class="icon">📦</div>
+                <h3>Batch Processing</h3>
+                <p>Convert entire libraries with a single setup. Process multiple folders automatically with consistent tagging.</p>
+            </div>
+            <div class="feature">
+                <div class="icon">💾</div>
+                <h3>Job File System</h3>
+                <p>Human-readable text files store complete configurations. Save, reuse, and version control your setups.</p>
+            </div>
+            <div class="feature">
+                <div class="icon">👁️</div>
+                <h3>Background Processing</h3>
+                <p>System tray watcher automatically processes new audio folders with automatic stabilization detection.</p>
+            </div>
+            <div class="feature">
+                <div class="icon">⌨️</div>
+                <h3>Command-Line Interface</h3>
+                <p>Full CLI access for automation and scripting workflows. All graphical features available from the command line.</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="section" id="specs">
+        <h2>Specifications & Requirements</h2>
+        <div class="specs">
+            <div class="spec">
+                <h4>Platform</h4>
+                <p>Windows 10/11 (64-bit)<br>Bundled FFmpeg included</p>
+            </div>
+            <div class="spec">
+                <h4>Accessibility</h4>
+                <p>Full keyboard navigation<br>NVDA, JAWS, Narrator support<br>High-contrast themes</p>
+            </div>
+            <div class="spec">
+                <h4>Input Formats</h4>
+                <p>MP3, FLAC, WAV, AAC, M4A, OGG, WMA, OPUS, MP2</p>
+            </div>
+            <div class="spec">
+                <h4>Output Formats</h4>
+                <p>MP3 with CHAP/CTOC chapters<br>M4B audiobooks<br>Podcasting 2.0 JSON</p>
+            </div>
+            <div class="spec">
+                <h4>License</h4>
+                <p>MIT License<br>Free for personal & commercial use</p>
+            </div>
+            <div class="spec">
+                <h4>Development</h4>
+                <p>Open source on GitHub<br>Active maintenance<br>Community feedback welcome</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="section">
+        <h2>What Users Say</h2>
+        <div class="testimonial">
+            <p>"ChapterForge has revolutionized how I manage my audiobook projects. The accessibility features are unmatched in the industry."</p>
+            <div class="testimonial-author">— Audiobook Producer</div>
+        </div>
+        <div class="testimonial">
+            <p>"Finally, a professional tool that I can use completely with my screen reader. No workarounds, no compromises."</p>
+            <div class="testimonial-author">— NVDA User</div>
+        </div>
+        <div class="testimonial">
+            <p>"The batch processing saved us weeks of manual work on our podcast archive. Highly recommended."</p>
+            <div class="testimonial-author">— Podcast Producer</div>
+        </div>
+    </section>
+
+    <section class="section" id="docs">
+        <h2>Documentation</h2>
+        <div style="max-width: 800px; margin: 0 auto;">
+            <p style="text-align: center; margin-bottom: 2rem; color: var(--text-light);">
+                Get started with ChapterForge or dive deeper into advanced features.
+            </p>
+            <div class="features" style="grid-template-columns: 1fr 1fr;">
+                <a href="html/USER_GUIDE.html" style="text-decoration: none;">
+                    <div class="feature" style="cursor: pointer; transition: all 0.3s;">
+                        <h3>📖 User Guide</h3>
+                        <p>Complete guide to all ChapterForge features and workflows.</p>
+                    </div>
+                </a>
+                <a href="https://github.com/BITS-ACB/chapterforge" style="text-decoration: none;">
+                    <div class="feature" style="cursor: pointer; transition: all 0.3s;">
+                        <h3>🔧 Source Code</h3>
+                        <p>Explore the source code on GitHub and contribute.</p>
+                    </div>
+                </a>
+                <a href="html/DEPLOYMENT.html" style="text-decoration: none;">
+                    <div class="feature" style="cursor: pointer; transition: all 0.3s;">
+                        <h3>🚀 Build Guide</h3>
+                        <p>Instructions for building and deploying ChapterForge.</p>
+                    </div>
+                </a>
+                <a href="html/CHANGELOG.html" style="text-decoration: none;">
+                    <div class="feature" style="cursor: pointer; transition: all 0.3s;">
+                        <h3>📝 Changelog</h3>
+                        <p>View what's new in each release.</p>
+                    </div>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <section class="section" style="background-color: var(--bg-alt); text-align: center;">
+        <h2>Ready to Get Started?</h2>
+        <p style="color: var(--text-light); margin-bottom: 2rem; font-size: 1.1rem;">
+            Download ChapterForge 2.0.0 today and start creating professional audiobooks.
+        </p>
+        <a href="https://github.com/BITS-ACB/chapterforge/releases/download/v2.0.0/ChapterForge-Portable.exe" class="btn btn-primary" style="font-size: 1.1rem; padding: 1rem 2.5rem;">
+            Download Now
+        </a>
+        <p style="color: var(--text-light); margin-top: 1rem; font-size: 0.9rem;">
+            Or visit <a href="https://github.com/BITS-ACB/chapterforge/releases" style="color: var(--primary);">GitHub Releases</a> for all versions.
+        </p>
+    </section>
+
+    <footer>
+        <div class="footer-content">
+            <p style="margin-bottom: 1rem;">ChapterForge v2.0.0 — Professional Accessible Audio Chapter Management</p>
+            <div class="footer-links">
+                <a href="https://github.com/BITS-ACB/chapterforge">GitHub</a>
+                <a href="https://github.com/BITS-ACB/chapterforge/issues">Report Issue</a>
+                <a href="html/LICENSE.txt">License (MIT)</a>
+                <a href="html/THIRD_PARTY.html">Third-Party Licenses</a>
+            </div>
+            <p style="margin-top: 1rem; font-size: 0.85rem;">
+                Made with accessibility in mind by <a href="https://github.com/BITS-ACB" style="color: var(--primary);">Blind Information Technology Solutions (BITS)</a>
+            </p>
+        </div>
+    </footer>
+</body>
+</html>

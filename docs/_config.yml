@@ -1,0 +1,29 @@
+title: ChapterForge
+description: Professional Accessible Audio Chapter Management
+url: "https://bits-acb.github.io/chapterforge"
+repository: BITS-ACB/chapterforge
+
+# GitHub Pages theme
+theme: jekyll-theme-minimal
+
+# Exclude files from the site
+exclude:
+  - DEPLOYMENT.md
+  - CODE_QUALITY.md
+  - LINTING.md
+  - press-release-v2.0.0.md
+  - roadmap
+
+# Include files
+include:
+  - .nojekyll
+  - landing.html
+  - html
+
+# Markdown settings
+markdown: kramdown
+kramdown:
+  input: GFM
+  hard_wrap: false
+  auto_ids: true
+  toc_levels: 2..3
