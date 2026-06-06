@@ -9,6 +9,7 @@ Visit the [ChapterForge website](landing.html) for more information.
 ## Quick Links
 
 - **[User Guide](html/USER_GUIDE.html)** — Complete guide to all features
+- **[PRD](PRD.md)** — Full product requirements and feature reference
 - **[Auphonic Integration](AUPHONIC_INTEGRATION.md)** — Audio post-production with Auphonic
 - **[GitHub Repository](https://github.com/BITS-ACB/chapterforge)** — Source code and issues
 - **[Changelog](html/CHANGELOG.html)** — What's new in this version
