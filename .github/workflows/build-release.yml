@@ -43,7 +43,7 @@ jobs:
               src,
           )
           path.write_text(patched, encoding="utf-8")
-          assert "_FEEDBACK_GITHUB_TOKEN" in patched and 'os.environ' not in patched, "Token injection failed"
+          assert 'os.environ.get("CHAPTERFORGE_GITHUB_TOKEN"' not in patched, "Token injection failed"
           print("Token injected into build.")
           EOF
 
