@@ -69,6 +69,8 @@ DEFAULTS: Dict[str, Any] = {
     "presets": {},
     # Chapter transition fade duration in milliseconds (0 = no fade).
     "fade_ms": 0,
+    # Beta features opt-in: enables experimental functionality (e.g. Auphonic integration).
+    "beta_features": False,
 }
 
 

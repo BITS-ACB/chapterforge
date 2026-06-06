@@ -1,5 +1,7 @@
 # Auphonic Integration
 
+> **Beta feature** - Auphonic integration is opt-in. Enable it under **Tools > Settings > General > Enable beta features**. The Auphonic menu will appear after saving.
+
 ChapterForge integrates with [Auphonic](https://auphonic.com) for professional audio post-production. Connect your own Auphonic account to process audio using your own credits - ChapterForge does not resell or proxy Auphonic billing.
 
 ## Features
@@ -26,6 +28,10 @@ ChapterForge integrates with [Auphonic](https://auphonic.com) for professional a
 | Job History | - | View jobs and download results |
 
 ## Setup
+
+### 0. Enable beta features
+
+Open **Tools > Settings**, go to the **General** tab, and check **Enable beta features (Auphonic integration)**. Click OK. The **Auphonic** menu will appear in the menu bar.
 
 ### 1. Get an Auphonic account
 

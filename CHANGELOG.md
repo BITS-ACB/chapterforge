@@ -9,8 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 
-- **Auphonic Integration** - Full audio post-production workflow via the new
-  **Auphonic** menu (between View and Help). Connect your Auphonic account via
+- **Auphonic Integration (beta)** - Full audio post-production workflow via
+  the new **Auphonic** menu. Opt in under **Tools > Settings > General >
+  Enable beta features** to reveal the menu. Connect your Auphonic account via
   OAuth 2.0, view your credit balance, submit singletrack and multitrack
   productions, and download results (audio, transcripts, captions, stats,
   chapters). Six built-in presets: Podcast Cleanup, Podcast Cleanup + Transcript,
@@ -19,6 +20,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   - video files and video outputs are blocked. OAuth tokens stored encrypted via
   Windows DPAPI. Job history and results stored locally in SQLite under
   `%APPDATA%\ChapterForge\auphonic.db`.
+
+- **Beta features setting** - New "Enable beta features" checkbox in
+  **Tools > Settings > General**. Currently gates the Auphonic integration.
 
 ---
 

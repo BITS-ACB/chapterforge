@@ -373,6 +373,8 @@ class MainFrame(wx.Frame):
             wx.ID_ANY, "&Job History…",
             "View submitted Auphonic jobs and download results")
         menubar.Append(auphonic_menu, "&Auphonic")
+        # Disabled by default; enabled when "beta_features" setting is on.
+        menubar.EnableTop(4, bool(self.settings.get("beta_features", False)))
 
         help_menu = wx.Menu()
         self.mi_wizard = help_menu.Append(
@@ -1174,6 +1176,8 @@ class MainFrame(wx.Frame):
         self._apply_column_visibility()
         # Feature 13: apply keyboard overrides
         self._apply_key_overrides()
+        # Gate the Auphonic menu on the beta_features setting.
+        self.GetMenuBar().EnableTop(4, bool(s.get("beta_features", False)))
 
     def _apply_column_visibility(self):
         """Show or hide list columns based on settings (Feature 10)."""
@@ -3570,6 +3574,14 @@ class SettingsDialog(wx.Dialog):
         self.check_updates_startup.SetValue(
             bool(settings.get("check_updates_startup", True)))
 
+        self.beta_features = gcheck(
+            "Enable &beta features (Auphonic integration)",
+            "Enable beta features",
+            "Enables the Auphonic menu for audio post-production.\n"
+            "Beta features may change in future releases.\n"
+            "Requires an Auphonic account (auphonic.com).")
+        self.beta_features.SetValue(bool(settings.get("beta_features", False)))
+
         gp_sizer = wx.BoxSizer(wx.VERTICAL)
         gp_sizer.Add(gg, 1, wx.EXPAND | wx.ALL, 14)
         gp.SetSizer(gp_sizer)
@@ -3915,6 +3927,7 @@ class SettingsDialog(wx.Dialog):
             "high_contrast": self.theme_choice.GetSelection() == 3,
             "start_minimized": self.start_minimized.GetValue(),
             "check_updates_startup": self.check_updates_startup.GetValue(),
+            "beta_features": self.beta_features.GetValue(),
             # Feature 8
             "per_file_normalize": self.per_file_norm.GetValue(),
             "normalize_lufs": float(self.lufs_target.GetValue()),
