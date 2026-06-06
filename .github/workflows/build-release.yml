@@ -26,6 +26,7 @@ jobs:
       - name: Patch feedback token into app
         # Injects the fine-grained PAT (issues:write only) at build time.
         # The token never lives in source — only in this secret and the binary.
+        shell: bash
         env:
           CHAPTERFORGE_GITHUB_TOKEN: ${{ secrets.CHAPTERFORGE_GITHUB_TOKEN }}
         run: |
