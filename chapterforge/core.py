@@ -336,20 +336,14 @@ def _validate_core_functions():
         'title_from_filename',
         'natural_key',
     ]
-    
+
     missing = []
     for func_name in required_functions:
         if func_name not in globals():
             missing.append(func_name)
-    
+
     if missing:
         raise ImportError(f"Missing required core functions: {missing}")
-
-# Run validation at module import time
-try:
-    _validate_core_functions()
-except ImportError as e:
-    logger.critical(f"Core module validation failed: {e}")
 
 # Safety validation to prevent the kind of issues that caused freezing
 def _validate_core_module_integrity():
@@ -2552,4 +2546,11 @@ def set_chapter_start(chapters: Sequence[Chapter], index: int,
     cur = replace(chapters[index], start_ms=new_start_ms)
     result = chapters[:index - 1] + [prev, cur] + chapters[index + 1:]
     return _renumber(result)
+
+
+# Run validation after all functions are defined
+try:
+    _validate_core_functions()
+except ImportError as e:
+    logger.critical(f"Core module validation failed: {e}")
 
