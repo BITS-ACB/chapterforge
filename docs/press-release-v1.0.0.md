@@ -99,9 +99,9 @@ ChapterForge 1.0.0 is available immediately as a free download for Windows 10 an
 
 ### About Blind Information Technology Solutions (BITS)
 
-Founded in 2020, Blind Information Technology Solutions (BITS) is dedicated to creating accessible technology solutions that empower users of all abilities. The company's flagship product, ChapterForge, has been downloaded over 50,000 times and is used by content creators, educators, and accessibility advocates worldwide.
+Founded in 2020, Blind Information Technology Solutions (BITS) is dedicated to creating accessible technology solutions that empower users of all abilities.
 
-For more information about ChapterForge 1.0.0 or to schedule a demonstration, visit [chapterforge.org](https://chapterforge.org) or contact the BITS team at [info@chapterforge.org](mailto:info@chapterforge.org).
+For more information about ChapterForge 1.0.0, visit the [GitHub repository](https://github.com/BITS-ACB/chapterforge) or contact the BITS team at [info@chapterforge.org](mailto:info@chapterforge.org).
 
 ---
 
@@ -109,82 +109,12 @@ For more information about ChapterForge 1.0.0 or to schedule a demonstration, vi
 Jeff Bishop  
 President  
 Blind Information Technology Solutions (BITS)  
-Phone: (520) 555-0123  
 Email: info@chapterforge.org  
-Web: [chapterforge.org](https://chapterforge.org)
+Web: [github.com/BITS-ACB/chapterforge](https://github.com/BITS-ACB/chapterforge)
 
 ### Product Screenshots and Demo Videos:
 Available upon request
 
 ---
-
-*ChapterForge 1.0.0 - Where Accessibility Meets Professional Power*
-
-*Note: ChapterForge is developed by Blind Information Technology Solutions (BITS). All other trademarks are the property of their respective owners.*
-
-- Input formats: MP3, FLAC, WAV, AAC, M4A, OGG, WMA, OPUS, MP2
-- Output formats: MP3 with CHAP/CTOC chapters, M4B/AAC with native MP4 chapters, FLAC lossless
-
-#### Batch Processing Wizard
-
-Convert entire libraries of audiobooks with a single setup:
-
-- Process multiple sub-folders automatically
-- Apply consistent tagging across entire collections
-- Automatic folder detection and processing
-
-#### Advanced Tagging System
-
-Professional-grade metadata management:
-
-- Comprehensive ID3 tag editor (Title, Artist, Album, Genre, Year, etc.)
-- Custom field support for specialized metadata
-- Album art embedding with automatic detection
-- Template system for consistent tagging
-
-#### Real-time Audio Visualization
-
-Precision editing tools for professional results:
-
-- Real-time playback preview with instant chapter navigation
-- Audio quality analysis and issue detection
-
-#### Accessibility First Design
-
-Every feature built with accessibility in mind:
-
-- Full keyboard navigation with customizable shortcuts
-- Comprehensive screen reader support with intelligent announcements
-- High-contrast themes and scalable interface elements
-- Voice-guided workflow for hands-free operation
-
-### Availability and Pricing
-
-ChapterForge 1.0.0 is available immediately as a free download for Windows 10 and 11 from [chapterforge.org](https://chapterforge.org). The software is released under the MIT License, making it free for personal and commercial use.
-
-Professional support, priority updates, and enterprise licensing options are available for organizations requiring additional features or dedicated assistance.
-
-### About Blind Information Technology Solutions (BITS)
-
-Founded in 2020, Blind Information Technology Solutions (BITS) is dedicated to creating accessible technology solutions that empower users of all abilities. The company's flagship product, ChapterForge, has been downloaded over 50,000 times and is used by content creators, educators, and accessibility advocates worldwide.
-
-For more information about ChapterForge 1.0.0 or to schedule a demonstration, visit [chapterforge.org](https://chapterforge.org) or contact the BITS team at [info@chapterforge.org](mailto:info@chapterforge.org).
-
----
-
-### Media Contact:
-Jeffrey Biles  
-Lead Developer  
-Blind Information Technology Solutions (BITS)  
-Phone: (555) 123-4567  
-Email: info@chapterforge.org  
-Web: [chapterforge.org](https://chapterforge.org)
-
-### Product Screenshots and Demo Videos:
-Available upon request
-
----
-
-*ChapterForge 1.0.0 - Where Accessibility Meets Professional Power*
 
 *Note: ChapterForge is developed by Blind Information Technology Solutions (BITS). All other trademarks are the property of their respective owners.*
