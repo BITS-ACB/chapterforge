@@ -183,15 +183,30 @@ if ($SkipInstaller) {
         )
     }
 
-    Invoke-Step '[4/4] Building installer (Inno Setup)…' {
+    Invoke-Step '[4/4] Building installers (Inno Setup)…' {
         Write-Info "ISCC: $iscc"
+        
+        # Build standard installer
+        Write-Info "Building standard installer..."
         & $iscc (Join-Path $root 'installer\ChapterForge.iss')
+        
+        # Build portable installer
+        Write-Info "Building portable installer..."
+        & $iscc (Join-Path $root 'installer\ChapterForge-Portable.iss')
     }
 
+    # Check standard installer
     $installer = Join-Path $root 'installer_output\ChapterForge-Setup.exe'
     if (Test-Path $installer) {
         $sizeMB = [math]::Round((Get-Item $installer).Length / 1MB, 1)
-        Write-OK "Installer: $((Get-Item $installer).FullName)  ($sizeMB MB)"
+        Write-OK "Standard Installer: $((Get-Item $installer).FullName)  ($sizeMB MB)"
+    }
+    
+    # Check portable installer
+    $portableInstaller = Join-Path $root 'installer_output\ChapterForge-Portable.exe'
+    if (Test-Path $portableInstaller) {
+        $sizeMB = [math]::Round((Get-Item $portableInstaller).Length / 1MB, 1)
+        Write-OK "Portable Installer: $((Get-Item $portableInstaller).FullName)  ($sizeMB MB)"
     }
 }
 

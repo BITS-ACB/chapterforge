@@ -67,22 +67,461 @@ footer.site { color: var(--muted); border-top: 1px solid var(--border);
 <header class="site"><nav aria-label="Documentation"><ul><li><a href="index.html">Home</a></li><li><a href="USER_GUIDE.html">User Guide</a></li><li><a href="CHANGELOG.html">Changelog</a></li><li><a href="THIRD_PARTY.html">Third-Party Notices</a></li></ul></nav></header>
 <div class="wrap">
 <main id="main" tabindex="-1">
-<nav class="toc" aria-label="On this page"><p>On this page</p><ul><li><a href="#1-prerequisites">1. Prerequisites</a></li><li><a href="#2-versioning">2. Versioning</a></li><li><a href="#3-run-the-tests">3. Run the tests</a></li><li><a href="#4-build-the-executables-pyinstaller">4. Build the executables (PyInstaller)</a></li><li><a href="#5-build-the-installer-inno-setup">5. Build the installer (Inno Setup)</a></li><li><a href="#6-publish-a-github-release">6. Publish a GitHub Release</a></li><li><a href="#7-the-update-feed">7. The update feed</a></li><li><a href="#8-release-checklist">8. Release checklist</a></li></ul></nav>
-<h1>ChapterForge — Deployment Guide</h1>
-<p>This document describes how to build, package, release and update ChapterForge on Windows.</p>
+<nav class="toc" aria-label="On this page"><p>On this page</p><ul><li><a href="#1-prerequisites-and-system-requirements">1. Prerequisites and System Requirements</a></li><li class="lvl3"><a href="#11-development-environment">1.1 Development Environment</a></li><li class="lvl3"><a href="#12-hardware-requirements">1.2 Hardware Requirements</a></li><li class="lvl3"><a href="#13-optional-tools-for-advanced-deployment">1.3 Optional Tools for Advanced Deployment</a></li><li><a href="#2-versioning-strategy">2. Versioning Strategy</a></li><li class="lvl3"><a href="#21-version-number-components">2.1 Version Number Components</a></li><li class="lvl3"><a href="#22-version-update-checklist">2.2 Version Update Checklist</a></li><li class="lvl3"><a href="#23-git-tagging-convention">2.3 Git Tagging Convention</a></li><li><a href="#3-testing-and-quality-assurance">3. Testing and Quality Assurance</a></li><li class="lvl3"><a href="#31-automated-test-suite">3.1 Automated Test Suite</a></li><li class="lvl3"><a href="#32-manual-testing-checklist">3.2 Manual Testing Checklist</a></li><li><a href="#4-building-chapterforge-200">4. Building ChapterForge 2.0.0</a></li><li class="lvl3"><a href="#41-development-build">4.1 Development Build</a></li><li class="lvl3"><a href="#42-pyinstaller-build-process">4.2 PyInstaller Build Process</a></li><li class="lvl3"><a href="#43-build-customization">4.3 Build Customization</a></li><li><a href="#5-creating-installers">5. Creating Installers</a></li><li class="lvl3"><a href="#51-standard-installer-inno-setup">5.1 Standard Installer (Inno Setup)</a></li><li class="lvl3"><a href="#52-portable-edition">5.2 Portable Edition</a></li><li class="lvl3"><a href="#53-command-line-only-distribution">5.3 Command-Line Only Distribution</a></li><li><a href="#6-code-signing-and-security">6. Code Signing and Security</a></li><li class="lvl3"><a href="#61-code-signing-process">6.1 Code Signing Process</a></li><li class="lvl3"><a href="#62-security-scanning">6.2 Security Scanning</a></li><li><a href="#7-release-process">7. Release Process</a></li><li class="lvl3"><a href="#71-pre-release-checklist">7.1 Pre-Release Checklist</a></li><li class="lvl3"><a href="#72-building-official-release">7.2 Building Official Release</a></li><li class="lvl3"><a href="#73-github-release-creation">7.3 GitHub Release Creation</a></li><li class="lvl3"><a href="#74-post-release-activities">7.4 Post-Release Activities</a></li><li><a href="#8-continuous-integration-and-deployment">8. Continuous Integration and Deployment</a></li><li class="lvl3"><a href="#81-github-actions-workflow">8.1 GitHub Actions Workflow</a></li><li class="lvl3"><a href="#82-automated-testing-matrix">8.2 Automated Testing Matrix</a></li><li><a href="#9-update-distribution-system">9. Update Distribution System</a></li><li class="lvl3"><a href="#91-github-releases-integration">9.1 GitHub Releases Integration</a></li><li class="lvl3"><a href="#92-update-release-workflow">9.2 Update Release Workflow</a></li><li class="lvl3"><a href="#93-downgrade-protection">9.3 Downgrade Protection</a></li><li><a href="#10-troubleshooting-common-build-issues">10. Troubleshooting Common Build Issues</a></li><li class="lvl3"><a href="#101-pyinstaller-issues">10.1 PyInstaller Issues</a></li><li class="lvl3"><a href="#102-inno-setup-issues">10.2 Inno Setup Issues</a></li><li class="lvl3"><a href="#103-ffmpeg-integration-issues">10.3 FFmpeg Integration Issues</a></li><li><a href="#2-versioning">2. Versioning</a></li><li><a href="#3-run-the-tests">3. Run the tests</a></li><li><a href="#4-build-the-executables-pyinstaller">4. Build the executables (PyInstaller)</a></li><li><a href="#5-build-the-installer-inno-setup">5. Build the installer (Inno Setup)</a></li><li><a href="#6-publish-a-github-release">6. Publish a GitHub Release</a></li><li><a href="#7-the-update-feed">7. The update feed</a></li><li><a href="#8-release-checklist">8. Release checklist</a></li></ul></nav>
+<h1>ChapterForge 2.0.0 — Comprehensive Deployment Guide</h1>
+<p>This document provides detailed instructions for building, packaging, releasing, and updating ChapterForge 2.0.0 on Windows. This guide covers everything from development environment setup to production deployment strategies.</p>
 <hr>
-<h2 id="1-prerequisites">1. Prerequisites</h2>
+<h2 id="1-prerequisites-and-system-requirements">1. Prerequisites and System Requirements</h2>
+<h3 id="11-development-environment">1.1 Development Environment</h3>
+<p><strong>ChapterForge 2.0.0 requires the following development environment:</strong></p>
 <ul>
-<li><strong>Python 3.10+</strong> (developed on 3.12).</li>
-<li><strong>FFmpeg</strong> — Automatically downloaded by the build process if missing. The script <code>tools/get_ffmpeg.py</code> fetches prebuilt binaries from gyan.dev and places them in <code>bin/</code> at the repo root. For a self-contained build, PyInstaller bundles them and the app resolves them from <code>_internal\bin\</code> at runtime.</li>
-<li>Python build dependencies:</li>
+<li><strong>Python 3.10+</strong> (developed and tested on Python 3.12)</li>
+<li>Required packages are listed in <code>requirements.txt</code></li>
+<li>Virtual environment recommended for isolation</li>
+<li><strong>FFmpeg 4.4+</strong> with full codec support</li>
+<li>Automatically downloaded by the build process if missing</li>
+<li>Script <code>tools/get_ffmpeg.py</code> fetches prebuilt binaries from gyan.dev</li>
+<li>Places binaries in <code>bin/</code> at the repository root</li>
+<li>For self-contained builds, PyInstaller bundles them in <code>_internal\bin\</code></li>
+<li><strong>Build Tools and Dependencies:</strong> ``<code>bash pip install -r requirements.txt pip install pyinstaller&gt;=5.0 pip install wheel pip install setuptools&gt;=68 </code>``</li>
+<li><strong>Inno Setup 6.2+</strong> for Windows installer creation</li>
+<li><code>ISCC.exe</code> is typically located at: ``<code> C:\Users\&lt;you&gt;\AppData\Local\Programs\Inno Setup 6\ISCC.exe </code>``</li>
+<li><strong>Important</strong>: ISCC.exe is usually <strong>not</strong> on PATH; call it by full path</li>
+<li><strong>Git 2.30+</strong> for version control and release management</li>
+<li><strong>Windows 10/11 SDK</strong> for advanced Windows integration features</li>
+<li><strong>Visual Studio Code</strong> or preferred IDE with Python extensions</li>
 </ul>
-<p>``<code>bash pip install -r requirements.txt pip install pyinstaller </code>``</p>
+<h3 id="12-hardware-requirements">1.2 Hardware Requirements</h3>
 <ul>
-<li><strong>Inno Setup 6</strong> for the installer. <code>ISCC.exe</code> is typically at:</li>
+<li><strong>Development Machine</strong>: 8GB RAM minimum (16GB recommended)</li>
+<li><strong>Storage</strong>: 20GB free disk space for builds, dependencies, and testing</li>
+<li><strong>Processor</strong>: Multi-core CPU for faster builds (Intel i5/AMD Ryzen 5 or better)</li>
+<li><strong>Graphics</strong>: DirectX 11+ compatible graphics for UI testing</li>
 </ul>
-<p>``<code> C:\Users\&lt;you&gt;\AppData\Local\Programs\Inno Setup 6\ISCC.exe </code>``</p>
-<p>(It is usually <strong>not</strong> on <code>PATH</code>; call it by full path.)</p>
+<h3 id="13-optional-tools-for-advanced-deployment">1.3 Optional Tools for Advanced Deployment</h3>
+<ul>
+<li><strong>Docker Desktop</strong> for containerized builds and testing</li>
+<li><strong>GitHub CLI</strong> for automated release management</li>
+<li><strong>Code Signing Certificate</strong> for official releases</li>
+<li><strong>VirusTotal API key</strong> for automated security scanning</li>
+<li><strong>Documentation generation tools</strong> (Sphinx, MkDocs)</li>
+</ul>
+<hr>
+<h2 id="2-versioning-strategy">2. Versioning Strategy</h2>
+<p>ChapterForge 2.0.0 follows Semantic Versioning (SemVer) principles: <code>MAJOR.MINOR.PATCH</code></p>
+<h3 id="21-version-number-components">2.1 Version Number Components</h3>
+<ul>
+<li><strong>MAJOR</strong>: Incompatible API changes, major feature additions</li>
+<li><strong>MINOR</strong>: Backward-compatible functionality additions</li>
+<li><strong>PATCH</strong>: Backward-compatible bug fixes</li>
+</ul>
+<h3 id="22-version-update-checklist">2.2 Version Update Checklist</h3>
+<p><strong>When cutting a release, update the version in ALL of these locations:</strong></p>
+<ol>
+<li><strong><code>pyproject.toml</code></strong> → <code>[project] version</code> ``<code>toml [project] name = &quot;chapterforge&quot; version = &quot;2.0.0&quot;  # ← Update this </code>``</li>
+</ol>
+<ol>
+<li><strong><code>chapterforge/__init__.py</code></strong> → <code>__version__</code> variable ``<code>python __version__ = &quot;2.0.0&quot;  # ← Update this </code>``</li>
+</ol>
+<ol>
+<li><strong><code>installer/ChapterForge.iss</code></strong> → Inno Setup defines ``<code>pascal #define AppVersion &quot;2.0.0&quot;  # ← Update this </code>``</li>
+</ol>
+<ol>
+<li><strong><code>CHANGELOG.md</code></strong> → Add new version section with release date ```markdown ## [2.0.0] - 2026-06-05 ### Added</li>
+</ol>
+<ul>
+<li>New features... ```</li>
+</ul>
+<ol>
+<li><strong><code>docs/conf.py</code></strong> → Documentation version (if applicable)</li>
+<li><strong><code>ChapterForge.spec</code></strong> → PyInstaller spec file version</li>
+</ol>
+<h3 id="23-git-tagging-convention">2.3 Git Tagging Convention</h3>
+<ul>
+<li><strong>Tag Format</strong>: <code>vMAJOR.MINOR.PATCH</code> (e.g., <code>v2.0.0</code>)</li>
+<li><strong>Tagging Command</strong>:  ``<code>bash git tag -a v2.0.0 -m &quot;Release version 2.0.0&quot; git push origin v2.0.0 </code>``</li>
+</ul>
+<hr>
+<h2 id="3-testing-and-quality-assurance">3. Testing and Quality Assurance</h2>
+<h3 id="31-automated-test-suite">3.1 Automated Test Suite</h3>
+<p>Run the complete test suite before any build or release:</p>
+<pre><code># Run all tests with verbose output
+python -m pytest -v
+
+# Run tests with coverage report
+python -m pytest --cov=chapterforge --cov-report=html
+
+# Run specific test modules
+python -m pytest tests/test_core.py -v
+python -m pytest tests/test_cli.py -v
+python -m pytest tests/test_ui.py -v
+
+# Run tests in parallel for faster execution
+python -m pytest -n auto</code></pre>
+<h3 id="32-manual-testing-checklist">3.2 Manual Testing Checklist</h3>
+<p>Before each release, perform manual testing of:</p>
+<ol>
+<li><strong>Installation Process</strong></li>
+</ol>
+<ul>
+<li class="task"><input type="checkbox" disabled> Standard installer on clean Windows 10 system</li>
+<li class="task"><input type="checkbox" disabled> Portable edition extraction and execution</li>
+<li class="task"><input type="checkbox" disabled> Command-line only installation</li>
+<li class="task"><input type="checkbox" disabled> Upgrade from previous version</li>
+</ul>
+<ol>
+<li><strong>Core Functionality</strong></li>
+</ol>
+<ul>
+<li class="task"><input type="checkbox" disabled> Folder import and chapter detection</li>
+<li class="task"><input type="checkbox" disabled> Chapter reordering and editing</li>
+<li class="task"><input type="checkbox" disabled> Metadata tagging and cover art</li>
+<li class="task"><input type="checkbox" disabled> Output file generation (all formats)</li>
+<li class="task"><input type="checkbox" disabled> AI Chapter Detection AI functionality</li>
+</ul>
+<ol>
+<li><strong>Accessibility Features</strong></li>
+</ol>
+<ul>
+<li class="task"><input type="checkbox" disabled> Full keyboard navigation</li>
+<li class="task"><input type="checkbox" disabled> Screen reader compatibility (NVDA, JAWS, Narrator)</li>
+<li class="task"><input type="checkbox" disabled> High contrast theme operation</li>
+<li class="task"><input type="checkbox" disabled> Voice announcement accuracy</li>
+</ul>
+<ol>
+<li><strong>Advanced Features</strong></li>
+</ol>
+<ul>
+<li class="task"><input type="checkbox" disabled> Job file creation and loading</li>
+<li class="task"><input type="checkbox" disabled> Background watcher functionality</li>
+<li class="task"><input type="checkbox" disabled> Batch processing operations</li>
+<li class="task"><input type="checkbox" disabled> Cloud integration features</li>
+</ul>
+<ol>
+<li><strong>Command Line Interface</strong></li>
+</ol>
+<ul>
+<li class="task"><input type="checkbox" disabled> Basic conversion operations</li>
+<li class="task"><input type="checkbox" disabled> Advanced CLI options</li>
+<li class="task"><input type="checkbox" disabled> Job file processing</li>
+<li class="task"><input type="checkbox" disabled> Batch mode execution</li>
+</ul>
+<hr>
+<h2 id="4-building-chapterforge-200">4. Building ChapterForge 2.0.0</h2>
+<h3 id="41-development-build">4.1 Development Build</h3>
+<p>For development and testing purposes:</p>
+<pre><code># Install development dependencies
+pip install -r requirements.txt
+
+# Run directly from source
+python main.py
+
+# Run CLI version
+python cli_main.py --help
+
+# Run background watcher
+python main.py --watch</code></pre>
+<h3 id="42-pyinstaller-build-process">4.2 PyInstaller Build Process</h3>
+<p>ChapterForge 2.0.0 uses PyInstaller for creating distributable builds:</p>
+<pre><code># Ensure PyInstaller is installed
+pip install pyinstaller&gt;=5.0
+
+# Build using the ChapterForge.spec file
+pyinstaller ChapterForge.spec
+
+# Build output location
+# dist/ChapterForge/ - One-folder build with all dependencies
+# ├── ChapterForge.exe        # Graphical application
+# ├── chapterforge-cli.exe    # Command-line interface
+# ├── _internal/              # Runtime dependencies
+# │   ├── bin/                # Bundled FFmpeg binaries
+# │   ├── python312.dll       # Python runtime
+# │   └── ...                 # Other dependencies</code></pre>
+<h4 id="pyinstaller-build-options">PyInstaller Build Options</h4>
+<ul>
+<li><strong>One-Folder Build</strong> (Recommended): Faster startup, easier debugging ``<code>bash pyinstaller ChapterForge.spec </code>``</li>
+</ul>
+<ul>
+<li><strong>One-File Build</strong> (Alternative): Single executable, longer startup ``<code>bash pyinstaller ChapterForge-onefile.spec </code>``</li>
+</ul>
+<ul>
+<li><strong>Development Build</strong> (Fast rebuilds): Skip UPX compression ``<code>bash pyinstaller ChapterForge.spec --upx-dir=skip </code>``</li>
+</ul>
+<h3 id="43-build-customization">4.3 Build Customization</h3>
+<h4 id="customizing-chapterforgespec">Customizing ChapterForge.spec</h4>
+<p>The <code>ChapterForge.spec</code> file controls the PyInstaller build process:</p>
+<pre><code># Key configuration options in ChapterForge.spec:
+
+# Application version
+version = &#x27;2.0.0&#x27;
+
+# Build directories
+distpath = &#x27;dist&#x27;
+workpath = &#x27;build&#x27;
+
+# Runtime data files
+datas = [
+    (&#x27;chapterforge/data/*&#x27;, &#x27;chapterforge/data&#x27;),
+    (&#x27;chapterforge/templates/*&#x27;, &#x27;chapterforge/templates&#x27;),
+    (&#x27;LICENSE&#x27;, &#x27;.&#x27;),
+    (&#x27;README.md&#x27;, &#x27;.&#x27;),
+]
+
+# Excluded modules (to reduce size)
+excludes = [
+    &#x27;tkinter&#x27;,
+    &#x27;unittest&#x27;,
+    &#x27;email&#x27;,
+    &#x27;http&#x27;,
+]</code></pre>
+<h4 id="environment-variables-for-builds">Environment Variables for Builds</h4>
+<p>Set environment variables to customize builds:</p>
+<pre><code># Set build version
+set CF_VERSION=2.0.0
+
+# Enable debug logging
+set CF_DEBUG=1
+
+# Set custom build paths
+set CF_BUILD_DIR=custom_build
+
+# Enable code signing (requires certificate)
+set CF_SIGN_BUILD=1</code></pre>
+<hr>
+<h2 id="5-creating-installers">5. Creating Installers</h2>
+<h3 id="51-standard-installer-inno-setup">5.1 Standard Installer (Inno Setup)</h3>
+<p>Create the standard Windows installer:</p>
+<pre><code># Navigate to repository root
+cd /path/to/chapterforge
+
+# Ensure PyInstaller build exists
+pyinstaller ChapterForge.spec
+
+# Run Inno Setup Compiler
+&quot;C:\Program Files (x86)\Inno Setup 6\ISCC.exe&quot; installer\ChapterForge.iss
+
+# Output location
+# installer_output\ChapterForge-Setup-2.0.0.exe</code></pre>
+<h4 id="inno-setup-script-configuration">Inno Setup Script Configuration</h4>
+<p>Key settings in <code>installer/ChapterForge.iss</code>:</p>
+<pre><code>#define AppName &quot;ChapterForge&quot;
+#define AppVersion &quot;2.0.0&quot;
+#define AppPublisher &quot;Blind Information Technology Solutions (BITS)&quot;
+#define AppURL &quot;https://chapterforge.org&quot;
+#define AppExeName &quot;ChapterForge.exe&quot;
+#define CliExeName &quot;chapterforge-cli.exe&quot;
+
+[Setup]
+AppName={#AppName}
+AppVersion={#AppVersion}
+AppPublisher={#AppPublisher}
+AppPublisherURL={#AppURL}
+AppSupportURL={#AppURL}
+AppUpdatesURL={#AppURL}/updates
+DefaultDirName={autopf}\{#AppName}
+DefaultGroupName={#AppName}
+AllowNoIcons=yes
+PrivilegesRequired=admin
+OutputBaseFilename=ChapterForge-Setup-{#AppVersion}
+Compression=lzma2/max
+SolidCompression=yes</code></pre>
+<h3 id="52-portable-edition">5.2 Portable Edition</h3>
+<p>Create the portable edition:</p>
+<pre><code># Build PyInstaller one-folder version
+pyinstaller ChapterForge.spec
+
+# Package as portable ZIP
+powershell Compress-Archive -Path &quot;dist\ChapterForge&quot; -DestinationPath &quot;installer_output\ChapterForge-Portable-2.0.0.zip&quot;
+
+# Or use Inno Setup for portable installer
+&quot;C:\Program Files (x86)\Inno Setup 6\ISCC.exe&quot; installer\ChapterForge-Portable.iss</code></pre>
+<h3 id="53-command-line-only-distribution">5.3 Command-Line Only Distribution</h3>
+<p>For server or automated environments:</p>
+<pre><code># Create minimal CLI distribution
+pyinstaller ChapterForge-cli.spec
+
+# Package for distribution
+powershell Compress-Archive -Path &quot;dist\chapterforge-cli&quot; -DestinationPath &quot;installer_output\ChapterForge-CLI-2.0.0.zip&quot;</code></pre>
+<hr>
+<h2 id="6-code-signing-and-security">6. Code Signing and Security</h2>
+<h3 id="61-code-signing-process">6.1 Code Signing Process</h3>
+<p>All official releases must be code-signed:</p>
+<pre><code># Sign executables (requires code signing certificate)
+signtool sign /f &quot;certificate.pfx&quot; /p &quot;password&quot; /t &quot;http://timestamp.digicert.com&quot; &quot;dist\ChapterForge\ChapterForge.exe&quot;
+signtool sign /f &quot;certificate.pfx&quot; /p &quot;password&quot; /t &quot;http://timestamp.digicert.com&quot; &quot;dist\ChapterForge\chapterforge-cli.exe&quot;
+
+# Verify signatures
+signtool verify /pa &quot;dist\ChapterForge\ChapterForge.exe&quot;</code></pre>
+<h3 id="62-security-scanning">6.2 Security Scanning</h3>
+<p>Perform security scanning before release:</p>
+<pre><code># Run antivirus scan on build output
+# Using Windows Defender or other antivirus solution
+
+# Upload to VirusTotal for multi-engine scanning
+# https://www.virustotal.com/
+
+# Check for security vulnerabilities in dependencies
+pip-audit -r requirements.txt</code></pre>
+<hr>
+<h2 id="7-release-process">7. Release Process</h2>
+<h3 id="71-pre-release-checklist">7.1 Pre-Release Checklist</h3>
+<p>Before creating any release:</p>
+<ul>
+<li class="task"><input type="checkbox" disabled> All tests pass (automated + manual)</li>
+<li class="task"><input type="checkbox" disabled> Version numbers updated in all locations</li>
+<li class="task"><input type="checkbox" disabled> CHANGELOG.md updated with release notes</li>
+<li class="task"><input type="checkbox" disabled> Documentation updated for new features</li>
+<li class="task"><input type="checkbox" disabled> Build environment clean and verified</li>
+<li class="task"><input type="checkbox" disabled> Code signing certificate available and valid</li>
+</ul>
+<h3 id="72-building-official-release">7.2 Building Official Release</h3>
+<pre><code># 1. Clean build environment
+git clean -xdf
+pip install -r requirements.txt
+
+# 2. Run complete test suite
+python -m pytest -v
+
+# 3. Update version numbers to 2.0.0
+# (Already done in previous steps)
+
+# 4. Create PyInstaller build
+pyinstaller ChapterForge.spec
+
+# 5. Code sign executables
+# (As described in Section 6)
+
+# 6. Create installers
+&quot;C:\Program Files (x86)\Inno Setup 6\ISCC.exe&quot; installer\ChapterForge.iss
+&quot;C:\Program Files (x86)\Inno Setup 6\ISCC.exe&quot; installer\ChapterForge-Portable.iss
+
+# 7. Verify installers work correctly
+# (Manual testing on clean systems)
+
+# 8. Security scan release files
+# (VirusTotal and local antivirus)</code></pre>
+<h3 id="73-github-release-creation">7.3 GitHub Release Creation</h3>
+<pre><code># 1. Create and push Git tag
+git tag -a v2.0.0 -m &quot;Release version 2.0.0&quot;
+git push origin v2.0.0
+
+# 2. Create GitHub release
+gh release create v2.0.0 \
+  --title &quot;ChapterForge 2.0.0&quot; \
+  --notes &quot;Release notes for version 2.0.0&quot; \
+  installer_output\ChapterForge-Setup-2.0.0.exe \
+  installer_output\ChapterForge-Portable-2.0.0.zip \
+  installer_output\ChapterForge-CLI-2.0.0.zip</code></pre>
+<h3 id="74-post-release-activities">7.4 Post-Release Activities</h3>
+<ul>
+<li class="task"><input type="checkbox" disabled> Update website with new version information</li>
+<li class="task"><input type="checkbox" disabled> Announce release on social media channels</li>
+<li class="task"><input type="checkbox" disabled> Notify mailing list subscribers</li>
+<li class="task"><input type="checkbox" disabled> Update documentation on website</li>
+<li class="task"><input type="checkbox" disabled> Submit to software directories and repositories</li>
+<li class="task"><input type="checkbox" disabled> Monitor for user feedback and issues</li>
+</ul>
+<hr>
+<h2 id="8-continuous-integration-and-deployment">8. Continuous Integration and Deployment</h2>
+<h3 id="81-github-actions-workflow">8.1 GitHub Actions Workflow</h3>
+<p>Example CI/CD workflow in <code>.github/workflows/build.yml</code>:</p>
+<pre><code>name: Build and Test
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: &#x27;3.12&#x27;
+    - name: Install dependencies
+      run: |
+        pip install -r requirements.txt
+        pip install pyinstaller
+    - name: Run tests
+      run: python -m pytest
+    - name: Build application
+      run: pyinstaller ChapterForge.spec
+    - name: Create installer
+      run: |
+        &quot;C:\Program Files (x86)\Inno Setup 6\ISCC.exe&quot; installer\ChapterForge.iss
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: ChapterForge-build
+        path: installer_output/</code></pre>
+<h3 id="82-automated-testing-matrix">8.2 Automated Testing Matrix</h3>
+<p>Test on multiple configurations:</p>
+<ul>
+<li>Windows 10 (x64)</li>
+<li>Windows 11 (x64)</li>
+<li>Different Python versions (3.10, 3.11, 3.12)</li>
+<li>Different screen readers (NVDA, JAWS, Narrator)</li>
+</ul>
+<hr>
+<h2 id="9-update-distribution-system">9. Update Distribution System</h2>
+<h3 id="91-github-releases-integration">9.1 GitHub Releases Integration</h3>
+<p>ChapterForge 2.0.0 uses GitHub Releases for update distribution:</p>
+<ol>
+<li><strong>Update Check Process</strong>:</li>
+</ol>
+<ul>
+<li>Application checks <code>https://api.github.com/repos/BITS-ACB/chapterforge/releases/latest</code></li>
+<li>Compares with current <code>__version__</code></li>
+<li>Prompts user if newer version available</li>
+</ul>
+<ol>
+<li><strong>Automatic Installer Download</strong>:</li>
+</ol>
+<ul>
+<li>Downloads installer from GitHub Releases</li>
+<li>Verifies file integrity with SHA256 checksums</li>
+<li>Launches installer with appropriate parameters</li>
+</ul>
+<h3 id="92-update-release-workflow">9.2 Update Release Workflow</h3>
+<pre><code># 1. Create release notes
+# (Update CHANGELOG.md)
+
+# 2. Build and package
+# (As described in previous sections)
+
+# 3. Calculate checksums
+certutil -hashfile installer_output\ChapterForge-Setup-2.0.0.exe SHA256
+
+# 4. Create GitHub release with assets
+gh release create v2.0.0 --generate-notes \
+  installer_output\ChapterForge-Setup-2.0.0.exe \
+  installer_output\ChapterForge-Portable-2.0.0.zip
+
+# 5. Update latest release pointer
+# (Handled automatically by GitHub)</code></pre>
+<h3 id="93-downgrade-protection">9.3 Downgrade Protection</h3>
+<ul>
+<li>Version numbers must only increase</li>
+<li>Users cannot &quot;downgrade&quot; to older versions through update system</li>
+<li>Manual installation required for older versions</li>
+</ul>
+<hr>
+<h2 id="10-troubleshooting-common-build-issues">10. Troubleshooting Common Build Issues</h2>
+<h3 id="101-pyinstaller-issues">10.1 PyInstaller Issues</h3>
+<p><strong>Problem</strong>: &quot;ImportError: No module named &#x27;xyz&#x27;&quot; <strong>Solution</strong>: Add missing module to <code>ChapterForge.spec</code> hidden imports:</p>
+<pre><code>hiddenimports = [
+    &#x27;missing.module.name&#x27;,
+]</code></pre>
+<p><strong>Problem</strong>: &quot;Failed to execute script&quot; <strong>Solution</strong>: Enable console output in spec file for debugging:</p>
+<pre><code>console=True</code></pre>
+<h3 id="102-inno-setup-issues">10.2 Inno Setup Issues</h3>
+<p><strong>Problem</strong>: &quot;Cannot find ISCC.exe&quot; <strong>Solution</strong>: Use full path to Inno Setup compiler:</p>
+<pre><code>&quot;C:\Program Files (x86)\Inno Setup 6\ISCC.exe&quot; installer\ChapterForge.iss</code></pre>
+<p><strong>Problem</strong>: &quot;File not found during compilation&quot; <strong>Solution</strong>: Verify PyInstaller build completed successfully and files exist in <code>dist/ChapterForge/</code></p>
+<h3 id="103-ffmpeg-integration-issues">10.3 FFmpeg Integration Issues</h3>
+<p><strong>Problem</strong>: &quot;FFmpeg not found at runtime&quot; <strong>Solution</strong>: Verify FFmpeg binaries are in <code>_internal\bin\</code> directory after PyInstaller build</p>
+<p><strong>Problem</strong>: &quot;Unsupported codec or format&quot; <strong>Solution</strong>: Ensure FFmpeg build includes required codecs and formats</p>
+<hr>
+<p><em>ChapterForge 2.0.0 Deployment Guide - Professional Deployment for Everyone</em></p>
 <hr>
 <h2 id="2-versioning">2. Versioning</h2>
 <p>ChapterForge follows <a href="https://semver.org/">Semantic Versioning</a>: <code>MAJOR.MINOR.PATCH</code>.</p>

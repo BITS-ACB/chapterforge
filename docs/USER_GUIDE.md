@@ -1,10 +1,10 @@
 # ChapterForge 2.0.0 — Comprehensive User Guide
 
-Welcome to ChapterForge 2.0.0, the most advanced, accessible, and feature-rich audio chapter management solution available today. This comprehensive user guide will walk you through every feature, function, and workflow to help you master the art of audio chaptering.
+Welcome to ChapterForge 2.0.0, an accessible audio chapter management solution. This comprehensive user guide will walk you through every feature, function, and workflow to help you create chaptered audio content.
 
 Whether you're a visually impaired user requiring full keyboard navigation and screen reader support, a content creator producing audiobooks, or a podcaster looking to enhance your episodes with precise chapter markers, this guide has everything you need to succeed.
 
-ChapterForge 2.0.0 is designed to be the ultimate tool for creating professionally chaptered audio content from collections of audio files. With support for virtually any audio format, powerful editing capabilities, and unparalleled accessibility features, ChapterForge empowers users of all abilities to create high-quality, playback-optimized audio content.
+ChapterForge 2.0.0 is designed to help you create chaptered audio content from collections of audio files. With support for popular audio formats and accessibility features, ChapterForge empowers users to create quality audio content.
 
 ---
 
@@ -22,13 +22,12 @@ Upon launch, you'll be greeted with a clean, intuitive interface designed for ma
 
 ### 1.2 Understanding the Interface
 
-The ChapterForge 2.0.0 interface is organized into three main sections for optimal workflow efficiency:
+The ChapterForge 2.0.0 interface is organized into two main sections for efficient workflow:
 
 1. **Chapter Management Panel** (Left): Organize and edit your chapter list
-2. **Metadata and Tagging Panel** (Center): Set ID3 tags, cover art, and export options
-3. **Preview and Control Panel** (Right): Real-time audio visualization and playback controls
+2. **Metadata and Tagging Panel** (Right): Set ID3 tags, cover art, and export options
 
-Each panel is fully accessible with keyboard navigation and screen reader support. The interface features a modern design with adaptive layouts, smooth animations, and a sleek dark/light theme toggle to suit your preferences.
+Each panel is fully accessible with keyboard navigation and screen reader support. The interface features a clean design with a dark/light theme toggle to suit your preferences.
 
 ### 1.3 Quick Start Workflow
 
@@ -107,23 +106,19 @@ ChapterForge 2.0.0 includes a professional-grade metadata editor that supports a
 - **Comment**: Additional descriptive information
 
 #### Advanced Tagging Features
-- **Custom Fields**: Add any number of custom ID3 fields
+- **Custom Fields**: Add custom ID3 fields
 - **Cover Art**: Automatic detection or manual selection of album art
-- **Multiple Images**: Attach multiple images with different types (cover, artist, etc.)
 - **Tag Templates**: Save tagging configurations for reuse across projects
 
 #### Format and Quality Options
-- **Output Format**: Choose from MP3 with CHAP/CTOC, M4B with native MP4 chapters, or FLAC lossless
-- **Bitrate Settings**: Configure quality levels from 64k to 320k bitrate
-- **Loudness Normalization**: ITU-R BS.1770-4 compliant loudness adjustment with LUFS targeting
-- **Sample Rate Conversion**: Automatic or manual sample rate settings
-- **Channel Mapping**: Mono, stereo, or multi-channel output options
+- **Output Format**: Choose from MP3 with CHAP/CTOC or M4B with native MP4 chapters
+- **Bitrate Settings**: Configure quality levels from 128k to 320k bitrate
+- **Loudness Normalization**: Audio level normalization
 - **Inter-Chapter Gaps**: Insert configurable silence between chapters
-- **Fade Effects**: Apply fade-in/fade-out to individual chapters
 
 ### 2.3 Preview and Control Panel
 
-The Preview and Control Panel provides comprehensive playback and analysis tools for precise editing and quality control.
+The Preview and Control Panel provides playback controls for reviewing your audio content.
 
 #### Playback Controls
 - **Play/Pause**: Spacebar or click the play button
@@ -133,20 +128,8 @@ The Preview and Control Panel provides comprehensive playback and analysis tools
 - **Volume Control**: Adjust playback volume with slider or keyboard shortcuts
 - **Position Slider**: Drag to any point in the audio or click for precise positioning
 
-#### Real-time Analysis
-- **Waveform Display**: Visualize audio waveform with zoom and navigation controls
-- **Spectral Analysis**: View frequency content in real-time
-- **Level Meters**: Monitor audio levels to prevent clipping
+#### Basic Information
 - **Chapter Information**: Current chapter details and timing
-- **Playback Statistics**: Detailed playback performance metrics
-
-#### Advanced Playback Features
-- **Loop Selection**: Set start and end points to loop a section
-- **Variable Speed**: Adjust playback speed from 0.5x to 2.0x
-- **A-B Repeat**: Define a section to repeat continuously
-- **Bookmark System**: Save important positions for later reference
-- **Chapter Preview**: Listen to individual chapters before building
-- **Pre-listen as Cut**: Hear how audio will sound after trimming
 
 ### 2.4 Audio Trimming and Cutting Tools
 
@@ -362,21 +345,15 @@ Process entire libraries with minimal setup using the Batch Processing Wizard:
 
 ### 4.4 Silence-Based Chapter Detection
 
-Automatically detect chapter boundaries in long recordings using advanced silence detection algorithms:
+Automatically detect chapter boundaries in long recordings using silence detection:
 
 #### Silence Detection Parameters
 - **Noise Threshold**: Set sensitivity level for silence detection (default: -30dB)
 - **Minimum Silence Duration**: Configure minimum length of silence to trigger a chapter break (default: 0.8 seconds)
-- **Minimum Chapter Length**: Prevent creation of extremely short chapters
 
 #### Using Silence Detection
-1. **Method 1 - GUI**: Select a long audio file and enable "Auto-chapter by Silence" in processing options
+1. **Method 1 - GUI**: Select a long audio file and enable silence detection in processing options
 2. **Method 2 - CLI**: Use `chapterforge --split-silence --noise-db -30 --min-silence 0.8 input.mp3`
-
-#### Advanced Silence Features
-- **Chapter Merging**: Automatically merge chapters shorter than minimum duration
-- **Boundary Refinement**: Fine-tune detected boundaries with waveform visualization
-- **Preview Mode**: Test different parameter combinations before processing
 
 ---
 
@@ -536,10 +513,9 @@ chapterforge --batch "C:\Audiobooks" --recursive --normalize --target-lufs -16.0
 - **Format Selection**: 
   - MP3 with CHAP/CTOC for podcast compatibility
   - M4B for audiobook players and iOS devices
-  - FLAC for archival purposes
 - **Quality Settings**: 128k for spoken word, 192k-320k for music
-- **Loudness Normalization**: Always enable for consistent playback levels
-- **Cover Art**: Always include cover art for better player compatibility
+- **Loudness Normalization**: Enable for consistent playback levels
+- **Cover Art**: Include cover art for better player compatibility
 
 ### Performance Tips
 - **SSD Storage**: Use solid-state drives for temporary files and processing
@@ -589,18 +565,10 @@ chapterforge --batch "C:\Audiobooks" --recursive --normalize --target-lufs -16.0
 1. Launch ChapterForge 2.0.0
 2. **File → Open Folder** (`Ctrl+Shift+O`) and select a folder containing your audio files
 3. Review the automatically generated chapter list in the Chapter Management Panel
-4. (Optional) Use **Smart Chapter Detection AI** to optimize chapter boundaries
-5. Click **Set Tags & Build** to proceed to metadata configuration
-6. Fill in the required metadata fields (Title, Artist, Album, etc.)
-7. Set your output file location and format
-8. Click **Build Master File** (`Ctrl+B`) to create your chaptered audio file
-
-#### Method 2: Advanced Workflow with AI Optimization
-1. Follow steps 1-3 from Method 1
-2. Select multiple chapters and click **AI Analyze Selection** to optimize chapter breaks
-3. Review and adjust AI-suggested chapter boundaries
-4. Use the **Waveform Visualization** to fine-tune chapter start/end points
-5. Apply metadata and build as described in steps 5-8 above
+4. Click **Set Tags & Build** to proceed to metadata configuration
+5. Fill in the required metadata fields (Title, Artist, Album, etc.)
+6. Set your output file location and format
+7. Click **Build Master File** (`Ctrl+B`) to create your chaptered audio file
 
 | Key | Action |
 | --- | --- |
