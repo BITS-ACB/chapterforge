@@ -1,6 +1,7 @@
 # Runtime dependencies for ChapterForge.
 wxPython>=4.2
 mutagen>=1.47
+feedback-hub>=1.0
 
 # Optional: richer screen-reader output on Windows (graceful fallback if absent).
 # The accessibility bridge is adapted from the QUILL project (see THIRD_PARTY.md).
