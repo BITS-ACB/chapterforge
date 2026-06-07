@@ -30,7 +30,7 @@ DOWNLOAD_URL = "https://master.dl.sourceforge.net/project/mpv-player-windows/lib
 # (and not the "-v3" variant, which targets newer CPUs only).
 _NAME_RE = re.compile(r"^mpv-dev-x86_64-\d{8}-git-[0-9a-f]+\.7z$")
 
-_NS = {"media": "http://search.yahoo.com/mrss/"}
+_NS = {"media": "http://video.search.yahoo.com/mrss/"}
 
 
 def libmpv_exists():
