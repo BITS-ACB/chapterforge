@@ -1,20 +1,34 @@
-﻿# Third-party software and attributions
+# Third-party software and attributions
 
-ChapterForge bundles and/or incorporates the following third-party components. Where applicable, license text and source code are provided alongside the distribution.
+ChapterForge incorporates or relies on the following third-party components. The Python libraries below are bundled inside the application, as is `libmpv-2.dll` (see below); FFmpeg is downloaded at runtime rather than shipped with ChapterForge.
 
 ## FFmpeg (`ffmpeg.exe`, `ffprobe.exe`)
 
 **License:** GNU LGPL 2.1+ or GPL 2.0+ (depending on build configuration)
 
-ChapterForge ships the FFmpeg command-line tools to decode, concatenate, and re-encode audio files. FFmpeg is maintained by the FFmpeg project and is available at https://ffmpeg.org.
+ChapterForge uses the FFmpeg command-line tools to decode, concatenate, and re-encode audio files. FFmpeg is maintained by the FFmpeg project and is available at https://ffmpeg.org.
 
-The FFmpeg binaries included with ChapterForge use the GPL 2.0 license and are built with GPL-licensed components. If you redistribute ChapterForge, you must comply with the GPLv2 license terms:
+ChapterForge does not bundle or redistribute FFmpeg. If FFmpeg is not already on your system, ChapterForge offers to download an official Windows build on first run (and via Help > Download FFmpeg). Those binaries are obtained directly from the third-party builder and remain under their own license.
 
-- Provide the FFmpeg source code (or a written offer of the source)
-- Keep the FFmpeg license notice intact
-- Preserve all copyright and license notices in the binaries
+If you choose to redistribute ChapterForge together with FFmpeg binaries, you become a redistributor of FFmpeg and must comply with FFmpeg's license terms (GPL or LGPL, depending on the build), which generally require:
 
-For detailed information about FFmpeg licensing and the specific configuration of your build, visit https://ffmpeg.org/legal.html.
+- Providing the FFmpeg source code (or a written offer of the source)
+- Keeping the FFmpeg license notice intact
+- Preserving all copyright and license notices in the binaries
+
+For detailed information about FFmpeg licensing, visit https://ffmpeg.org/legal.html.
+
+## libmpv (`bin/mpv/libmpv-2.dll`)
+
+**License:** GNU LGPL 2.1+ or GPL 2.0+ (depending on build configuration)
+
+ChapterForge's in-app player uses libmpv, the playback engine of the mpv media player, via the `python-mpv` Python binding, to decode and play audio with sample-accurate seeking. libmpv is maintained by the mpv project (https://mpv.io) and is built for Windows by the mpv-player-windows project (https://github.com/shinchiro/mpv-winbuild-cmake, distributed via https://sourceforge.net/projects/mpv-player-windows/).
+
+Unlike FFmpeg, ChapterForge does bundle and redistribute `libmpv-2.dll` (under `bin/mpv/`). As a redistributor, ChapterForge complies with libmpv's license terms (GPL or LGPL, depending on the build) by:
+
+- Providing this notice and a written offer of the corresponding source code: the exact build redistributed with ChapterForge is `mpv-dev-x86_64` from the mpv-player-windows project's release channel; its source is the public mpv project source (https://github.com/mpv-player/mpv) plus the mpv-winbuild-cmake build scripts linked above. Contact the address in this project's README to request a copy.
+- Keeping libmpv's and mpv's license notices intact and available at https://github.com/mpv-player/mpv/blob/master/Copyright and https://www.gnu.org/licenses/.
+- Preserving all copyright and license notices in the binary.
 
 ## Mutagen
 
@@ -58,9 +72,9 @@ QUILL is an accessible document editor developed by BITS. ChapterForge reuses th
 
 The following tools are used to build and package ChapterForge but are not bundled with the application:
 
-- **PyInstaller** (GitHub Installers) — creates the self-contained Windows executable
-- **Inno Setup** — builds the Windows installer
-- **Python 3.10+** — runtime and build environment
+- **PyInstaller** (GitHub Installers) - creates the self-contained Windows executable
+- **Inno Setup** - builds the Windows installer
+- **Python 3.10+** - runtime and build environment
 
 ---
 

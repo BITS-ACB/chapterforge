@@ -86,7 +86,7 @@ footer.site { color: var(--muted); border-top: 1px solid var(--border);
 <li>Choose a task from the startup wizard, or go to <strong>File &gt; Open Folder</strong> and pick a folder of MP3s.</li>
 <li>Review the chapter list - titles are filled in from your file names. Edit, reorder, or remove chapters as needed.</li>
 <li>Fill in the book&#x27;s title, author, and other details. A cover image found in the folder is picked up automatically.</li>
-<li>Choose your output format (MP3 or M4B) and where to save the file.</li>
+<li>Choose your output format (MP3, M4B, FLAC, or Opus) and where to save the file.</li>
 <li>Press <strong>Build</strong> and ChapterForge puts everything together.</li>
 </ol>
 <p>The built-in player lets you preview the result before you share or distribute it.</p>
@@ -94,12 +94,15 @@ footer.site { color: var(--muted); border-top: 1px solid var(--border);
 <ul>
 <li><strong>Build a chaptered audiobook or podcast</strong> from a folder of MP3s</li>
 <li><strong>Works with all major players</strong> - Apple Podcasts, Overcast, Pocket Casts, AntennaPod, VLC, foobar2000, AIMP, and more</li>
-<li><strong>Edit before you build</strong> - adjust chapter titles, reorder tracks, and set the title, author, cover art, genre, and year</li>
-<li><strong>MP3 or M4B output</strong> - standard MP3 with chapter markers, or Apple&#x27;s M4B audiobook format with native chapters</li>
+<li><strong>Edit before you build</strong> - adjust chapter titles, reorder tracks, and set the title, author, narrator, series, cover art, genre, and year</li>
+<li><strong>MP3, M4B, FLAC, or Opus output</strong> - standard MP3 with chapter markers, Apple&#x27;s M4B audiobook format with native chapters, lossless FLAC, or compact Opus</li>
 <li><strong>Preview in the built-in player</strong> before you share</li>
 <li><strong>Fix existing chaptered files</strong> - open a finished MP3 or M4B to correct chapters and tags without rebuilding from scratch</li>
-<li><strong>Import chapter lists</strong> from Audacity, CUE sheets, or plain timestamp files</li>
+<li><strong>Look up metadata</strong> - search MusicBrainz and Open Library to fill in title, author, narrator, and series</li>
+<li><strong>Check ACX compliance</strong> - measure loudness, peak, and noise floor against ACX audiobook requirements, with a one-click loudness fix</li>
+<li><strong>Import and export chapter lists</strong> - Audacity labels, CUE sheets, timestamp text, Podcasting 2.0 JSON, and CSV</li>
 <li><strong>Auto-chapter by silence</strong> - ChapterForge can detect chapter breaks in a single long recording automatically</li>
+<li><strong>Generate a podcast RSS feed</strong> alongside the audio for self-hosted shows</li>
 <li><strong>Background watcher</strong> - set a folder to watch and ChapterForge builds new books automatically when you drop files in, with a Windows notification when it finishes</li>
 <li><strong>Updates built in</strong> - checks for new versions and downloads the right installer in one click</li>
 </ul>
@@ -120,7 +123,7 @@ footer.site { color: var(--muted); border-top: 1px solid var(--border);
 </ul>
 <h2 id="license">License</h2>
 <p>ChapterForge is free and open source, released under the <strong>MIT License</strong> - see <a href="LICENSE.txt">LICENSE</a>. (c) 2026 Blind Information Technology Solutions (BITS).</p>
-<p>The installer includes third-party components (FFmpeg and others). See <a href="THIRD_PARTY.html">THIRD_PARTY.md</a> for full license details and attributions.</p>
+<p>ChapterForge uses FFmpeg for audio processing. If FFmpeg is not already on your system, ChapterForge offers to download it automatically the first time you run it (also available any time from Help &gt; Download FFmpeg). See <a href="THIRD_PARTY.html">THIRD_PARTY.md</a> for license details and attributions.</p>
 <h2 id="for-developers">For developers</h2>
 <p>The codebase lives under <code>chapterforge/</code>. Build and release instructions are in <a href="DEPLOYMENT.html"><code>docs/DEPLOYMENT.md</code></a>. Issues and pull requests are welcome on <a href="https://github.com/BITS-ACB/chapterforge">GitHub</a>.</p>
 </main>

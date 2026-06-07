@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ChapterForge — Product Requirements</title>
+<title>ChapterForge - Product Requirements</title>
 <style>:root {
   --bg: #ffffff; --fg: #1b1b1b; --muted: #555; --accent: #0b5fa5;
   --border: #d0d7de; --code-bg: #f3f4f6; --nav-bg: #f6f8fa;
@@ -68,11 +68,11 @@ footer.site { color: var(--muted); border-top: 1px solid var(--border);
 <div class="wrap">
 <main id="main" tabindex="-1">
 <nav class="toc" aria-label="On this page"><p>On this page</p><ul><li><a href="#1-executive-summary">1. Executive Summary</a></li><li><a href="#2-goals">2. Goals</a></li><li><a href="#3-non-goals">3. Non-Goals</a></li><li><a href="#4-target-users">4. Target Users</a></li><li class="lvl3"><a href="#41-blind-low-vision-audiobook-producer">4.1 Blind / Low-Vision Audiobook Producer</a></li><li class="lvl3"><a href="#42-sighted-podcast-creator">4.2 Sighted Podcast Creator</a></li><li class="lvl3"><a href="#43-lecture-conference-archivist">4.3 Lecture / Conference Archivist</a></li><li class="lvl3"><a href="#44-audiobook-publisher-small-studio">4.4 Audiobook Publisher (Small Studio)</a></li><li><a href="#5-system-requirements">5. System Requirements</a></li><li><a href="#6-architecture">6. Architecture</a></li><li><a href="#7-core-features">7. Core Features</a></li><li class="lvl3"><a href="#71-folder-to-master-build">7.1 Folder-to-Master Build</a></li><li class="lvl3"><a href="#72-chapter-management">7.2 Chapter Management</a></li><li class="lvl3"><a href="#73-edit-mode-single-file-editing">7.3 Edit Mode (Single-File Editing)</a></li><li class="lvl3"><a href="#74-in-app-audio-player">7.4 In-App Audio Player</a></li><li class="lvl3"><a href="#75-lossless-trim-and-cut">7.5 Lossless Trim and Cut</a></li><li class="lvl3"><a href="#76-split-one-long-recording-into-chapters">7.6 Split One Long Recording into Chapters</a></li><li class="lvl3"><a href="#77-silence-based-auto-chaptering">7.7 Silence-Based Auto-Chaptering</a></li><li class="lvl3"><a href="#78-metadata-tagging">7.8 Metadata Tagging</a></li><li class="lvl3"><a href="#79-audio-processing-options">7.9 Audio Processing Options</a></li><li class="lvl3"><a href="#710-reusable-build-presets">7.10 Reusable Build Presets</a></li><li class="lvl3"><a href="#711-job-files-cfjob">7.11 Job Files (.cfjob)</a></li><li class="lvl3"><a href="#712-background-folder-watcher">7.12 Background Folder Watcher</a></li><li class="lvl3"><a href="#713-command-line-interface">7.13 Command Line Interface</a></li><li class="lvl3"><a href="#714-diagnostics">7.14 Diagnostics</a></li><li><a href="#8-accessibility-requirements">8. Accessibility Requirements</a></li><li class="lvl3"><a href="#81-screen-reader-compatibility">8.1 Screen Reader Compatibility</a></li><li class="lvl3"><a href="#82-accessible-name-rules-wxpython">8.2 Accessible Name Rules (wxPython)</a></li><li class="lvl3"><a href="#83-keyboard-navigation">8.3 Keyboard Navigation</a></li><li class="lvl3"><a href="#84-visual-accessibility">8.4 Visual Accessibility</a></li><li class="lvl3"><a href="#85-keyboard-shortcuts-primary">8.5 Keyboard Shortcuts (primary)</a></li><li><a href="#9-chapter-format-compatibility">9. Chapter Format Compatibility</a></li><li><a href="#10-settings">10. Settings</a></li><li><a href="#11-build-and-distribution">11. Build and Distribution</a></li><li><a href="#12-auphonic-integration-beta">12. Auphonic Integration (Beta)</a></li><li class="lvl3"><a href="#121-purpose">12.1 Purpose</a></li><li class="lvl3"><a href="#122-authentication">12.2 Authentication</a></li><li class="lvl3"><a href="#123-menu-actions">12.3 Menu Actions</a></li><li class="lvl3"><a href="#124-new-production-workflow">12.4 New Production Workflow</a></li><li class="lvl3"><a href="#125-built-in-presets">12.5 Built-in Presets</a></li><li class="lvl3"><a href="#126-audio-only-policy">12.6 Audio-Only Policy</a></li><li class="lvl3"><a href="#127-local-storage">12.7 Local Storage</a></li><li class="lvl3"><a href="#128-credential-injection">12.8 Credential Injection</a></li><li><a href="#13-notifications">13. Notifications</a></li><li><a href="#14-security-considerations">14. Security Considerations</a></li><li><a href="#15-testing">15. Testing</a></li><li><a href="#16-open-items-and-future-work">16. Open Items and Future Work</a></li></ul></nav>
-<h1>ChapterForge 1.0.0 — Product Requirements Document</h1>
+<h1>ChapterForge 1.0.0 - Product Requirements Document</h1>
 <p><strong>Product</strong>: ChapterForge <strong>Version</strong>: 1.0.0 <strong>Date</strong>: 2026-06-06 <strong>Status</strong>: Shipped</p>
 <hr>
 <h2 id="1-executive-summary">1. Executive Summary</h2>
-<p>ChapterForge is a Windows desktop application that converts a folder of audio files into a single master audio file with embedded, navigable chapter markers. It targets content creators — audiobook producers, podcasters, and lecture archivists — with a first-class requirement that the tool be fully operable by blind and low-vision users using only a keyboard and screen reader.</p>
+<p>ChapterForge is a Windows desktop application that converts a folder of audio files into a single master audio file with embedded, navigable chapter markers. It targets content creators - audiobook producers, podcasters, and lecture archivists - with a first-class requirement that the tool be fully operable by blind and low-vision users using only a keyboard and screen reader.</p>
 <p>The application ships with a GUI (wxPython), a CLI (Click), a background folder-watching engine with system-tray controller, and a beta Auphonic audio post-production integration. All core audio work is delegated to FFmpeg and Mutagen; ChapterForge provides the workflow, accessibility layer, and chapter-format expertise on top.</p>
 <hr>
 <h2 id="2-goals">2. Goals</h2>
@@ -137,7 +137,7 @@ footer.site { color: var(--muted); border-top: 1px solid var(--border);
 <p>The primary workflow: open a folder of audio files, review the automatically assembled chapter list, set metadata, and build a single master file with embedded chapter markers.</p>
 <ul>
 <li>Supported input formats: MP3, FLAC, WAV, OGG, M4A, AAC, Opus, WMA, MP2</li>
-<li>Output formats: MP3 (ID3v2 CHAP/CTOC), M4B (native MP4 chapters), FLAC lossless (Vorbis Comment chapters)</li>
+<li>Output formats: MP3 (ID3v2 CHAP/CTOC), M4B (native MP4 chapters), FLAC lossless (Vorbis Comment chapters), Opus (Ogg Opus, Vorbis Comment chapters)</li>
 <li>Bitrate options: 128k to 320k for lossy outputs; lossless copy for FLAC source-to-FLAC output</li>
 <li>Cover art: auto-detected from folder or manually selected; embedded in output</li>
 <li>Natural sort for track ordering (<code>track2</code> before <code>track10</code>)</li>
@@ -193,8 +193,9 @@ footer.site { color: var(--muted); border-top: 1px solid var(--border);
 <h3 id="78-metadata-tagging">7.8 Metadata Tagging</h3>
 <p>Full ID3v2 and MP4/FLAC metadata support:</p>
 <ul>
-<li>Standard fields: Title, Artist, Album Artist, Genre, Year, Track Number, Comment</li>
+<li>Standard fields: Title, Artist, Album Artist, Genre, Year, Comment, Narrator, Series</li>
 <li>Cover art (embedded)</li>
+<li>Metadata lookup from MusicBrainz and Open Library</li>
 <li>Podcasting 2.0 chapter sidecar (optional)</li>
 <li>Sticky tag defaults: remembered between projects in settings</li>
 </ul>
@@ -238,7 +239,7 @@ chapterforge -i .\chapters -o book.mp3       # Explicit in/out
 chapterforge .\chapters --normalize          # With loudness normalization
 chapterforge .\chapters --dry-run --list     # Preview without building
 chapterforge --job mybook.cfjob              # Process from job file
-chapterforge --batch &quot;C:\Audiobooks&quot; --recursive  # Batch mode
+chapterforge --batch &quot;C:\Audiobooks&quot;         # Batch mode (every book sub-folder)
 chapterforge --split-silence --noise-db -30 --min-silence 0.8 long.mp3</code></pre>
 <p>Return codes: 0 success, 1 general error, 2 invalid arguments, 3 processing error, 4 file not found, 5 insufficient permissions.</p>
 <h3 id="714-diagnostics">7.14 Diagnostics</h3>

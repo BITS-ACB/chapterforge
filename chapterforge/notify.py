@@ -19,7 +19,7 @@ import os
 import threading
 from dataclasses import asdict, dataclass
 from datetime import datetime
-from typing import List, Optional
+from typing import List
 
 from . import __app_name__, a11y, settings as settings_mod
 

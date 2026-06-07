@@ -25,6 +25,7 @@ dependencies = [
     "wxPython>=4.2",
     "mutagen>=1.47",
     "feedback-hub>=1.0",
+    "python-mpv>=1.0",
 ]
 
 [project.optional-dependencies]

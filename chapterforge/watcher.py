@@ -31,7 +31,7 @@ import time
 from dataclasses import dataclass
 from typing import Callable, Dict, List, Optional, Tuple
 
-from . import core, manifest as manifest_mod
+from . import core, manifest as manifest_mod, settings as settings_mod
 from .watcher_config import (
     OUTPUT_SUBDIR,
     Process,
@@ -222,7 +222,10 @@ class FolderWatcher:
             expand_template(process.output_template, folder=folder_name,
                             parent=os.path.basename(os.path.normpath(process.watch_folder))),
             fallback=f"{folder_name} - Master")
-        if not out_name.lower().endswith(".mp3"):
+        # The template extension chooses the output format. Default to .mp3 when
+        # no recognised audio extension is present.
+        _ext = os.path.splitext(out_name)[1].lower()
+        if _ext not in (".mp3", ".m4b", ".m4a", ".mp4", ".flac", ".opus"):
             out_name += ".mp3"
         # Collect every result under a single, visible "_ChapterForge\Completed"
         # area at the watch-folder level, one sub-folder per book, so a user can
@@ -260,17 +263,49 @@ class FolderWatcher:
         self._emit(WatchEvent("started", process.name, subfolder,
                               f"Processing “{folder_name}”…"))
         self._canceller = core.Canceller()
+        self._trim_dir = None
         try:
-            items, tags, bitrate, normalize = self._plan(process, subfolder,
-                                                          sources, output_path)
+            items, tags, opts = self._plan(process, subfolder,
+                                           sources, output_path)
+            # Optional per-track silence trimming before concatenation.
+            if opts.get("trim_silence"):
+                import tempfile as _tmpmod
+                self._trim_dir = _tmpmod.mkdtemp(prefix="chapterforge_trim_")
+                items = [core.trim_silence_item(
+                    it, self._trim_dir,
+                    noise_db=opts.get("trim_silence_db", -50.0),
+                    min_silence_ms=opts.get("trim_silence_min_ms", 100.0))
+                    for it in items]
             chapters = core.compute_chapters(items)
             result = core.build_master(
-                items, output_path, tags, chapters=chapters, bitrate=bitrate,
-                normalize=normalize, canceller=self._canceller)
+                items, output_path, tags, chapters=chapters,
+                bitrate=opts.get("bitrate", "192k"),
+                normalize=opts.get("normalize", False),
+                gap_ms=opts.get("gap_ms", 0),
+                per_file_normalize=opts.get("per_file_normalize", False),
+                normalize_lufs=opts.get("normalize_lufs", -16.0),
+                fade_in_ms=opts.get("fade_ms", 0),
+                fade_out_ms=opts.get("fade_ms", 0),
+                canceller=self._canceller)
             try:
                 core.write_chapter_report(output_path, result, tags, items)
             except OSError:
                 pass
+            if opts.get("write_pod2"):
+                try:
+                    core.write_pod2_chapters(
+                        output_path, result.chapters, result.total_ms)
+                except OSError:
+                    pass
+            if opts.get("write_rss") and opts.get("rss_media_url"):
+                try:
+                    from . import rss as rss_mod
+                    rss_mod.write_rss(result, tags, opts["rss_media_url"],
+                                      narrator=tags.narrator,
+                                      series_title=tags.series_title,
+                                      series_index=tags.series_index)
+                except Exception:
+                    pass
             self._clear_marker(os.path.join(subfolder, FAIL_MARKER))
             self._clear_failed_note(process, folder_name)
             _write_marker(os.path.join(subfolder, DONE_MARKER), {
@@ -300,6 +335,10 @@ class FolderWatcher:
         finally:
             self._canceller = None
             self._clear_marker(lock_path)
+            if self._trim_dir and os.path.isdir(self._trim_dir):
+                import shutil as _shutil
+                _shutil.rmtree(self._trim_dir, ignore_errors=True)
+            self._trim_dir = None
 
     def _failed_note_path(self, process: Process, folder_name: str) -> str:
         return os.path.join(process.watch_folder, OUTPUT_SUBDIR, "Failed",
@@ -327,8 +366,15 @@ class FolderWatcher:
 
     def _plan(self, process: Process, subfolder: str, sources: List[str],
               output_path: str):
-        """Decide items + tags, honouring a .cfjob if present."""
+        """Decide items, tags and build options, honouring a .cfjob if present.
+
+        Returns ``(items, tags, opts)`` where *opts* is a dict of build options.
+        Tag/naming come from the process (or job file); processing options
+        (trim, fades, gaps, per-file normalize, RSS, Podcasting 2.0) come from
+        the user's global settings so the watcher matches the GUI build.
+        """
         folder_name = os.path.basename(os.path.normpath(subfolder))
+        gs = settings_mod.load()
         job_path = manifest_mod.find_job_file(subfolder)
         if job_path:
             manifest = manifest_mod.read_manifest(job_path)
@@ -351,15 +397,41 @@ class FolderWatcher:
                 artist=process.artist,
                 album_artist=process.album_artist,
                 genre=process.genre,
+                narrator=process.narrator,
+                series_title=process.series_title,
+                series_index=process.series_index,
             )
             bitrate = process.bitrate
             normalize = process.normalize
+            # Apply named preset if one is configured, overriding process defaults.
+            if process.preset:
+                pdata = gs.get("presets", {}).get(process.preset)
+                if pdata and isinstance(pdata, dict):
+                    bitrate = pdata.get("bitrate", bitrate)
+                    normalize = bool(pdata.get("normalize", normalize))
 
         bad = [it for it in items if it.error or it.duration <= 0]
         if bad:
             raise core.ChapterForgeError(
                 "Unreadable files: " + ", ".join(it.filename for it in bad[:5]))
-        return items, tags, bitrate, normalize
+
+        per_file_normalize = bool(gs.get("per_file_normalize", False))
+        opts = {
+            "bitrate": bitrate,
+            # The two loudness options are mutually exclusive; per-chapter wins.
+            "normalize": normalize and not per_file_normalize,
+            "gap_ms": int(round(float(gs.get("gap_seconds", 0.0)) * 1000)),
+            "per_file_normalize": per_file_normalize,
+            "normalize_lufs": float(gs.get("normalize_lufs", -16.0)),
+            "fade_ms": int(gs.get("fade_ms", 0)),
+            "trim_silence": bool(gs.get("trim_silence", False)),
+            "trim_silence_db": float(gs.get("trim_silence_db", -50.0)),
+            "trim_silence_min_ms": float(gs.get("trim_silence_min_ms", 100.0)),
+            "write_pod2": bool(gs.get("write_pod2", False)),
+            "write_rss": bool(gs.get("write_rss", False)),
+            "rss_media_url": gs.get("rss_media_url", ""),
+        }
+        return items, tags, opts
 
     # -- helpers --------------------------------------------------------
     def _cleanup_partial(self, output_path: str) -> None:

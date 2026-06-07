@@ -27,6 +27,7 @@ import wx.media
 from . import (
     SERVICES, __app_name__, __copyright__, __org__, __version__, a11y, core,
 )
+from . import feature_flags
 from . import manifest as manifest_mod
 from . import settings as settings_mod
 from .notify import Notifier
@@ -122,6 +123,33 @@ class _ThreadEvent(wx.PyEvent):
         self.payload = payload
 
 
+def _windows_high_contrast_active() -> bool:
+    """Return True if Windows high-contrast mode is currently on."""
+    if os.name != "nt":
+        return False
+    try:
+        import ctypes
+        import ctypes.wintypes
+        # HIGHCONTRAST structure: cbSize (UINT), dwFlags (DWORD), lpszDefaultScheme (LPTSTR)
+        class HIGHCONTRAST(ctypes.Structure):
+            _fields_ = [
+                ("cbSize", ctypes.wintypes.UINT),
+                ("dwFlags", ctypes.wintypes.DWORD),
+                ("lpszDefaultScheme", ctypes.c_wchar_p),
+            ]
+        hc = HIGHCONTRAST()
+        hc.cbSize = ctypes.sizeof(HIGHCONTRAST)
+        SPI_GETHIGHCONTRAST = 0x0042
+        result = ctypes.windll.user32.SystemParametersInfoW(
+            SPI_GETHIGHCONTRAST, hc.cbSize, ctypes.byref(hc), 0)
+        if result:
+            HCF_HIGHCONTRASTON = 0x0001
+            return bool(hc.dwFlags & HCF_HIGHCONTRASTON)
+    except Exception:
+        pass
+    return False
+
+
 class MainFrame(wx.Frame):
     _COL_WIDTHS = [44, 260, 80, 80, 200]
     _COL_NAMES_DISPLAY = ["#", "Title", "Start time", "Duration", "Source file"]
@@ -155,6 +183,7 @@ class MainFrame(wx.Frame):
             client_secret=os.environ.get("AUPHONIC_CLIENT_SECRET", ""),
         )
         self._force_quit = False
+        self._player_revealed = False  # show the player the first time media loads
         self._list_col = 0  # currently announced column for keyboard column navigation
         self._undo = _UndoStack()
 
@@ -186,6 +215,7 @@ class MainFrame(wx.Frame):
             wx.CallAfter(self._check_updates_on_startup)
         if not self.settings.get("wizard_seen", False):
             wx.CallAfter(self._on_wizard, None)
+        wx.CallAfter(self.list.SetFocus)
 
     # ------------------------------------------------------------------
     # Construction
@@ -272,6 +302,67 @@ class MainFrame(wx.Frame):
             "Save the current chapter list as labels, a CUE sheet or JSON")
         menubar.Append(edit_menu, "&Edit")
 
+        view_menu = wx.Menu()
+        theme_sub = wx.Menu()
+        self.mi_theme_system = theme_sub.AppendRadioItem(
+            wx.ID_ANY, "Follow &System",
+            "Use your Windows color scheme")
+        self.mi_theme_light = theme_sub.AppendRadioItem(
+            wx.ID_ANY, "&Light",
+            "White background with dark text")
+        self.mi_theme_dark = theme_sub.AppendRadioItem(
+            wx.ID_ANY, "&Dark",
+            "Dark background with light text")
+        self.mi_theme_hc = theme_sub.AppendRadioItem(
+            wx.ID_ANY, "&High Contrast",
+            "Black background with white text for maximum legibility")
+        view_menu.AppendSubMenu(theme_sub, "&Theme", "Change the color theme")
+        view_menu.AppendSeparator()
+        self.mi_go_step1 = view_menu.Append(
+            wx.ID_ANY, "Go to &Chapters (Step 1)\tCtrl+1",
+            "Show the chapter list - Step 1 of the two-step workflow")
+        self.mi_go_step2 = view_menu.Append(
+            wx.ID_ANY, "Go to Tags && &Build (Step 2)\tCtrl+2",
+            "Show the tags and build page - Step 2 of the two-step workflow")
+        self.mi_goto_time = view_menu.Append(
+            wx.ID_ANY, "&Go to Time…\tCtrl+G",
+            "Jump the player to a specific time position")
+        view_menu.AppendSeparator()
+        self.mi_text_larger = view_menu.Append(
+            wx.ID_ANY, "Larger &Text\tCtrl+=",
+            "Increase the text size")
+        self.mi_text_smaller = view_menu.Append(
+            wx.ID_ANY, "Smaller T&ext\tCtrl+-",
+            "Decrease the text size")
+        self.mi_text_reset = view_menu.Append(
+            wx.ID_ANY, "Reset Text &Size\tCtrl+0",
+            "Reset the text size to the default")
+        view_menu.AppendSeparator()
+        self.mi_show_player = view_menu.AppendCheckItem(
+            wx.ID_ANY, "Show Audio &Player",
+            "Show or hide the audio player panel")
+        # Player starts hidden - it has nothing to show until media is loaded.
+        self.mi_show_player.Check(False)
+        # Columns submenu (Feature 10)
+        col_sub = wx.Menu()
+        self.mi_col = []
+        for _ci, _cn in enumerate(["Title", "Start", "Duration", "Source File"]):
+            _mi_c = col_sub.AppendCheckItem(
+                wx.ID_ANY, _cn, f"Show or hide the {_cn} column")
+            self.mi_col.append(_mi_c)
+        view_menu.AppendSubMenu(col_sub, "&Columns", "Show or hide chapter list columns")
+        # Initialise theme radio to match stored setting
+        _t = self.settings.get("theme", "system")
+        if _t == "system" and self.settings.get("high_contrast", False):
+            _t = "high_contrast"
+        {
+            "system":        self.mi_theme_system,
+            "light":         self.mi_theme_light,
+            "dark":          self.mi_theme_dark,
+            "high_contrast": self.mi_theme_hc,
+        }.get(_t, self.mi_theme_system).Check(True)
+        menubar.Append(view_menu, "&View")
+
         tools_menu = wx.Menu()
         self.mi_silence = tools_menu.Append(
             wx.ID_ANY, "Find Chapters in Silent &Gaps…",
@@ -294,6 +385,19 @@ class MainFrame(wx.Frame):
         if autostart.is_supported():
             self.mi_autostart.Check(autostart.is_enabled())
         tools_menu.AppendSeparator()
+        self.mi_acx_check = tools_menu.Append(
+            wx.ID_ANY, "Check &ACX Compliance…",
+            "Measure the current output file for ACX loudness and peak requirements")
+        self.mi_lookup = tools_menu.Append(
+            wx.ID_ANY, "Look Up &Metadata…",
+            "Search MusicBrainz or Open Library to pre-fill title, artist and genre")
+        self.mi_merge_short = tools_menu.Append(
+            wx.ID_ANY, "&Merge Short Chapters…",
+            "Collapse chapters shorter than a minimum duration into the previous chapter")
+        self.mi_build_log = tools_menu.Append(
+            wx.ID_ANY, "View &Build Log…",
+            "View a log of recent build activity")
+        tools_menu.AppendSeparator()
         self.mi_palette = tools_menu.Append(
             wx.ID_ANY, "Command &Palette…\tCtrl+Shift+P",
             "Search and run any command by name")
@@ -301,66 +405,6 @@ class MainFrame(wx.Frame):
             wx.ID_PREFERENCES, "&Settings…\tCtrl+,",
             "Edit ChapterForge preferences")
         menubar.Append(tools_menu, "&Tools")
-
-        view_menu = wx.Menu()
-        theme_sub = wx.Menu()
-        self.mi_theme_system = theme_sub.AppendRadioItem(
-            wx.ID_ANY, "Follow &System",
-            "Use your Windows color scheme")
-        self.mi_theme_light = theme_sub.AppendRadioItem(
-            wx.ID_ANY, "&Light",
-            "White background with dark text")
-        self.mi_theme_dark = theme_sub.AppendRadioItem(
-            wx.ID_ANY, "&Dark",
-            "Dark background with light text")
-        self.mi_theme_hc = theme_sub.AppendRadioItem(
-            wx.ID_ANY, "&High Contrast",
-            "Black background with white text for maximum legibility")
-        view_menu.AppendSubMenu(theme_sub, "&Theme", "Change the color theme")
-        view_menu.AppendSeparator()
-        self.mi_go_step1 = view_menu.Append(
-            wx.ID_ANY, "Go to &Chapters (Step 1)\tCtrl+1",
-            "Show the chapter list — Step 1 of the two-step workflow")
-        self.mi_go_step2 = view_menu.Append(
-            wx.ID_ANY, "Go to Tags && &Build (Step 2)\tCtrl+2",
-            "Show the tags and build page — Step 2 of the two-step workflow")
-        self.mi_goto_time = view_menu.Append(
-            wx.ID_ANY, "&Go to Time…\tCtrl+G",
-            "Jump the player to a specific time position")
-        view_menu.AppendSeparator()
-        self.mi_text_larger = view_menu.Append(
-            wx.ID_ANY, "Larger &Text\tCtrl+=",
-            "Increase the text size")
-        self.mi_text_smaller = view_menu.Append(
-            wx.ID_ANY, "Smaller T&ext\tCtrl+-",
-            "Decrease the text size")
-        self.mi_text_reset = view_menu.Append(
-            wx.ID_ANY, "Reset Text &Size\tCtrl+0",
-            "Reset the text size to the default")
-        view_menu.AppendSeparator()
-        self.mi_show_player = view_menu.AppendCheckItem(
-            wx.ID_ANY, "Show Audio &Player",
-            "Show or hide the audio player panel")
-        self.mi_show_player.Check(True)
-        # Columns submenu (Feature 10)
-        col_sub = wx.Menu()
-        self.mi_col = []
-        for _ci, _cn in enumerate(["Title", "Start", "Duration", "Source File"]):
-            _mi_c = col_sub.AppendCheckItem(
-                wx.ID_ANY, _cn, f"Show or hide the {_cn} column")
-            self.mi_col.append(_mi_c)
-        view_menu.AppendSubMenu(col_sub, "&Columns", "Show or hide chapter list columns")
-        # Initialise theme radio to match stored setting
-        _t = self.settings.get("theme", "system")
-        if _t == "system" and self.settings.get("high_contrast", False):
-            _t = "high_contrast"
-        {
-            "system":        self.mi_theme_system,
-            "light":         self.mi_theme_light,
-            "dark":          self.mi_theme_dark,
-            "high_contrast": self.mi_theme_hc,
-        }.get(_t, self.mi_theme_system).Check(True)
-        menubar.Append(view_menu, "&View")
 
         auphonic_menu = wx.Menu()
         self.mi_auphonic_connect = auphonic_menu.Append(
@@ -372,9 +416,12 @@ class MainFrame(wx.Frame):
         self.mi_auphonic_history = auphonic_menu.Append(
             wx.ID_ANY, "&Job History…",
             "View submitted Auphonic jobs and download results")
-        menubar.Append(auphonic_menu, "&Auphonic")
-        # Disabled by default; enabled when "beta_features" setting is on.
-        menubar.EnableTop(4, bool(self.settings.get("beta_features", False)))
+        # Only append Auphonic menu if beta features are enabled
+        if self.settings.get("beta_features", False):
+            menubar.Append(auphonic_menu, "&Auphonic")
+            self._auphonic_menu_index = 4  # Store index for later enabling
+        else:
+            self._auphonic_menu_index = None
 
         help_menu = wx.Menu()
         self.mi_wizard = help_menu.Append(
@@ -402,11 +449,26 @@ class MainFrame(wx.Frame):
         self.mi_update = help_menu.Append(
             wx.ID_ANY, "&Look for Updates…",
             "Check online for a newer version of ChapterForge")
+        self.mi_download_ffmpeg = help_menu.Append(
+            wx.ID_ANY, "&Download FFmpeg…",
+            "Download and install FFmpeg if it is missing from your system")
+        help_menu.AppendSeparator()
+        self.mi_feature_flags = help_menu.Append(
+            wx.ID_ANY, "Feature &Flags…",
+            "Show or hide optional features")
+        self.mi_reset_feature_flags = help_menu.Append(
+            wx.ID_ANY, "&Reset Feature Flags to Defaults",
+            "Re-enable every optional feature")
         help_menu.AppendSeparator()
         help_menu.Append(wx.ID_ABOUT, "&About ChapterForge")
         menubar.Append(help_menu, "&Help")
 
         self.SetMenuBar(menubar)
+        
+        # Enable Auphonic menu after menu bar is attached to frame
+        if hasattr(self, '_auphonic_menu_index') and self._auphonic_menu_index is not None:
+            self.GetMenuBar().EnableTop(self._auphonic_menu_index, 
+                                        bool(self.settings.get("beta_features", False)))
 
         self.Bind(wx.EVT_MENU, self._on_undo, self.mi_undo)
         self.Bind(wx.EVT_MENU, self._on_redo, self.mi_redo)
@@ -447,6 +509,10 @@ class MainFrame(wx.Frame):
                       _mi_col)
         self.Bind(wx.EVT_MENU, self._on_silence, self.mi_silence)
         self.Bind(wx.EVT_MENU, self._on_batch, self.mi_batch)
+        self.Bind(wx.EVT_MENU, self._on_acx_check_menu, self.mi_acx_check)
+        self.Bind(wx.EVT_MENU, self._on_lookup_metadata, self.mi_lookup)
+        self.Bind(wx.EVT_MENU, self._on_merge_short_chapters, self.mi_merge_short)
+        self.Bind(wx.EVT_MENU, self._on_view_build_log, self.mi_build_log)
         self.Bind(wx.EVT_MENU, self._on_settings, self.mi_settings)
         self.Bind(wx.EVT_MENU, self._open_command_palette, self.mi_palette)
         self.Bind(wx.EVT_MENU, self._on_watch_folders, self.mi_watch)
@@ -461,6 +527,9 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self._on_report_issue, self.mi_report_issue)
         self.Bind(wx.EVT_MENU, self._on_save_diagnostics, self.mi_diagnostics)
         self.Bind(wx.EVT_MENU, self._on_check_updates, self.mi_update)
+        self.Bind(wx.EVT_MENU, self._on_download_ffmpeg, self.mi_download_ffmpeg)
+        self.Bind(wx.EVT_MENU, self._on_feature_flags, self.mi_feature_flags)
+        self.Bind(wx.EVT_MENU, self._on_reset_feature_flags, self.mi_reset_feature_flags)
         self.Bind(wx.EVT_MENU, self._on_about, id=wx.ID_ABOUT)
 
         self.Bind(wx.EVT_MENU, self._on_auphonic_connect, self.mi_auphonic_connect)
@@ -477,6 +546,27 @@ class MainFrame(wx.Frame):
             (wx.ACCEL_CTRL, ord('S'), _smart_save_id),
             (wx.ACCEL_CTRL | wx.ACCEL_SHIFT, ord('P'), _palette_id),
         ]))
+
+        # Feature flags: detach (not destroy) menu items for disabled features,
+        # so they vanish from the user's menus while self.mi_xxx stays a valid
+        # MenuItem for any later .Bind()/.Enable()/.Check() calls elsewhere.
+        for _menu, _item, _flag_key in (
+            (edit_menu, self.mi_play_chapter, "audio_player"),
+            (edit_menu, self.mi_split_here, "audio_player"),
+            (view_menu, self.mi_goto_time, "audio_player"),
+            (view_menu, self.mi_show_player, "audio_player"),
+            (tools_menu, self.mi_palette, "command_palette"),
+            (tools_menu, self.mi_silence, "silence_chapter_detection"),
+            (tools_menu, self.mi_lookup, "metadata_lookup"),
+            (tools_menu, self.mi_acx_check, "acx_compliance"),
+            (tools_menu, self.mi_batch, "batch_build"),
+            (tools_menu, self.mi_merge_short, "merge_short_chapters"),
+            (tools_menu, self.mi_watch, "auto_build_watcher"),
+            (tools_menu, self.mi_start_watch, "auto_build_watcher"),
+            (tools_menu, self.mi_autostart, "auto_build_watcher"),
+        ):
+            if not feature_flags.is_enabled(self.settings, _flag_key):
+                _menu.Remove(_item)
 
     def _on_smart_save(self, _evt):
         """Ctrl+S: save in whatever way makes sense for the current mode."""
@@ -504,51 +594,15 @@ class MainFrame(wx.Frame):
         outer = wx.BoxSizer(wx.VERTICAL)
         _ACV = wx.ALIGN_CENTER_VERTICAL
 
-        # ── Source row (always visible) ───────────────────────────────────
+        # ── Source row (simplified for accessibility) ───────────────────────────────────
         src_box = wx.StaticBoxSizer(wx.HORIZONTAL, panel, "Source")
         self.src_static_box = src_box.GetStaticBox()
-        src_box.Add(self._label(panel, "&Task:"), 0, _ACV | wx.ALL, 6)
-        self.task_choice = wx.Choice(
-            panel,
-            choices=["Build new master from MP3 files",
-                     "Edit chapters in an existing file",
-                     "Split one long recording into chapters"])
-        self.task_choice.SetName("Task - what you want to do")
-        self.task_choice.SetToolTip(
-            "Build: combine a folder of MP3 files into one chaptered master.\n"
-            "Edit: open an existing chaptered MP3 or M4B to rename chapters or fix tags.")
-        self.task_choice.SetSelection(0)
-        self.task_choice.Bind(wx.EVT_CHOICE, self._on_task_choice)
-        src_box.Add(self.task_choice, 0, _ACV | wx.ALL, 6)
-        src_box.Add(wx.StaticLine(panel, style=wx.LI_VERTICAL),
-                    0, wx.EXPAND | wx.TOP | wx.BOTTOM, 8)
-        self.src_label = self._label(panel, "Folder of MP3 files:")
+        self.src_label = self._label(panel, "Current file or folder:")
         src_box.Add(self.src_label, 0, _ACV | wx.ALL, 6)
         self.folder_ctrl = wx.TextCtrl(panel, style=wx.TE_READONLY)
         self.folder_ctrl.SetName("Source folder or file")
         self.folder_ctrl.SetHint("No folder chosen yet")
         src_box.Add(self.folder_ctrl, 1, _ACV | wx.ALL, 6)
-        self.btn_browse = wx.Button(panel, label="&Browse…")
-        self.btn_browse.SetName("Browse for source folder of MP3 files")
-        self.btn_browse.SetToolTip("Open a folder whose MP3 files will become the chapters.")
-        self.btn_browse.Bind(wx.EVT_BUTTON, self._on_browse_or_open)
-        src_box.Add(self.btn_browse, 0, wx.ALL, 6)
-        src_box.Add(wx.StaticLine(panel, style=wx.LI_VERTICAL),
-                    0, wx.EXPAND | wx.TOP | wx.BOTTOM, 8)
-        self.actions_choice = wx.Choice(panel, choices=[
-            "Quick Actions...",
-            "Command Palette   Ctrl+Shift+P",
-            "Look for Updates...",
-            "Settings   Ctrl+,",
-            "Get Help Information...",
-        ])
-        self.actions_choice.SetSelection(0)
-        self.actions_choice.SetName(
-            "Quick actions - select an action to run it immediately")
-        self.actions_choice.SetToolTip(
-            "Shortcuts to common actions. Select one to run it immediately.")
-        self.actions_choice.Bind(wx.EVT_CHOICE, self._on_actions_choice)
-        src_box.Add(self.actions_choice, 0, _ACV | wx.ALL, 6)
         outer.Add(src_box, 0, wx.EXPAND | wx.ALL, 8)
 
         # ── Page 1: Chapter list + options ────────────────────────────────
@@ -619,7 +673,7 @@ class MainFrame(wx.Frame):
         ch_box.Add(btn_row, 0)
         p1.Add(ch_box, 1, wx.EXPAND | wx.ALL, 8)
 
-        # "Next" button — goes to the tags / build page
+        # "Next" button - goes to the tags / build page
         next_row = wx.BoxSizer(wx.HORIZONTAL)
         next_row.AddStretchSpacer()
         self.btn_next_page = wx.Button(self._page_ch, label="Set Tags && Build ->")
@@ -668,6 +722,9 @@ class MainFrame(wx.Frame):
         self.tag_genre = add_field("&Genre:", "Genre")
         self.tag_year = add_field("&Year:", "Year")
         self.tag_comment = add_field("Co&mment:", "Comment", multiline=True)
+        self.tag_narrator = add_field("N&arrator:", "Narrator")
+        self.tag_series = add_field("Series &title:", "Series title")
+        self.tag_series_idx = add_field("Series inde&x:", "Series index")
         tag_box.Add(grid, 0, wx.EXPAND | wx.ALL, 4)
 
         cover_row = wx.BoxSizer(wx.HORIZONTAL)
@@ -748,8 +805,15 @@ class MainFrame(wx.Frame):
             panel, announce=self._announce,
             get_skip_seconds=lambda: int(self.settings.get("skip_seconds", 10)),
             get_volume=lambda: int(self.settings.get("default_volume", 80)),
-            on_volume_change=self._on_player_volume)
+            get_pause_at_chapter_end=lambda: bool(
+                self.settings.get("pause_at_chapter_end", False)),
+            on_volume_change=self._on_player_volume,
+            on_load_started=self._reveal_player)
         outer.Add(self.player, 0, wx.EXPAND | wx.ALL, 8)
+        # Hidden until a file is loaded - _reveal_player shows it as soon as
+        # loading begins (the media backend needs the panel realized before
+        # the load can complete, so we can't wait for EVT_MEDIA_LOADED).
+        self.player.Hide()
 
         tray_row = wx.BoxSizer(wx.HORIZONTAL)
         tray_row.AddStretchSpacer()
@@ -789,15 +853,31 @@ class MainFrame(wx.Frame):
         return (len(self.edit_chapters) if self.mode == "edit"
                 else len(self.items))
 
+    def _reveal_player(self):
+        """Ensure the player is visible whenever media loading is requested.
+
+        Must happen before the load runs - the Windows media backend needs a
+        visible, realized HWND to attach to, and EVT_MEDIA_LOADED never fires
+        on a hidden panel. The player starts hidden and is shown here on the
+        first load; if the user later hides it via the View menu, playing a
+        chapter shows it again so playback can attach.
+        """
+        if not feature_flags.is_enabled(self.settings, "audio_player"):
+            return
+        if self.player.IsShown():
+            return
+        self._player_revealed = True
+        self.player.Show(True)
+        self.mi_show_player.Check(True)
+        self.panel.Layout()
+
     def _update_command_state(self):
         building = self._is_building()
         edit = self.mode == "edit"
         has_items = bool(self.items)
         count = self._row_count()
         sel = self.list.GetFirstSelected() if count else -1
-        for ctrl in (self.btn_browse, self.btn_build,
-                     self.btn_cover, self.btn_cover_clear,
-                     self.task_choice):
+        for ctrl in (self.btn_build, self.btn_cover, self.btn_cover_clear):
             ctrl.Enable(not building)
         # List is always enabled so screen readers can find and navigate it
         self.list.Enable(not building)
@@ -805,7 +885,8 @@ class MainFrame(wx.Frame):
         # Tag fields are only tabbable when in build mode with items or edit mode with content
         for ctrl in (self.tag_title, self.tag_artist, self.tag_album,
                      self.tag_album_artist, self.tag_genre, self.tag_year,
-                     self.tag_comment):
+                     self.tag_comment, self.tag_narrator, self.tag_series,
+                     self.tag_series_idx):
             ctrl.Enable(not building and count > 0)
         self.btn_build.Enable(not building and not edit and has_items
                               and bool(self.output_path))
@@ -816,6 +897,9 @@ class MainFrame(wx.Frame):
         elif _ofmt == "flac":
             self.btn_build.SetLabel("Build FLAC &Master")
             self.btn_build.SetName("Build FLAC master")
+        elif _ofmt == "opus":
+            self.btn_build.SetLabel("Build Opus &Master")
+            self.btn_build.SetName("Build Opus master")
         else:
             self.btn_build.SetLabel("Build Master MP&3")
             self.btn_build.SetName("Build master MP3")
@@ -893,7 +977,7 @@ class MainFrame(wx.Frame):
         self.mi_undo.Enable(self._undo.can_undo())
         self.mi_redo.Enable(self._undo.can_redo())
         self._update_undo_menu()
-        # View menu — page navigation
+        # View menu - page navigation
         on_step2 = self._page_tags.IsShown()
         self.mi_go_step1.Enable(on_step2)
         self.mi_go_step2.Enable(not building and not on_step2 and has_items)
@@ -956,6 +1040,9 @@ class MainFrame(wx.Frame):
                 self.list.SetColumnWidth(4, wx.LIST_AUTOSIZE)
                 self.list.SetColumnWidth(4, max(80, min(self.list.GetColumnWidth(4), 260)))
         self._apply_column_visibility()
+        # Force UI refresh to ensure changes are visible
+        self.list.Refresh()
+        self.panel.Layout()
 
     # ------------------------------------------------------------------
     # Folder / output / cover
@@ -1043,6 +1130,8 @@ class MainFrame(wx.Frame):
             return ".m4b"
         if fmt == "flac":
             return ".flac"
+        if fmt == "opus":
+            return ".opus"
         return ".mp3"
 
     def _on_set_output(self, _evt) -> bool:
@@ -1083,6 +1172,9 @@ class MainFrame(wx.Frame):
         theme = self.settings.get("theme", "system")
         # Backwards compat: old boolean high_contrast setting
         if theme == "system" and self.settings.get("high_contrast", False):
+            theme = "high_contrast"
+        # Auto-follow Windows high-contrast mode when theme is "system".
+        if theme == "system" and _windows_high_contrast_active():
             theme = "high_contrast"
 
         _THEMES = {
@@ -1168,6 +1260,9 @@ class MainFrame(wx.Frame):
         self.tag_artist.SetValue(s.get("artist", ""))
         self.tag_album_artist.SetValue(s.get("album_artist", ""))
         self.tag_genre.SetValue(s.get("genre", ""))
+        self.tag_narrator.SetValue(s.get("narrator", ""))
+        self.tag_series.SetValue(s.get("series_title", ""))
+        self.tag_series_idx.SetValue(s.get("series_index", ""))
         self._update_estimate()
         # Feature 10: init column check states from settings
         vis = self.settings.get("list_columns", [True] * 5)
@@ -1206,6 +1301,9 @@ class MainFrame(wx.Frame):
         s["artist"] = self.tag_artist.GetValue().strip()
         s["album_artist"] = self.tag_album_artist.GetValue().strip()
         s["genre"] = self.tag_genre.GetValue().strip()
+        s["narrator"] = self.tag_narrator.GetValue().strip()
+        s["series_title"] = self.tag_series.GetValue().strip()
+        s["series_index"] = self.tag_series_idx.GetValue().strip()
         if not self.IsIconized():
             s["win_max"] = self.IsMaximized()
             if not self.IsMaximized():
@@ -1227,7 +1325,7 @@ class MainFrame(wx.Frame):
         return self.items[sel].title if 0 <= sel < len(self.items) else ""
 
     def _on_list_focused(self, evt):
-        """Arrow-key navigation focuses without always selecting — force select so
+        """Arrow-key navigation focuses without always selecting - force select so
         GetFirstSelected() is reliable and the play button stays enabled."""
         idx = evt.GetIndex()
         if 0 <= idx < self._row_count():
@@ -1243,7 +1341,7 @@ class MainFrame(wx.Frame):
                 a11y.announce(
                     f"Chapter {sel + 1}: {self._selected_title(sel)}")
             else:
-                # Column navigation mode — announce the tracked column value.
+                # Column navigation mode - announce the tracked column value.
                 self._announce_list_cell(sel)
         else:
             self.title_ctrl.ChangeValue("")
@@ -1278,7 +1376,9 @@ class MainFrame(wx.Frame):
     def _on_list_key(self, evt):
         key = evt.GetKeyCode()
         sel = self.list.GetFirstSelected()
-        if key == wx.WXK_DELETE and sel >= 0:
+        if key in (wx.WXK_RETURN, wx.WXK_NUMPAD_ENTER) and sel >= 0:
+            self._on_play_selected(None)
+        elif key == wx.WXK_DELETE and sel >= 0:
             self._remove_selected()
         elif key == wx.WXK_F2 and sel >= 0:
             self.title_ctrl.SetFocus()
@@ -1394,30 +1494,6 @@ class MainFrame(wx.Frame):
             self.edit_dirty = True
             self._refresh_list(select=new)
             self.player.set_chapters(self.edit_chapters)
-        else:
-            if not (0 <= new < len(self.items)):
-                return
-            self.items[sel], self.items[new] = self.items[new], self.items[sel]
-            self._refresh_list(select=new)
-
-    def _move(self, delta: int):
-        sel = self.list.GetFirstSelected()
-        if sel < 0:
-            return
-        new = sel + delta
-        if self.mode == "edit":
-            if not (0 <= new < len(self.edit_chapters)):
-                return
-            a, b = self.edit_chapters[sel], self.edit_chapters[new]
-            # Swap only the label metadata; time positions stay fixed.
-            a.title, b.title = b.title, a.title
-            a.url,   b.url   = b.url,   a.url
-            a.img,   b.img   = b.img,   a.img
-            self._audio_order[sel], self._audio_order[new] = (
-                self._audio_order[new], self._audio_order[sel])
-            self.edit_dirty = True
-            self._refresh_list(select=new)
-            self.player.set_chapters(self.edit_chapters)
             self._announce(
                 f"Swapped labels: now chapter {sel + 1} is '{b.title}', "
                 f"chapter {new + 1} is '{a.title}'.")
@@ -1487,7 +1563,7 @@ class MainFrame(wx.Frame):
             self._undo.push(_UndoAction(
                 'Merge Chapter ' + str(_sel + 1),
                 undo_fn=_undo_merge,
-                redo_fn=lambda: self._remove_no_record(_sel),
+                redo_fn=lambda: self
             ))
             self._update_undo_menu()
             return
@@ -1536,6 +1612,9 @@ class MainFrame(wx.Frame):
             year=self.tag_year.GetValue().strip(),
             comment=self.tag_comment.GetValue().strip(),
             cover_path=self.cover_ctrl.GetValue().strip(),
+            narrator=self.tag_narrator.GetValue().strip(),
+            series_title=self.tag_series.GetValue().strip(),
+            series_index=self.tag_series_idx.GetValue().strip(),
         )
 
     def _on_build(self, _evt):
@@ -1573,9 +1652,19 @@ class MainFrame(wx.Frame):
         tags = self._collect_tags()
         output = self.output_path
         write_pod2 = bool(self.settings.get("write_pod2", False))
+        write_rss = bool(self.settings.get("write_rss", False))
+        rss_media_url = self.settings.get("rss_media_url", "")
+        acx_check_after = bool(self.settings.get("acx_check_after_build", False))
+        trim_silence = bool(self.settings.get("trim_silence", False))
+        trim_silence_db = float(self.settings.get("trim_silence_db", -50.0))
+        trim_silence_min_ms = float(self.settings.get("trim_silence_min_ms", 100.0))
         bitrate = self.settings.get("bitrate", "192k")
         normalize = bool(self.settings.get("normalize", False))
         per_file_normalize = bool(self.settings.get("per_file_normalize", False))
+        # The two loudness options are mutually exclusive; per-chapter wins so we
+        # never normalize twice.
+        if per_file_normalize:
+            normalize = False
         normalize_lufs = float(self.settings.get("normalize_lufs", -16.0))
         fade_ms = int(self.settings.get("fade_ms", 0))
         gap_ms = self._gap_ms()
@@ -1594,35 +1683,64 @@ class MainFrame(wx.Frame):
         def progress(frac):
             wx.PostEvent(self, _ThreadEvent(EVT_PROGRESS, frac))
 
+        # Per-chapter peak announcements flood a screen reader on a long book,
+        # so only emit them when the user has opted into verbose announcements.
+        announce_levels = self.settings.get("announce_verbosity") == "verbose"
+
         def _on_chapter_level(idx: int, peak_db: float):
             wx.CallAfter(self._announce,
                          f"Chapter {idx + 1} peak level: {peak_db:.1f} dB.")
 
         def run():
+            import tempfile as _tmpmod
             try:
+                build_items = list(items)
+                _trim_dir = None
+                if trim_silence:
+                    _trim_dir = _tmpmod.mkdtemp(prefix="chapterforge_trim_")
+                    trimmed = []
+                    for it in build_items:
+                        trimmed.append(core.trim_silence_item(
+                            it, _trim_dir,
+                            noise_db=trim_silence_db,
+                            min_silence_ms=trim_silence_min_ms))
+                    build_items = trimmed
+
                 result = core.build_master(
-                    items, output, tags, chapters=chapters,
+                    build_items, output, tags, chapters=chapters,
                     bitrate=bitrate, normalize=normalize, gap_ms=gap_ms,
                     canceller=self.canceller, progress=progress,
                     per_file_normalize=per_file_normalize,
                     normalize_lufs=normalize_lufs,
                     fade_in_ms=fade_ms, fade_out_ms=fade_ms,
-                    on_chapter_level=_on_chapter_level)
-                try:
-                    core.write_chapter_report(output, result, tags, items)
-                except OSError:
-                    pass
+                    on_chapter_level=(_on_chapter_level if announce_levels else None))
+                # The chapter report (with audio stats) is written on the main
+                # thread in _on_evt_done so the figures match the final file.
                 if write_pod2:
                     try:
                         core.write_pod2_chapters(
                             output, result.chapters, result.total_ms)
                     except OSError:
                         pass
-                wx.PostEvent(self, _ThreadEvent(EVT_DONE, result))
+                if write_rss and rss_media_url:
+                    try:
+                        from . import rss as rss_mod
+                        rss_mod.write_rss(result, tags, rss_media_url,
+                                          narrator=tags.narrator,
+                                          series_title=tags.series_title,
+                                          series_index=tags.series_index)
+                    except Exception:
+                        pass
+                wx.PostEvent(self, _ThreadEvent(EVT_DONE,
+                                                (result, acx_check_after)))
             except core.BuildCancelled:
                 wx.PostEvent(self, _ThreadEvent(EVT_FAILED, None))
             except Exception as exc:  # surfaced to the user
                 wx.PostEvent(self, _ThreadEvent(EVT_FAILED, str(exc)))
+            finally:
+                if _trim_dir:
+                    import shutil as _shutil
+                    _shutil.rmtree(_trim_dir, ignore_errors=True)
 
         self.worker = threading.Thread(target=run, daemon=True)
         self.worker.start()
@@ -1671,7 +1789,11 @@ class MainFrame(wx.Frame):
         if isinstance(evt.payload, tuple) and evt.payload and evt.payload[0] == "batch":
             self._on_batch_done(evt.payload[1], evt.payload[2])
             return
-        result = evt.payload
+        # Unpack (result, run_acx_check) or plain result for backward compat.
+        if isinstance(evt.payload, tuple) and len(evt.payload) == 2 and isinstance(evt.payload[1], bool):
+            result, _run_acx = evt.payload
+        else:
+            result, _run_acx = evt.payload, False
         self.gauge.SetValue(100)
         mode = "re-encoded" if result.reencoded else "lossless copy"
         _rfmt = core.output_format(result.output_path)
@@ -1695,9 +1817,45 @@ class MainFrame(wx.Frame):
         self._push_recent(result.output_path)
         self._update_command_state()
         self.notifier.notify("ChapterForge - done", summary, "info", speak=False)
+        if self.settings.get("log_build_history", True):
+            import time as _time
+            log_entry = (f"[{_time.strftime('%Y-%m-%d %H:%M:%S')}] "
+                         f"{os.path.basename(result.output_path)} - "
+                         f"{len(result.chapters)} chapter(s), "
+                         f"{core.format_timestamp(result.total_ms)} ({mode})")
+            self._append_build_log(log_entry)
+        # Probe the finished file for audio statistics.
+        astats = core.probe_audio_stats(result.output_path)
+        stats_lines = []
+        if astats.get("file_size_bytes"):
+            stats_lines.append(f"File size  : {core.format_size(astats['file_size_bytes'])}")
+        if astats.get("bit_rate_kbps"):
+            stats_lines.append(f"Bit rate   : {astats['bit_rate_kbps']} kbps")
+        if astats.get("sample_rate"):
+            stats_lines.append(f"Sample rate: {astats['sample_rate']} Hz")
+        if astats.get("channels"):
+            ch = astats["channels"]
+            stats_lines.append(f"Channels   : {ch} ({'mono' if ch == 1 else 'stereo' if ch == 2 else str(ch)})")
+        stats_block = ("\n\nAudio stats:\n" + "\n".join(stats_lines)) if stats_lines else ""
+
+        # Update build log entry with file size.
+        if self.settings.get("log_build_history", True) and astats.get("file_size_bytes"):
+            pass  # already written above; stats are in the dialog only
+
+        # Write chapter report with audio stats.
+        try:
+            core.write_chapter_report(result.output_path, result,
+                                      self._collect_tags(), self.items,
+                                      audio_stats=astats)
+        except (OSError, Exception):
+            pass
+
         # Offer to preview the finished file in the in-app player.
+        if _run_acx:
+            wx.CallAfter(self._run_acx_check, result.output_path)
+
         if wx.MessageBox(
-                f"{summary}\n\nSaved {kind} to:\n{result.output_path}\n\n"
+                f"{summary}{stats_block}\n\nSaved {kind} to:\n{result.output_path}\n\n"
                 "Load it into the player now?",
                 "Master created", wx.YES_NO | wx.ICON_INFORMATION,
                 self) == wx.YES:
@@ -1884,6 +2042,215 @@ class MainFrame(wx.Frame):
             self._announce("Settings saved.")
         dlg.Destroy()
 
+    # ------------------------------------------------------------------
+    # ACX compliance, metadata lookup, build log
+    # ------------------------------------------------------------------
+
+    def _run_acx_check(self, path: str):
+        """Run ACX compliance measurement on *path* and show results."""
+        if not path or not os.path.isfile(path):
+            wx.MessageBox("No file to check. Build a master first.",
+                          "ACX Check", wx.OK | wx.ICON_INFORMATION, self)
+            return
+        wx.BeginBusyCursor()
+        try:
+            from . import acx as acx_mod
+            acx_result = acx_mod.measure_file(path)
+        except Exception as exc:
+            wx.EndBusyCursor()
+            wx.MessageBox(f"ACX check failed:\n{exc}", "ACX Check",
+                          wx.OK | wx.ICON_ERROR, self)
+            return
+        wx.EndBusyCursor()
+        dlg = AcxResultDialog(self, acx_result)
+        dlg.ShowModal()
+        fix = dlg.fix_and_rebuild
+        dlg.Destroy()
+        self.btn_build.SetFocus()
+        if fix:
+            self._acx_fix_and_rebuild()
+
+    def _acx_fix_and_rebuild(self):
+        """Enable -23 LUFS per-file normalization and rebuild, with guards."""
+        if self._is_building():
+            return
+        # We can only rebuild from source files (build mode), not from an
+        # already-finished master opened for chapter editing.
+        if self.mode == "edit" or not self.items or not self.output_path:
+            wx.MessageBox(
+                "To fix loudness, ChapterForge needs the original source files.\n\n"
+                "Open the folder of source audio (File > Open Folder), set the "
+                "output file, then run the ACX check again and choose "
+                "Fix and Rebuild.",
+                "Fix and Rebuild", wx.OK | wx.ICON_INFORMATION, self)
+            return
+        # ACX submissions must be MP3; per-file normalization only applies to
+        # the MP3 build path. Warn if the chosen output is something else.
+        if core.output_format(self.output_path) != "mp3":
+            if wx.MessageBox(
+                    "ACX requires MP3 files, and the automatic loudness fix only "
+                    "applies to MP3 output. Your current output is not MP3.\n\n"
+                    "Switch the output to MP3 and rebuild now?",
+                    "Fix and Rebuild", wx.YES_NO | wx.ICON_QUESTION,
+                    self) != wx.YES:
+                return
+            self.output_path = os.path.splitext(self.output_path)[0] + ".mp3"
+            self.settings["output_format"] = "mp3"
+            self._update_command_state()
+        self.settings["per_file_normalize"] = True
+        self.settings["normalize_lufs"] = -23.0
+        settings_mod.save(self.settings)
+        self._announce(
+            "Loudness normalization to -23 LUFS enabled. Rebuilding now.")
+        wx.CallAfter(self._on_build, None)
+
+    def _on_acx_check_menu(self, _evt):
+        """Run ACX check from the Tools menu."""
+        path = self.output_path or (self.edit_path if self.mode == "edit" else "")
+        if not path:
+            wx.MessageBox(
+                "Open or build a master file first.",
+                "ACX Check", wx.OK | wx.ICON_INFORMATION, self)
+            return
+        self._run_acx_check(path)
+
+    def _on_lookup_metadata(self, _evt):
+        """Open the metadata lookup dialog."""
+        dlg = MetadataLookupDialog(self,
+                                   title=self.tag_title.GetValue().strip(),
+                                   artist=self.tag_artist.GetValue().strip())
+        if dlg.ShowModal() == wx.ID_OK:
+            r = dlg.selected_result
+            if r:
+                if r.title:
+                    self.tag_title.SetValue(r.title)
+                    self.tag_album.SetValue(r.title)
+                if r.artist:
+                    self.tag_artist.SetValue(r.artist)
+                    self.tag_album_artist.SetValue(r.album_artist or r.artist)
+                if r.genre:
+                    self.tag_genre.SetValue(r.genre)
+                if r.year:
+                    self.tag_year.SetValue(r.year)
+                if r.narrator:
+                    self.tag_narrator.SetValue(r.narrator)
+                if r.series_title:
+                    self.tag_series.SetValue(r.series_title)
+                if r.series_index:
+                    self.tag_series_idx.SetValue(r.series_index)
+                self._announce("Metadata applied.")
+        dlg.Destroy()
+        self.tag_title.SetFocus()
+
+    def _on_merge_short_chapters(self, _evt):
+        """Collapse chapters shorter than a threshold into the previous chapter."""
+        if self._is_building():
+            return
+        if self.mode != "edit":
+            # In build mode each source file is exactly one chapter, so there is
+            # no chapter boundary to merge away. Offer the two ways to reduce
+            # short chapters that fit this model.
+            wx.MessageBox(
+                "You are building from a folder, where each file is one chapter, "
+                "so there are no chapter boundaries to merge yet.\n\n"
+                "To combine short chapters you can either:\n"
+                "1. Remove or re-order the short files now (select a row and "
+                "press Delete), or\n"
+                "2. Build the master, then open it with Open Existing Master and "
+                "run Merge Short Chapters on the finished file.",
+                "Merge Short Chapters", wx.OK | wx.ICON_INFORMATION, self)
+            return
+        if not self.edit_chapters:
+            wx.MessageBox("No chapters to merge.", "Merge Short Chapters",
+                          wx.OK | wx.ICON_INFORMATION, self)
+            return
+        dlg = wx.TextEntryDialog(
+            self,
+            "Merge chapters shorter than (seconds):",
+            "Merge Short Chapters", "30")
+        if dlg.ShowModal() != wx.ID_OK:
+            dlg.Destroy()
+            return
+        try:
+            min_sec = float(dlg.GetValue().strip())
+        except ValueError:
+            dlg.Destroy()
+            wx.MessageBox("Enter a number of seconds.", "Invalid input",
+                          wx.OK | wx.ICON_WARNING, self)
+            return
+        dlg.Destroy()
+        if min_sec <= 0:
+            return
+        min_ms = int(min_sec * 1000)
+        old_chapters = list(self.edit_chapters)
+        merged: list = [old_chapters[0]]
+        for ch in old_chapters[1:]:
+            dur = ch.end_ms - ch.start_ms
+            if dur < min_ms:
+                prev = merged[-1]
+                merged[-1] = core.Chapter(
+                    index=prev.index, title=prev.title,
+                    start_ms=prev.start_ms, end_ms=ch.end_ms,
+                    url=prev.url, img=prev.img)
+            else:
+                merged.append(ch)
+        n_merged = len(old_chapters) - len(merged)
+        if n_merged == 0:
+            wx.MessageBox(
+                f"No chapters shorter than {min_sec:.0f}s found.",
+                "Merge Short Chapters", wx.OK | wx.ICON_INFORMATION, self)
+            return
+        new_chapters = [
+            core.Chapter(index=i, title=ch.title, start_ms=ch.start_ms,
+                         end_ms=ch.end_ms, url=ch.url, img=ch.img)
+            for i, ch in enumerate(merged)
+        ]
+        self.edit_chapters = new_chapters
+        self.edit_dirty = True
+        self._refresh_list(select=0)
+        self.player.set_chapters(self.edit_chapters)
+        self._undo.push(_UndoAction(
+            "Merge Short Chapters",
+            undo_fn=lambda oc=old_chapters: (
+                setattr(self, 'edit_chapters', list(oc)) or
+                setattr(self, 'edit_dirty', True) or
+                self._refresh_list(select=0) or
+                self.player.set_chapters(self.edit_chapters)),
+            redo_fn=lambda nc=new_chapters: (
+                setattr(self, 'edit_chapters', list(nc)) or
+                setattr(self, 'edit_dirty', True) or
+                self._refresh_list(select=0) or
+                self.player.set_chapters(self.edit_chapters))))
+        self._update_undo_menu()
+        self._announce(
+            f"Merged {n_merged} short chapter(s). "
+            f"{len(new_chapters)} chapter(s) remain. Use Save Changes to keep them.")
+
+    def _on_view_build_log(self, _evt):
+        """Show the build log file if one exists."""
+        log_dir = settings_mod.config_dir()
+        log_path = os.path.join(log_dir, "build_log.txt")
+        if not os.path.isfile(log_path):
+            wx.MessageBox(
+                "No build log found yet. Build a master to create one.",
+                "Build Log", wx.OK | wx.ICON_INFORMATION, self)
+            return
+        dlg = BuildLogDialog(self, log_path)
+        dlg.ShowModal()
+        dlg.Destroy()
+        self.SetFocus()
+
+    def _append_build_log(self, entry: str):
+        """Append *entry* to the rolling build log file (best-effort)."""
+        log_dir = settings_mod.config_dir()
+        log_path = os.path.join(log_dir, "build_log.txt")
+        try:
+            os.makedirs(log_dir, exist_ok=True)
+            with open(log_path, "a", encoding="utf-8") as fh:
+                fh.write(entry + "\n")
+        except OSError:
+            pass
+
     def _apply_theme(self, theme: str):
         self.settings["theme"] = theme
         self.settings["high_contrast"] = (theme == "high_contrast")
@@ -1928,18 +2295,6 @@ class MainFrame(wx.Frame):
         self.mi_show_player.Check(visible)
         self.panel.Layout()
         self._announce("Player " + ("shown." if visible else "hidden."))
-
-    def _on_actions_choice(self, _evt):
-        idx = self.actions_choice.GetSelection()
-        wx.CallAfter(self.actions_choice.SetSelection, 0)
-        if idx == 1:
-            self._open_command_palette()
-        elif idx == 2:
-            self._on_check_updates(None)
-        elif idx == 3:
-            self._on_settings(None)
-        elif idx == 4:
-            self._on_save_diagnostics(None)
 
     def _on_player_volume(self, vol: int):
         self.settings["default_volume"] = int(vol)
@@ -2038,10 +2393,21 @@ class MainFrame(wx.Frame):
         total_ms, est_bytes = core.estimate_output(
             self.items, bitrate=bitrate, gap_ms=self._gap_ms())
         _efmt = self.settings.get("output_format", "mp3")
-        fmt = "M4B" if _efmt == "m4b" else "FLAC" if _efmt == "flac" else "MP3"
+        if _efmt == "m4b":
+            fmt = "M4B"
+        elif _efmt == "flac":
+            fmt = "FLAC"
+        elif _efmt == "opus":
+            fmt = "Opus"
+        else:
+            fmt = "MP3"
+        if _efmt == "flac":
+            size_note = "lossless (actual size varies)"
+        else:
+            size_note = f"about {core.format_size(est_bytes)}"
         self.estimate_text.SetLabel(
             f"Estimated {fmt}: {core.format_timestamp(total_ms)}, "
-            f"about {core.format_size(est_bytes)} "
+            f"{size_note} "
             f"({len(self.items)} chapter(s)).")
 
     # ------------------------------------------------------------------
@@ -2109,7 +2475,8 @@ class MainFrame(wx.Frame):
         default_dir = self.settings.get("last_input_dir", "") or self.folder
         dlg = wx.FileDialog(
             self, "Import chapter list", defaultDir=default_dir,
-            wildcard=("Chapter lists (*.txt;*.cue;*.json)|*.txt;*.cue;*.json|"
+            wildcard=("Chapter lists (*.txt;*.cue;*.json;*.csv)"
+                      "|*.txt;*.cue;*.json;*.csv|"
                       "All files (*.*)|*.*"),
             style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST)
         if dlg.ShowModal() != wx.ID_OK:
@@ -2117,6 +2484,11 @@ class MainFrame(wx.Frame):
             return
         path = dlg.GetPath()
         dlg.Destroy()
+
+        # CSV batch metadata import (titles only, matched by row order).
+        if path.lower().endswith(".csv"):
+            self._on_import_csv(path)
+            return
 
         if self.mode == "edit":
             # Edit mode: replace all chapter markers from the file
@@ -2155,15 +2527,169 @@ class MainFrame(wx.Frame):
             new_titles = [it.title for it in self.items]
             self._undo.push(_UndoAction(
                 "Import Chapter Titles",
-                undo_fn=lambda: [setattr(self.items[j], 'title', old_titles[j])
-                                 or self.list.SetItem(j, 1, old_titles[j])
-                                 for j in range(len(old_titles))],
-                redo_fn=lambda: [setattr(self.items[j], 'title', new_titles[j])
-                                 or self.list.SetItem(j, 1, new_titles[j])
-                                 for j in range(n)]))
+                undo_fn=lambda: [
+                    setattr(self.items[j], 'title', old_titles[j]) or
+                    setattr(self.items[j], 'url', old_urls[j]) or
+                    self.list.SetItem(j, 1, old_titles[j])
+                    for j in range(len(old_titles))],
+                redo_fn=lambda: [
+                    setattr(self.items[j], 'title', new_titles[j]) or
+                    setattr(self.items[j], 'url', new_urls[j]) or
+                    self.list.SetItem(j, 1, new_titles[j])
+                    for j in range(n)]))
             self._update_undo_menu()
             self._announce(
                 f"Applied {n} chapter title(s) from {os.path.basename(path)}.")
+
+    def _on_import_csv(self, path: str):
+        """Import chapter titles (and optional URLs) from a CSV file.
+
+        Columns are detected from an optional header row. Recognised names:
+        number/chapter/# , title/name , url/link , filename/file. Rows are
+        matched to chapters by filename (build mode) when a filename column is
+        present, otherwise by chapter number, otherwise by row order.
+        """
+        import csv as _csv_mod
+        try:
+            with open(path, encoding="utf-8-sig", newline="") as fh:
+                reader = _csv_mod.reader(fh)
+                rows = list(reader)
+        except (OSError, UnicodeDecodeError) as exc:
+            wx.MessageBox(f"Could not read CSV:\n{exc}", "Import CSV",
+                          wx.OK | wx.ICON_ERROR, self)
+            return
+        rows = [r for r in rows if any(c.strip() for c in r)]
+        if not rows:
+            wx.MessageBox("The CSV file is empty.", "Import CSV",
+                          wx.OK | wx.ICON_INFORMATION, self)
+            return
+
+        # Column mapping. Default: col 0 = number, col 1 = title.
+        num_col, title_col, url_col, file_col = 0, 1, -1, -1
+        data_rows = rows
+        try:
+            int(rows[0][0])
+        except (ValueError, IndexError):
+            # First row is a header - map columns by name.
+            header = [c.strip().lower() for c in rows[0]]
+            data_rows = rows[1:]
+            num_col = -1
+            for hi, h in enumerate(header):
+                if h in ("title", "chapter title", "name"):
+                    title_col = hi
+                elif h in ("url", "link", "href"):
+                    url_col = hi
+                elif h in ("filename", "file", "file name"):
+                    file_col = hi
+                elif h in ("number", "chapter", "#", "no", "num", "index"):
+                    num_col = hi
+
+        # Parse rows into (number, title, url, filename) records.
+        records = []
+        for row in data_rows:
+            def _cell(i):
+                return row[i].strip() if 0 <= i < len(row) else ""
+            num = None
+            if num_col >= 0:
+                try:
+                    num = int(_cell(num_col))
+                except ValueError:
+                    num = None
+            records.append((num, _cell(title_col), _cell(url_col), _cell(file_col)))
+
+        # Decide how many chapters we are filling and align titles/urls to them.
+        target_n = (len(self.edit_chapters) if self.mode == "edit"
+                    else len(self.items))
+        titles = [""] * target_n
+        urls = [""] * target_n
+        have_files = any(rec[3] for rec in records)
+        have_nums = any(rec[0] is not None for rec in records)
+
+        def _norm(name):
+            return os.path.splitext(os.path.basename(name))[0].strip().lower()
+
+        if have_files and self.mode != "edit":
+            # Match by source filename (most robust against re-ordering).
+            by_name = {_norm(it.path): i for i, it in enumerate(self.items)}
+            for num, title, url, fname in records:
+                idx = by_name.get(_norm(fname))
+                if idx is not None:
+                    titles[idx] = title
+                    urls[idx] = url
+        elif have_nums:
+            # Match by 1-based chapter number.
+            for num, title, url, _f in records:
+                if num is not None and 1 <= num <= target_n:
+                    titles[num - 1] = title
+                    urls[num - 1] = url
+        else:
+            # Fall back to row order.
+            for i, (num, title, url, _f) in enumerate(records):
+                if i < target_n:
+                    titles[i] = title
+                    urls[i] = url
+
+        applied = sum(1 for i in range(target_n) if titles[i] or urls[i])
+        if applied == 0:
+            wx.MessageBox(
+                "No rows in the CSV matched the current chapters.\n\n"
+                "Check that the file has a title column, and a filename or "
+                "chapter-number column to match on.",
+                "Import CSV", wx.OK | wx.ICON_INFORMATION, self)
+            return
+
+        if self.mode == "edit":
+            n = len(self.edit_chapters)
+            old_chapters = list(self.edit_chapters)
+            for i in range(n):
+                if titles[i]:
+                    self.edit_chapters[i].title = titles[i]
+                if urls[i]:
+                    self.edit_chapters[i].url = urls[i]
+            self.edit_dirty = True
+            self._refresh_list(select=0)
+            self.player.set_chapters(self.edit_chapters)
+            self._undo.push(_UndoAction(
+                "Import CSV Titles",
+                undo_fn=lambda oc=old_chapters: (
+                    setattr(self, 'edit_chapters', list(oc)) or
+                    setattr(self, 'edit_dirty', True) or
+                    self._refresh_list(select=0) or
+                    self.player.set_chapters(self.edit_chapters)),
+                redo_fn=lambda nc=list(self.edit_chapters): (
+                    setattr(self, 'edit_chapters', list(nc)) or
+                    setattr(self, 'edit_dirty', True) or
+                    self._refresh_list(select=0) or
+                    self.player.set_chapters(self.edit_chapters))))
+            self._update_undo_menu()
+        else:
+            n = len(self.items)
+            old_titles = [it.title for it in self.items]
+            old_urls = [it.url for it in self.items]
+            for i in range(n):
+                if titles[i]:
+                    self.items[i].title = titles[i]
+                    self.items[i].edited = True
+                if urls[i]:
+                    self.items[i].url = urls[i]
+            self._refresh_list(select=0)
+            new_titles = [it.title for it in self.items]
+            new_urls = [it.url for it in self.items]
+            self._undo.push(_UndoAction(
+                "Import CSV Titles",
+                undo_fn=lambda: [
+                    setattr(self.items[j], 'title', old_titles[j]) or
+                    setattr(self.items[j], 'url', old_urls[j]) or
+                    self.list.SetItem(j, 1, old_titles[j])
+                    for j in range(len(old_titles))],
+                redo_fn=lambda: [
+                    setattr(self.items[j], 'title', new_titles[j]) or
+                    setattr(self.items[j], 'url', new_urls[j]) or
+                    self.list.SetItem(j, 1, new_titles[j])
+                    for j in range(n)]))
+            self._update_undo_menu()
+        self._announce(
+            f"Applied {applied} title(s) from {os.path.basename(path)}.")
 
     # ------------------------------------------------------------------
     # Auphonic integration
@@ -2381,9 +2907,6 @@ class MainFrame(wx.Frame):
     def _enter_edit_mode(self, path, tags, chapters, total_ms):
         self.player.release(recreate=True)
         self.mode = "edit"
-        self.task_choice.SetSelection(1)
-        self._update_source_box()
-        self._show_build_sections(False)
         # Always land on the chapter list page when opening a file.
         if self._page_tags.IsShown():
             self._page_tags.Hide()
@@ -2429,9 +2952,6 @@ class MainFrame(wx.Frame):
         col4 = wx.ListItem()
         col4.SetText("Source file")
         self.list.SetColumn(4, col4)
-        self.task_choice.SetSelection(0)
-        self._update_source_box()
-        self._show_build_sections(True)
         self._update_command_state()
 
     def _apply_tags_to_ui(self, tags: core.Tags):
@@ -3050,6 +3570,84 @@ class MainFrame(wx.Frame):
         dlg.ShowModal()
         dlg.Destroy()
 
+    def _on_download_ffmpeg(self, _evt):
+        """Download FFmpeg from the Help menu."""
+        try:
+            core._find_tool("ffmpeg")
+            core._find_tool("ffprobe")
+            wx.MessageBox(
+                "FFmpeg is already installed and working. No download needed.",
+                "FFmpeg Found", wx.OK | wx.ICON_INFORMATION, self)
+            return
+        except core.FFmpegNotFoundError:
+            pass
+        result = wx.MessageBox(
+            "FFmpeg was not found on this system.\n\n"
+            "ChapterForge will download FFmpeg now. "
+            "The download is free and takes about 1-2 minutes.",
+            "Download FFmpeg",
+            wx.YES_NO | wx.ICON_QUESTION, self)
+        if result != wx.YES:
+            return
+        dlg = FFmpegSetupDialog(self)
+        import threading as _threading
+        def work():
+            try:
+                dlg.update_status("Downloading FFmpeg from gyan.dev - please wait...")
+                import importlib.util
+                spec = importlib.util.spec_from_file_location(
+                    "get_ffmpeg",
+                    os.path.join(os.path.dirname(__file__), "..", "tools", "get_ffmpeg.py"))
+                get_ffmpeg = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(get_ffmpeg)
+                if get_ffmpeg.download_ffmpeg():
+                    dlg.download_complete(True,
+                        "FFmpeg downloaded successfully. "
+                        "Restart ChapterForge to apply.")
+                else:
+                    dlg.download_complete(False,
+                        "Download failed. Visit ffmpeg.org to install manually.")
+            except Exception as exc:
+                dlg.download_complete(False, f"Download error: {exc}")
+        _threading.Thread(target=work, daemon=True).start()
+        dlg.ShowModal()
+        dlg.Destroy()
+        self.SetFocus()
+
+    def _on_feature_flags(self, _evt):
+        """Show or hide optional features from the Help menu."""
+        dlg = feature_flags.FeatureFlagsDialog(self, self.settings)
+        if dlg.ShowModal() == wx.ID_OK:
+            overrides = dlg.get_overrides()
+            if overrides != self.settings.get("feature_flags", {}):
+                self.settings["feature_flags"] = overrides
+                settings_mod.save(self.settings)
+                self._announce(
+                    "Feature flags updated. Restart ChapterForge for the "
+                    "change to take effect.")
+        dlg.Destroy()
+        self.SetFocus()
+
+    def _on_reset_feature_flags(self, _evt):
+        """Re-enable every optional feature from the Help menu."""
+        if not self.settings.get("feature_flags", {}):
+            wx.MessageBox(
+                "Every optional feature is already enabled.",
+                "Reset Feature Flags", wx.OK | wx.ICON_INFORMATION, self)
+            return
+        result = wx.MessageBox(
+            "Re-enable every optional feature?\n\n"
+            "Restart ChapterForge for the change to take effect.",
+            "Reset Feature Flags to Defaults",
+            wx.YES_NO | wx.ICON_QUESTION, self)
+        if result != wx.YES:
+            return
+        feature_flags.reset_to_defaults(self.settings)
+        settings_mod.save(self.settings)
+        self._announce(
+            "Feature flags reset to defaults. Restart ChapterForge for the "
+            "change to take effect.")
+
     def _on_check_updates(self, _evt):
         from . import updates
         self.mi_update.Enable(False)
@@ -3065,7 +3663,7 @@ class MainFrame(wx.Frame):
         threading.Thread(target=work, daemon=True).start()
 
     def _check_updates_on_startup(self):
-        """Silent background update check at launch — only notifies if an update is found."""
+        """Silent background update check at launch - only notifies if an update is found."""
         from . import updates
 
         def work():
@@ -3203,85 +3801,6 @@ class MainFrame(wx.Frame):
         dlg.ShowModal()
         dlg.Destroy()
 
-    def _on_browse_or_open(self, evt) -> None:
-        """Browse button: opens a folder dialog in build mode, file dialog in edit mode."""
-        if self.mode == "edit":
-            self._on_open_master(evt)
-        else:
-            self._on_open(evt)
-
-    def _on_task_choice(self, _evt) -> None:
-        """Task combo changed: switch mode (user will then use Browse to open a file/folder)."""
-        if self._is_building():
-            self.task_choice.SetSelection(0 if self.mode == "build" else 1)
-            return
-        sel = self.task_choice.GetSelection()
-        if sel == 1:  # Edit existing file
-            self.mode = "edit"
-            self._show_build_sections(False)
-            self._update_source_box()
-            self._update_command_state()
-            self._announce("Switched to edit mode. Click Browse to open a chaptered file.")
-        elif sel == 2:  # Split one long recording
-            if self.mode == "edit" and not self._confirm_discard_edits():
-                self.task_choice.SetSelection(1)
-                return
-            # Split recording uses edit mode infrastructure:
-            # open the long file, use Split Here to mark boundaries,
-            # then File -> Save as Individual Chapter Files to split.
-            self.mode = "edit"
-            self._show_build_sections(False)
-            self.btn_browse.SetLabel("&Open Long Recording…")
-            self.btn_browse.SetName(
-                "Open a single long audio file to split into chapters")
-            self.btn_browse.SetToolTip(
-                "Open a long MP3, FLAC, or other audio file.\n"
-                "Use the player and Split Here to mark chapter boundaries,\n"
-                "then File - Save as Individual Chapter Files to save each chapter.")
-            self.src_label.SetLabel("Long recording to split:")
-            self.src_static_box.SetLabel("Source - Split Recording")
-            self.folder_ctrl.SetHint("No recording open yet")
-            self._update_command_state()
-            self._announce(
-                "Split Recording mode. Click 'Open Long Recording' to open a file. "
-                "Play it, use Split Here to mark chapter boundaries, "
-                "then use File - Save as Individual Chapter Files.")
-        else:  # Build new master (sel == 0)
-            if self.mode == "edit":
-                if not self._confirm_discard_edits():
-                    self.task_choice.SetSelection(1)
-                    return
-                self.player.release(recreate=True)
-                self._enter_build_mode()
-                self.folder_ctrl.ChangeValue(self.folder or "")
-                self._refresh_list()
-                self._announce("Switched to build mode. Open a folder of MP3 files to begin.")
-
-    def _show_build_sections(self, show: bool) -> None:
-        """Show or hide the Options (page 1) and Output/estimate (page 2)."""
-        self._page_ch.GetSizer().Show(self._opt_sizer, show, recursive=True)
-        self._page_tags.GetSizer().Show(self._out_sizer, show, recursive=True)
-        self._page_tags.GetSizer().Show(self.estimate_text, show)
-        if self._page_ch.IsShown():
-            self._page_ch.Layout()
-        if self._page_tags.IsShown():
-            self._page_tags.Layout()
-
-    def _update_source_box(self) -> None:
-        """Update labels and button text in the Source box to match the current mode."""
-        edit = self.mode == "edit"
-        self.src_static_box.SetLabel("Current file" if edit else "Source")
-        self.src_label.SetLabel("Open file:" if edit else "Folder of MP3 files:")
-        self.btn_browse.SetLabel("&Open File…" if edit else "&Open Folder…")
-        self.btn_browse.SetName(
-            "Open a chaptered MP3 or M4B file to edit" if edit
-            else "Open a folder of MP3 files to build into a chaptered audiobook")
-        self.btn_browse.SetToolTip(
-            "Choose a chaptered MP3 or M4B file to open for editing." if edit
-            else "Open a folder of MP3 files. Each file becomes one chapter.")
-        self.folder_ctrl.SetHint(
-            "No file open yet" if edit else "No folder chosen yet")
-
     def _open_command_palette(self, _evt=None):
         CommandPaletteDialog(self).show()
 
@@ -3389,33 +3908,12 @@ class AboutDialog(wx.Dialog):
             "https://chapterforge.app"))
         outer.Add(website_btn, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 12)
 
-        btns = self.CreateButtonSizer(wx.OK)
+        btns = self.CreateButtonSizer(wx.OK | wx.CANCEL)
         outer.Add(btns, 0, wx.EXPAND | wx.ALL, 12)
-
         self.SetSizerAndFit(outer)
-        ok = self.FindWindow(wx.ID_OK)
-        if ok:
-            ok.SetFocus()
+        self.SetSize((540, 440))
         self.CentreOnParent()
-
-
-BUILT_IN_PRESETS = {
-    "Built-in: Podcast MP3": {
-        "output_format": "mp3", "bitrate": "192k", "normalize": False,
-        "gap_seconds": 0.5, "write_pod2": True, "per_file_normalize": False,
-        "normalize_lufs": -16.0,
-    },
-    "Built-in: Audiobook M4B": {
-        "output_format": "m4b", "bitrate": "192k", "normalize": True,
-        "gap_seconds": 0.0, "write_pod2": False, "per_file_normalize": True,
-        "normalize_lufs": -18.0,
-    },
-    "Built-in: FLAC Archive": {
-        "output_format": "flac", "bitrate": "192k", "normalize": True,
-        "gap_seconds": 0.0, "write_pod2": False, "per_file_normalize": False,
-        "normalize_lufs": -16.0,
-    },
-}
+        self._title_ctrl.SetFocus()
 
 
 class _NamedAccessible(wx.Accessible):
@@ -3522,6 +4020,14 @@ class SettingsDialog(wx.Dialog):
             "Starting volume when a file is loaded. Can also be adjusted in the player.",
             use_accessible=True)
 
+        self.pause_at_chapter_end = gcheck(
+            "&Pause at the end of each chapter",
+            "Pause at the end of each chapter",
+            "When playing, stop at each chapter boundary instead of continuing\n"
+            "into the next chapter. Press Play again to continue.")
+        self.pause_at_chapter_end.SetValue(
+            bool(settings.get("pause_at_chapter_end", False)))
+
         self.verbosity = grow(
             "Announcement &detail:",
             lambda: wx.Choice(gp, choices=["Quiet", "Normal", "Verbose"]),
@@ -3603,15 +4109,17 @@ class SettingsDialog(wx.Dialog):
         self.fmt = brow(
             "Default output &format:",
             lambda: wx.Choice(bp, choices=["MP3 (.mp3)", "M4B audiobook (.m4b)",
-                                            "FLAC lossless (.flac)"]),
+                                            "FLAC lossless (.flac)",
+                                            "Opus (.opus)"]),
             "Default output format",
             "MP3 works everywhere. M4B is the Apple audiobook format, supported by most "
-            "podcast and audiobook apps. FLAC is a lossless format with chapter markers "
-            "stored as Vorbis comments.")
+            "podcast and audiobook apps. FLAC is lossless with Vorbis comment chapters. "
+            "Opus produces smaller files than MP3 at equivalent quality.")
         _fmt_stored = settings.get("output_format", "mp3")
         self.fmt.SetSelection(
             1 if _fmt_stored == "m4b" else
-            2 if _fmt_stored == "flac" else 0)
+            2 if _fmt_stored == "flac" else
+            3 if _fmt_stored == "opus" else 0)
 
         self.title_src = brow(
             "Chapter titles fro&m:",
@@ -3631,10 +4139,13 @@ class SettingsDialog(wx.Dialog):
         self.bitrate.SetStringSelection(str(settings.get("bitrate", "192k")))
 
         self.normalize = bcheck(
-            "&Normalize loudness",
-            "Normalize loudness",
-            "Adjust all chapters to a consistent loudness level.\n"
-            "Useful when source files were recorded at different volumes.")
+            "&Normalize loudness across the whole book (one pass)",
+            "Normalize loudness across the whole book in one pass",
+            "Loudness option 1 of 2. Applies a single loudness pass to the "
+            "finished master at -16 LUFS.\n"
+            "Simple and fast, but does not even out chapters that were recorded "
+            "at very different volumes. For that, use the per-chapter option "
+            "below instead.")
         self.normalize.SetValue(bool(settings.get("normalize", False)))
 
         self.gap = brow(
@@ -3661,20 +4172,23 @@ class SettingsDialog(wx.Dialog):
             "Required for chapter art and links in Podcasting 2.0 apps.")
         self.write_pod2.SetValue(bool(settings.get("write_pod2", False)))
 
-        # Feature 8: per-file LUFS normalization
+        # Per-file LUFS normalization (the more thorough of the two options).
         self.per_file_norm = bcheck(
-            "Normalize each chapter &individually (per-file LUFS)",
-            "Normalize each chapter individually to a consistent loudness target",
-            "Applies loudnorm to each source file before concatenating.\n"
-            "More consistent than global normalize when chapters have very different levels.")
+            "Normalize each chapter &individually to a target (MP3, recommended for uneven recordings)",
+            "Normalize each chapter individually to a loudness target",
+            "Loudness option 2 of 2. Normalizes every source file to the target "
+            "below before joining them (MP3 output).\n"
+            "Use this instead of the whole-book option when chapters were "
+            "recorded at very different volumes. If both are on, this one wins.")
         self.per_file_norm.SetValue(bool(settings.get("per_file_normalize", False)))
 
         self.lufs_target = brow(
-            "Target loudness (&LUFS):",
+            "Per-chapter target loudness (&LUFS):",
             lambda: wx.SpinCtrlDouble(bp, min=-32.0, max=-6.0, inc=0.5,
                                       initial=float(settings.get("normalize_lufs", -16.0))),
-            "Target loudness in LUFS for per-file normalization",
-            "Industry standard for podcasts is -16 LUFS. Audiobooks often use -18 LUFS.",
+            "Target loudness in LUFS for per-chapter normalization",
+            "Applies to the per-chapter option above. Podcasts: -16 LUFS. "
+            "Audiobooks: -18 LUFS. ACX submissions: -23 LUFS.",
             use_accessible=True)
         self.lufs_target.SetDigits(1)
 
@@ -3688,6 +4202,44 @@ class SettingsDialog(wx.Dialog):
             "Forces re-encoding of the faded portions.",
             use_accessible=True)
         self.fade_dur.SetDigits(2)
+
+        self.trim_silence = bcheck(
+            "Trim leading/trailing silence from each &track",
+            "Trim leading and trailing silence from each source track before building",
+            "Automatically strips room noise from the start and end of each file.\n"
+            "Uses FFmpeg's silencedetect filter; configurable below.")
+        self.trim_silence.SetValue(bool(settings.get("trim_silence", False)))
+
+        self.trim_silence_db = brow(
+            "Silence trim threshold (d&B):",
+            lambda: wx.SpinCtrlDouble(bp, min=-90.0, max=0.0, inc=1.0,
+                                      initial=float(settings.get("trim_silence_db", -50.0))),
+            "Silence trim threshold in dB - audio quieter than this is considered silence",
+            "Audio quieter than this level is considered silence.\n"
+            "-50 dB works well for most studio recordings.",
+            use_accessible=True)
+        self.trim_silence_db.SetDigits(0)
+
+        self.write_rss = bcheck(
+            "Write RSS feed sidecar after each build",
+            "Write a podcast RSS 2.0 feed file alongside each built master",
+            "Generates a .rss file alongside the audio for self-hosted podcasters.\n"
+            "Set your media hosting URL in the field below.")
+        self.write_rss.SetValue(bool(settings.get("write_rss", False)))
+
+        self.rss_media_url = brow(
+            "Media hosting &URL (for RSS):",
+            lambda: wx.TextCtrl(bp, value=settings.get("rss_media_url", "")),
+            "Base URL where your audio files are hosted publicly",
+            "The public URL where the built audio file can be downloaded.\n"
+            "Used in the RSS enclosure tag. Example: https://media.example.com/podcast/")
+
+        self.acx_check = bcheck(
+            "Check &ACX compliance after each build",
+            "Run ACX compliance check automatically after each successful build",
+            "Measures integrated loudness, true peak, and noise floor.\n"
+            "Reports pass/fail against ACX requirements immediately after building.")
+        self.acx_check.SetValue(bool(settings.get("acx_check_after_build", False)))
 
         bp_sizer = wx.BoxSizer(wx.VERTICAL)
         bp_sizer.Add(bg, 1, wx.EXPAND | wx.ALL, 14)
@@ -3810,7 +4362,10 @@ class SettingsDialog(wx.Dialog):
         if not values:
             return
         fmt = values.get("output_format", "mp3")
-        self.fmt.SetSelection(1 if fmt == "m4b" else 2 if fmt == "flac" else 0)
+        self.fmt.SetSelection(
+            1 if fmt == "m4b" else
+            2 if fmt == "flac" else
+            3 if fmt == "opus" else 0)
         br = str(values.get("bitrate", "192k"))
         self.bitrate.SetStringSelection(br)
         self.normalize.SetValue(bool(values.get("normalize", False)))
@@ -3831,7 +4386,8 @@ class SettingsDialog(wx.Dialog):
                           "Invalid name", wx.OK | wx.ICON_WARNING, self)
             return
         fmt = ("m4b" if self.fmt.GetSelection() == 1
-               else "flac" if self.fmt.GetSelection() == 2 else "mp3")
+               else "flac" if self.fmt.GetSelection() == 2
+               else "opus" if self.fmt.GetSelection() == 3 else "mp3")
         preset = {
             "output_format": fmt,
             "bitrate": self.bitrate.GetStringSelection() or "192k",
@@ -3906,7 +4462,8 @@ class SettingsDialog(wx.Dialog):
         d = {
             "output_format": (
                 "m4b" if self.fmt.GetSelection() == 1 else
-                "flac" if self.fmt.GetSelection() == 2 else "mp3"),
+                "flac" if self.fmt.GetSelection() == 2 else
+                "opus" if self.fmt.GetSelection() == 3 else "mp3"),
             "title_source": (core.TITLE_SOURCE_EMBEDDED
                              if self.title_src.GetSelection() == 1
                              else core.TITLE_SOURCE_FILENAME),
@@ -3916,6 +4473,7 @@ class SettingsDialog(wx.Dialog):
             "write_pod2": self.write_pod2.GetValue(),
             "skip_seconds": int(self.skip.GetValue()),
             "default_volume": int(self.volume.GetValue()),
+            "pause_at_chapter_end": self.pause_at_chapter_end.GetValue(),
             "announce_verbosity": ["quiet", "normal", "verbose"][
                 self.verbosity.GetSelection()],
             "silence_noise_db": float(self.noise_db.GetValue()),
@@ -3933,6 +4491,14 @@ class SettingsDialog(wx.Dialog):
             "normalize_lufs": float(self.lufs_target.GetValue()),
             # Fades
             "fade_ms": int(round(float(self.fade_dur.GetValue()) * 1000)),
+            # Silence trimming
+            "trim_silence": self.trim_silence.GetValue(),
+            "trim_silence_db": float(self.trim_silence_db.GetValue()),
+            # RSS
+            "write_rss": self.write_rss.GetValue(),
+            "rss_media_url": self.rss_media_url.GetValue().strip(),
+            # ACX
+            "acx_check_after_build": self.acx_check.GetValue(),
             # Feature 13
             "key_overrides": {row: override
                               for row, override in self._key_overrides.items()},
@@ -3960,10 +4526,8 @@ class _KeyCaptureDialog(wx.Dialog):
         self._status.SetName("Captured key status")
         outer.Add(self._status, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 14)
         self.SetSizer(outer)
-        self.Fit()
-        self.CentreOnParent()
-        self.Bind(wx.EVT_KEY_DOWN, self._on_key)
-        self.SetFocus()
+        self.SetMinSize((400, 150))
+        self.CentreOnScreen()
 
     def _on_key(self, evt):
         key = evt.GetKeyCode()
@@ -4114,6 +4678,212 @@ class BatchTitleDialog(wx.Dialog):
         return [self._transform(t, i + 1) for i, t in enumerate(self._titles)]
 
 
+class AcxResultDialog(wx.Dialog):
+    """Show ACX compliance results with an optional Fix and Rebuild action."""
+
+    def __init__(self, parent, acx_result):
+        super().__init__(parent, title="ACX Compliance Check",
+                         style=wx.DEFAULT_DIALOG_STYLE)
+        self.fix_and_rebuild = False
+        panel = wx.Panel(self)
+        sizer = wx.BoxSizer(wx.VERTICAL)
+
+        recs = acx_result.recommendations()
+        body = acx_result.summary()
+        if recs:
+            body += "\n\nRecommendations:\n" + "\n".join(f"- {r}" for r in recs)
+
+        txt = wx.StaticText(panel, label=body)
+        txt.Wrap(500)
+        sizer.Add(txt, 0, wx.ALL, 14)
+
+        btn_row = wx.BoxSizer(wx.HORIZONTAL)
+        if not acx_result.passes:
+            btn_fix = wx.Button(panel, label="&Fix and Rebuild")
+            btn_fix.SetName(
+                "Normalize loudness to ACX target (-23 LUFS) and rebuild master")
+            btn_fix.Bind(wx.EVT_BUTTON, self._on_fix)
+            btn_row.Add(btn_fix, 0, wx.RIGHT, 8)
+        btn_close = wx.Button(panel, id=wx.ID_CLOSE, label="Close")
+        btn_close.SetName("Close ACX compliance report")
+        btn_close.Bind(wx.EVT_BUTTON, lambda e: self.EndModal(wx.ID_CLOSE))
+        btn_row.Add(btn_close, 0)
+        sizer.Add(btn_row, 0, wx.ALIGN_RIGHT | wx.ALL, 10)
+
+        panel.SetSizer(sizer)
+        sizer.SetSizeHints(self)
+        btn_close.SetFocus()
+
+    def _on_fix(self, _evt):
+        self.fix_and_rebuild = True
+        self.EndModal(wx.ID_OK)
+
+
+class MetadataLookupDialog(wx.Dialog):
+    """Search MusicBrainz and Open Library to pre-fill tag fields."""
+
+    def __init__(self, parent, title: str = "", artist: str = ""):
+        super().__init__(parent, title="Look Up Metadata",
+                         style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
+        self.selected_result = None
+        outer = wx.BoxSizer(wx.VERTICAL)
+
+        search_grid = wx.FlexGridSizer(0, 2, 8, 8)
+        search_grid.AddGrowableCol(1, 1)
+
+        def sfield(label, value, name):
+            lbl = wx.StaticText(self, label=label)
+            ctrl = wx.TextCtrl(self, value=value or "")
+            ctrl.SetName(name)
+            search_grid.Add(lbl, 0, wx.ALIGN_CENTER_VERTICAL)
+            search_grid.Add(ctrl, 1, wx.EXPAND)
+            return ctrl
+
+        self._title_ctrl = sfield("&Title:", title, "Search title")
+        self._artist_ctrl = sfield("&Author / Artist:", artist,
+                                   "Search author or artist name")
+
+        self._books_chk = wx.CheckBox(self, label="Prefer &book results (Open Library)")
+        self._books_chk.SetName("Prefer book results from Open Library over music results")
+        self._books_chk.SetValue(True)
+        search_grid.Add((0, 0))
+        search_grid.Add(self._books_chk, 0, wx.ALIGN_CENTER_VERTICAL)
+
+        outer.Add(search_grid, 0, wx.EXPAND | wx.ALL, 12)
+
+        btn_search = wx.Button(self, label="&Search")
+        btn_search.SetName("Search for metadata")
+        btn_search.Bind(wx.EVT_BUTTON, self._on_search)
+        btn_search.SetDefault()
+        outer.Add(btn_search, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 12)
+
+        self._results_list = wx.ListCtrl(
+            self, style=wx.LC_REPORT | wx.LC_SINGLE_SEL | wx.BORDER_SUNKEN,
+            size=(-1, 180))
+        self._results_list.SetName("Search results - select a result and click Apply")
+        self._results_list.InsertColumn(0, "Title", width=200)
+        self._results_list.InsertColumn(1, "Author / Artist", width=140)
+        self._results_list.InsertColumn(2, "Year", width=55)
+        self._results_list.InsertColumn(3, "Source", width=100)
+        outer.Add(self._results_list, 1, wx.EXPAND | wx.LEFT | wx.RIGHT, 12)
+
+        self._status_lbl = wx.StaticText(self, label="Enter a title and click Search.")
+        self._status_lbl.SetName("Lookup status")
+        outer.Add(self._status_lbl, 0, wx.ALL, 8)
+
+        btn_row = self.CreateButtonSizer(wx.OK | wx.CANCEL)
+        outer.Add(btn_row, 0, wx.EXPAND | wx.ALL, 12)
+        self._ok_btn = self.FindWindowById(wx.ID_OK)
+        if self._ok_btn:
+            self._ok_btn.SetLabel("&Apply")
+            self._ok_btn.SetName("Apply selected metadata to tag fields")
+        self._results = []
+        self._results_list.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self._on_activate)
+        self._results_list.Bind(wx.EVT_LIST_ITEM_SELECTED, self._on_select)
+
+        self.SetSizerAndFit(outer)
+        self.SetSize((540, 440))
+        self.CentreOnParent()
+        self._title_ctrl.SetFocus()
+
+    def _on_search(self, _evt):
+        title = self._title_ctrl.GetValue().strip()
+        artist = self._artist_ctrl.GetValue().strip()
+        if not title:
+            self._status_lbl.SetLabel("Enter a title to search.")
+            return
+        # The lookup makes network calls that can take many seconds. Run it on
+        # a background thread so the UI (and screen reader) never freezes.
+        self._status_lbl.SetLabel("Searching online, please wait...")
+        self._results_list.DeleteAllItems()
+        self._results = []
+        prefer_books = self._books_chk.GetValue()
+
+        def work():
+            try:
+                from . import lookup as lookup_mod
+                results = lookup_mod.search(title, artist,
+                                            prefer_books=prefer_books)
+                wx.CallAfter(self._search_done, results, None)
+            except Exception as exc:
+                wx.CallAfter(self._search_done, None, str(exc))
+
+        threading.Thread(target=work, daemon=True).start()
+
+    def _search_done(self, results, error):
+        if error is not None:
+            self._status_lbl.SetLabel(f"Search failed: {error}")
+            return
+        self._results = results or []
+        if not self._results:
+            self._status_lbl.SetLabel("No results found.")
+            return
+        for r in self._results:
+            idx = self._results_list.InsertItem(
+                self._results_list.GetItemCount(), r.title)
+            self._results_list.SetItem(idx, 1, r.artist)
+            self._results_list.SetItem(idx, 2, r.year)
+            self._results_list.SetItem(idx, 3, r.source)
+        self._status_lbl.SetLabel(
+            f"Found {len(self._results)} result(s). Select one and click Apply.")
+        self.selected_result = self._results[0]
+        self._results_list.Select(0)
+        self._results_list.Focus(0)
+        self._results_list.SetFocus()
+
+    def _on_select(self, evt):
+        idx = evt.GetIndex()
+        if 0 <= idx < len(self._results):
+            self.selected_result = self._results[idx]
+
+    def _on_activate(self, _evt):
+        self.EndModal(wx.ID_OK)
+
+
+class BuildLogDialog(wx.Dialog):
+    """Show the rolling build log."""
+
+    def __init__(self, parent, log_path: str):
+        super().__init__(parent, title="Build Log",
+                         style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
+        outer = wx.BoxSizer(wx.VERTICAL)
+        try:
+            with open(log_path, encoding="utf-8", errors="replace") as fh:
+                content = fh.read()
+        except OSError:
+            content = "(Could not read log file.)"
+
+        self._text = wx.TextCtrl(
+            self, value=content,
+            style=wx.TE_MULTILINE | wx.TE_READONLY | wx.HSCROLL | wx.TE_RICH2,
+            size=(600, 360))
+        self._text.SetName("Build log contents")
+        self._text.SetFont(wx.Font(wx.FontInfo(9).FaceName("Courier New")))
+        outer.Add(self._text, 1, wx.EXPAND | wx.ALL, 8)
+
+        btn_row = wx.BoxSizer(wx.HORIZONTAL)
+        clear_btn = wx.Button(self, label="&Clear Log")
+        clear_btn.SetName("Clear the build log file")
+        clear_btn.Bind(wx.EVT_BUTTON, lambda e: self._clear(log_path))
+        btn_row.Add(clear_btn, 0, wx.RIGHT, 8)
+        btn_row.Add(self.CreateButtonSizer(wx.OK), 0)
+        outer.Add(btn_row, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+
+        self.SetSizerAndFit(outer)
+        self.SetSize((640, 420))
+        self.CentreOnParent()
+        self._text.SetFocus()
+        self._text.SetInsertionPointEnd()
+
+    def _clear(self, log_path: str):
+        try:
+            with open(log_path, "w", encoding="utf-8") as fh:
+                fh.write("")
+            self._text.SetValue("")
+        except OSError:
+            pass
+
+
 class ChapterEditDialog(wx.Dialog):
     """Edit a single chapter's title, and optional link URL and image - the
     rich per-chapter metadata carried into the chapters JSON sidecar."""
@@ -4159,6 +4929,16 @@ class ChapterEditDialog(wx.Dialog):
         grid.Add(img_row, 1, wx.EXPAND)
 
         outer.Add(grid, 1, wx.EXPAND | wx.ALL, 14)
+
+        # Image preview
+        self._placeholder_bmp = wx.Bitmap(80, 80)
+        self._img_preview = wx.StaticBitmap(self, bitmap=self._placeholder_bmp)
+        self._img_preview.SetName("Chapter image preview")
+        outer.Add(self._img_preview, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.BOTTOM, 8)
+        self.img_ctrl.Bind(wx.EVT_TEXT, self._on_img_text)
+        if img:
+            wx.CallAfter(self._update_img_preview, img)
+
         outer.Add(self.CreateButtonSizer(wx.OK | wx.CANCEL),
                   0, wx.EXPAND | wx.ALL, 12)
         self.SetSizerAndFit(outer)
@@ -4166,6 +4946,22 @@ class ChapterEditDialog(wx.Dialog):
         self.title_ctrl.SetFocus()
         self.title_ctrl.SelectAll()
         self.CentreOnParent()
+
+    def _on_img_text(self, _evt):
+        self._update_img_preview(self.img_ctrl.GetValue().strip())
+
+    def _update_img_preview(self, path: str):
+        bmp = self._placeholder_bmp
+        if path and os.path.isfile(path):
+            img = wx.Image()
+            if img.LoadFile(path):
+                w, h = img.GetWidth(), img.GetHeight()
+                scale = min(80 / w, 80 / h) if w and h else 1
+                img = img.Scale(max(1, int(w * scale)), max(1, int(h * scale)),
+                                wx.IMAGE_QUALITY_HIGH)
+                bmp = img.ConvertToBitmap()
+        self._img_preview.SetBitmap(bmp)
+        self.Layout()
 
     def _on_browse(self, _evt):
         dlg = wx.FileDialog(
@@ -4489,10 +5285,10 @@ class CommandPaletteDialog:
 
 
 class FFmpegSetupDialog(wx.Dialog):
-    """Progress dialog for FFmpeg setup - shown before main window."""
+    """Progress dialog shown while FFmpeg is downloading."""
 
-    def __init__(self):
-        super().__init__(None, title="Setting Up ChapterForge",
+    def __init__(self, parent=None):
+        super().__init__(parent, title="Downloading FFmpeg",
                          style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
         self.success = False
 
@@ -4551,7 +5347,6 @@ class FFmpegSetupDialog(wx.Dialog):
 
 class ChapterForgeApp(wx.App):
     def OnInit(self):
-        # Check if FFmpeg exists
         try:
             core._find_tool("ffmpeg")
             core._find_tool("ffprobe")
@@ -4560,41 +5355,46 @@ class ChapterForgeApp(wx.App):
             ffmpeg_ready = False
 
         if not ffmpeg_ready:
-            # Ask user if they want to download FFmpeg
             result = wx.MessageBox(
-                "FFmpeg is needed to build audiobooks. Would you like to download it now?\n\n"
-                "The download will happen in the background.",
-                "Set Up FFmpeg",
-                wx.YES_NO | wx.ICON_INFORMATION)
+                "FFmpeg was not found on this system. FFmpeg is required to build "
+                "audiobooks.\n\n"
+                "Would you like ChapterForge to download and install FFmpeg now? "
+                "The download is free and takes about 1-2 minutes.",
+                "FFmpeg Not Found",
+                wx.YES_NO | wx.ICON_QUESTION)
 
-            if result != wx.YES:
+            if result == wx.YES:
+                setup_dlg = FFmpegSetupDialog()
+                self.SetTopWindow(setup_dlg)
+                self.worker = threading.Thread(
+                    target=self._download_ffmpeg,
+                    args=(setup_dlg,),
+                    daemon=True)
+                self.worker.start()
+                setup_dlg.ShowModal()
+                setup_dlg.Destroy()
+
+                if not setup_dlg.success:
+                    wx.MessageBox(
+                        "FFmpeg could not be downloaded automatically.\n\n"
+                        "ChapterForge will open, but you will not be able to build "
+                        "audiobooks until FFmpeg is installed.\n\n"
+                        "To install FFmpeg manually: visit ffmpeg.org, download the "
+                        "Windows build, and add the bin folder to your system PATH. "
+                        "Then restart ChapterForge.",
+                        "FFmpeg Download Failed",
+                        wx.OK | wx.ICON_WARNING)
+                # Continue to launch the main window regardless.
+            else:
                 wx.MessageBox(
-                    "You can download FFmpeg later from ffmpeg.org or run: "
-                    "python tools/get_ffmpeg.py",
-                    "FFmpeg Required to Build",
+                    "ChapterForge will open now. To build audiobooks you will need "
+                    "FFmpeg installed on your system.\n\n"
+                    "Visit ffmpeg.org to download FFmpeg for Windows, or use "
+                    "Help > Download FFmpeg inside the app.",
+                    "FFmpeg Required for Building",
                     wx.OK | wx.ICON_INFORMATION)
-                return False
+                # Continue to launch the main window regardless.
 
-            # Show progress dialog while downloading
-            setup_dlg = FFmpegSetupDialog()
-            self.SetTopWindow(setup_dlg)
-
-            # Download on background thread
-            self.worker = threading.Thread(
-                target=self._download_ffmpeg,
-                args=(setup_dlg,),
-                daemon=True)
-            self.worker.start()
-
-            # Show dialog and wait for OK
-            setup_dlg.ShowModal()
-            setup_dlg.Destroy()
-
-            # If download failed, exit
-            if not setup_dlg.success:
-                return False
-
-        # All requirements met - show main window
         frame = MainFrame()
         if frame.settings.get("start_minimized", False):
             frame._setup_startup_tray()
@@ -4604,22 +5404,23 @@ class ChapterForgeApp(wx.App):
         return True
 
     def _download_ffmpeg(self, dlg):
-        """Background thread: download FFmpeg."""
+        """Background thread: download and extract FFmpeg."""
         try:
-            dlg.update_status("Downloading FFmpeg from gyan.dev...")
+            dlg.update_status("Downloading FFmpeg from gyan.dev - please wait...")
             import importlib.util
             spec = importlib.util.spec_from_file_location(
                 "get_ffmpeg",
                 os.path.join(os.path.dirname(__file__), "..", "tools", "get_ffmpeg.py"))
             get_ffmpeg = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(get_ffmpeg)
-
             if get_ffmpeg.download_ffmpeg():
-                dlg.download_complete(True, "FFmpeg ready! Click OK to continue.")
+                dlg.download_complete(True, "FFmpeg downloaded successfully. Click OK to continue.")
             else:
-                dlg.download_complete(False, "Download failed. Please try manual download from ffmpeg.org")
+                dlg.download_complete(False,
+                    "Download failed. ChapterForge will open but build features "
+                    "will not work until FFmpeg is installed.")
         except Exception as exc:
-            dlg.download_complete(False, f"Error: {exc}")
+            dlg.download_complete(False, f"Download error: {exc}")
 
 
 def main():

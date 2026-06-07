@@ -1,4 +1,4 @@
-﻿# Changelog
+# Changelog
 
 All notable changes to ChapterForge are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
@@ -7,7 +7,93 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [1.0.0] - 2026-06-06
 
+### Fixed
+
+- **Metadata lookup now returns results.** MusicBrainz queries were being
+  URL-encoded twice, so searches never matched; fixed the encoding.
+- **Podcast RSS feeds are now valid.** The iTunes category is written as the
+  required `text=""` attribute instead of element text.
+- **Metadata search no longer freezes the app.** The online lookup runs on a
+  background thread, so the window and screen reader stay responsive.
+- **Quieter builds.** Per-chapter peak levels are only announced in verbose
+  mode, so a long book no longer floods the screen reader at build start.
+
 ### Added
+
+- **Background watcher feature parity.** Watch-folder processes now carry
+  narrator/series tags and honor the user's global build options (silence
+  trim, per-chapter normalization, fades, inter-chapter gap, RSS and
+  Podcasting 2.0 sidecars). The output-name template's extension now chooses
+  the format (.mp3/.m4b/.flac/.opus).
+- **Expanded CLI.** New flags: `--narrator`, `--series`, `--series-part`,
+  `--per-file-normalize`, `--normalize-lufs`, `--fade-ms`, `--trim-silence`,
+  `--rss-url`, and `--format flac|opus`.
+- **Clearer loudness options.** The whole-book and per-chapter normalization
+  settings are now clearly labeled and mutually exclusive (per-chapter wins),
+  with the ACX -23 LUFS target called out in the help.
+- **Smarter CSV import.** Chapter titles import by matching a filename or
+  chapter-number column when present, instead of only by row order.
+- **ACX Compliance Check** - New **Tools > Check ACX Compliance** menu item
+  measures integrated loudness (LUFS), true peak (dBFS), and noise floor of
+  any built master using FFmpeg's loudnorm analysis pass. Reports pass/fail
+  against ACX requirements (-23 LUFS +/-1, -3 dBFS peak, -60 dBFS noise
+  floor) with recommended corrective actions when a check fails. Can also run
+  automatically after every build via **Settings > Build > Check ACX
+  compliance after each build**. Implemented in `chapterforge/acx.py`.
+
+- **Metadata Lookup** - New **Tools > Look Up Metadata** dialog searches
+  [MusicBrainz](https://musicbrainz.org/) and
+  [Open Library](https://openlibrary.org/) by title and author/artist. Both
+  APIs are free with no registration required. Results are shown in a list;
+  selecting one pre-fills title, artist, album artist, genre, year, narrator,
+  and series fields. Implemented in `chapterforge/lookup.py`.
+
+- **OPUS output format** - Output format selector now includes **Opus
+  (.opus)**. Opus produces smaller files than MP3 at equivalent quality and
+  is supported natively by AntennaPod, VLC, foobar2000, and most modern
+  podcast apps. Chapter markers are written as Vorbis comments. Implemented
+  in `core.build_opus()`.
+
+- **Narrator and series metadata** - Three new tag fields in the Tags panel:
+  **Narrator**, **Series title**, and **Series index**. Written as ID3v2 TPE4
+  (narrator), TXXX:SERIES, and TXXX:SERIES-PART for MP3; as Vorbis comments
+  for FLAC and Opus; and as FFMETADATA fields for M4B. Enables correct
+  display in audiobook apps that support the narrator/series convention
+  (Prologue, Libro.fm, Bound).
+
+- **Per-track silence trimming** - New **Settings > Build > Trim
+  leading/trailing silence from each track** option. Strips room noise from
+  the start and end of each source file before concatenation using FFmpeg's
+  silencedetect + lossless copy. Threshold and minimum silence duration are
+  configurable. Implemented in `core.trim_silence_item()`.
+
+- **Build log viewer** - New **Tools > View Build Log** shows a scrollable
+  log of recent build history: file name, chapter count, total duration, and
+  encode mode. The log is stored in `%APPDATA%\ChapterForge\build_log.txt`
+  and can be cleared from the viewer dialog.
+
+- **Podcast RSS feed generation** - New **Settings > Build > Write RSS feed
+  sidecar after each build** option. Generates a Podcasting 2.0-compatible
+  `.rss` file alongside the built audio for self-hosted podcasters. Includes
+  iTunes/Podcasting 2.0 namespace tags, chapter references, and narrator/
+  series metadata. Requires a media hosting URL. Implemented in
+  `chapterforge/rss.py`.
+
+- **System high-contrast theme tracking** - ChapterForge now detects the
+  Windows high-contrast accessibility setting via the Windows API
+  (SystemParametersInfo / SPI_GETHIGHCONTRAST) and automatically applies its
+  built-in high-contrast theme when Windows HC mode is active and the theme
+  is set to "Follow system". No manual setting change required.
+
+- **Chapter image preview** - The Edit Chapter dialog now shows a live
+  thumbnail of the selected chapter image as you browse or type the path.
+  The preview updates immediately when the image field changes.
+
+- **Announcement verbosity control** - The screen reader announcement detail
+  level (Quiet / Normal / Verbose) is now exposed in **Settings > General >
+  Announcement detail**. Previously the setting existed in the JSON file but
+  had no UI. Quiet reduces repetitive progress announcements; Verbose adds
+  extra context for users who want more detail.
 
 - **Auphonic Integration (beta)** - Full audio post-production workflow via
   the new **Auphonic** menu. Opt in under **Tools > Settings > General >
@@ -35,7 +121,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   that mark a time range using the current playhead position. "Pre-Listen as
   Cut" plays from just before the cut point so you can hear the edit in
   context. "Save Trimmed..." saves the selected region to a new file using
-  FFmpeg lossless copy — no quality loss. The trim state resets automatically
+  FFmpeg lossless copy - no quality loss. The trim state resets automatically
   when a new file is loaded. `core.trim_file()` implements the FFmpeg pass.
 
 - **Split One Long Recording into Chapters** - A new "Split one long
@@ -94,15 +180,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
-- **Ctrl+G** reassigned — Save This Setup as Template moved to Ctrl+Shift+G.
+- **Ctrl+G** reassigned - Save This Setup as Template moved to Ctrl+Shift+G.
   Ctrl+G is now Go to Time (player must have audio loaded).
 
-- **Task dropdown** — third option "Split one long recording into chapters"
+- **Task dropdown** - third option "Split one long recording into chapters"
   added; no existing task indices changed.
 
 ### Fixed
 
-- **CI failure: pyproject.toml BOM** — `sed -i` on Windows injected a
+- **CI failure: pyproject.toml BOM** - `sed -i` on Windows injected a
   UTF-8 BOM into pyproject.toml, which TOML parsers reject. File rewritten
   without BOM; all future version bumps use the Edit tool directly.
 
@@ -396,7 +482,7 @@ to ask, and light and dark themes are available.
   automatically.
 - **Move Up and Move Down have informative tooltips in edit mode.** Instead of
   just saying "unavailable," hovering over either button when editing an
-  existing master now reads "Reordering is not available in edit mode — chapter
+  existing master now reads "Reordering is not available in edit mode - chapter
   order is determined by start times."
 
 ### Changed
@@ -418,18 +504,18 @@ Alt+F shortcut conflict is resolved, and ChapterForge can start quietly in the
 system tray.
 
 ### Added
-- **Command Palette (Ctrl+Shift+P)** — type any part of a command name to find
+- **Command Palette (Ctrl+Shift+P)** - type any part of a command name to find
   and run it without touching the mouse. All menu and button actions are listed.
   Commands that are not available in the current state are shown with a dash
   prefix so you can still discover them. Down and Up arrows move through results;
   Enter runs the selected command; Escape closes without doing anything. The
   palette is also reachable from Tools > Command Palette.
-- **Right-click context menu on the chapter list** — right-clicking (or pressing
+- **Right-click context menu on the chapter list** - right-clicking (or pressing
   the application key) on any row in the chapter list pops up a small menu with
   the actions that make sense right now: Edit Chapter, Move Up, Move Down, Play
   Chapter, Split Here (edit mode), and Remove or Merge Up depending on the mode.
   Only relevant items are shown; items that cannot be used are dimmed.
-- **Start minimized in system tray** — a new checkbox in Settings > General lets
+- **Start minimized in system tray** - a new checkbox in Settings > General lets
   ChapterForge launch directly to the system tray without showing the main window.
   Double-click the tray icon to open it. The setting takes effect the next time
   you start the app. This is separate from the background watcher; no watch
@@ -453,14 +539,14 @@ when tabbing with a screen reader, the settings dialog is reorganised into
 logical tabs, and the keyboard shortcut model matches standard app conventions.
 
 ### Added
-- **Build-Release.ps1** — a single PowerShell script that runs tests, builds
+- **Build-Release.ps1** - a single PowerShell script that runs tests, builds
   HTML docs, runs PyInstaller and packages the Inno Setup installer in one step.
   Accepts `-SkipTests`, `-SkipDocs`, `-SkipInstaller` and `-Open` flags.
-- **Smart Ctrl+S** — `Ctrl+S` now does the right thing in context: triggers
+- **Smart Ctrl+S** - `Ctrl+S` now does the right thing in context: triggers
   Build in build mode and Save Changes in edit mode (M4B files redirect you to
   Save As with a spoken explanation). `Ctrl+Shift+O` is the new shortcut for
   choosing the output file location.
-- **Tooltips on every control** — every button, checkbox, dropdown and spinner
+- **Tooltips on every control** - every button, checkbox, dropdown and spinner
   on the main window and the settings dialog has a plain-English tooltip that
   explains what it does and why you'd change it. Useful for new users and
   screen-reader users who explore with the mouse.
@@ -477,27 +563,27 @@ logical tabs, and the keyboard shortcut model matches standard app conventions.
   reader (e.g. "Browse for source folder of MP3 files", "Save master file to a
   chosen location", "Edit selected chapter title, link and image"). Trailing
   punctuation removed from player button names.
-- **"Set…" → "Save to…"** on the output-file button — the label now reads as
+- **"Set…" → "Save to…"** on the output-file button - the label now reads as
   intent rather than a generic imperative.
-- **"Edit Title" → "Edit Chapter…"** — the ellipsis signals a dialog and the
+- **"Edit Title" → "Edit Chapter…"** - the ellipsis signals a dialog and the
   name reflects that it edits title, URL *and* image.
-- **"Play Selected" → "Play Chapter"** — shorter and unambiguous.
-- **"Split at Playhead" → "Split Here"** — shorter label, tooltip carries the
+- **"Play Selected" → "Play Chapter"** - shorter and unambiguous.
+- **"Split at Playhead" → "Split Here"** - shorter label, tooltip carries the
   explanation.
 - **Build button label** updates dynamically: "Build Master MP3" when MP3 is
   selected, "Build M4B Audiobook" when M4B is selected.
 - **"Remove" / "Merge Up"** button's accessible name updates in edit mode to
   "Merge selected chapter into the one above it".
 - **Save Changes button tooltip** explains the greyed-out state for M4B files.
-- **Settings dialog z-order fix** — `StaticText` labels are now created before
+- **Settings dialog z-order fix** - `StaticText` labels are now created before
   their associated controls so NVDA's preceding-static-text heuristic maps each
   label to the correct control.
 - **Chapter list** label and column 4 header switch dynamically between build
   mode ("Chapter list, one per source file" / "Source file") and edit mode
   ("Chapter list" / "URL / Link").
-- **Unsaved-changes guards** — switching mode, opening a folder, or loading a
+- **Unsaved-changes guards** - switching mode, opening a folder, or loading a
   job file while in edit mode with unsaved edits now prompts before discarding.
-- **Player sizer leak fixed** — repeated load/release cycles no longer
+- **Player sizer leak fixed** - repeated load/release cycles no longer
   accumulate dead sizer items.
 - **Volume slider name** updated to "Playback volume, 0 to 100 percent" for
   clearer screen-reader announcement.
@@ -509,30 +595,30 @@ A polish release that deepens editing, playback and accessibility. Everything
 remains fully keyboard accessible with screen-reader announcements.
 
 ### Added
-- **Play from a chosen chapter** — a "Play Selected" button (and the player's
+- **Play from a chosen chapter** - a "Play Selected" button (and the player's
   chapter map) lets you jump straight to any chapter. In build mode it auditions
   the selected source file.
-- **Real chapter editing of existing masters** — merge a chapter into its
+- **Real chapter editing of existing masters** - merge a chapter into its
   neighbour (Remove/Delete becomes "Merge Up" in edit mode), **Split at
   Playhead** to add a boundary where the player is paused, and adjust a
   chapter's **start time** from the Edit dialog. Edits update the player without
   interrupting playback.
-- **Import / Export chapter lists** — export the chapter list as Audacity
+- **Import / Export chapter lists** - export the chapter list as Audacity
   labels, a CUE sheet, plain timestamps or Podcasting 2.0 JSON; import any of
   those into an open master to replace its markers.
-- **Inter-chapter gaps** — insert a configurable amount of silence between
+- **Inter-chapter gaps** - insert a configurable amount of silence between
   chapters when building (also `--gap-seconds` on the command line).
-- **Post-build verification** — after each build ChapterForge re-reads the file
+- **Post-build verification** - after each build ChapterForge re-reads the file
   and confirms the chapter count, announcing "Verified N chapters."
-- **Output size estimate** — a live estimate of the master's duration and
+- **Output size estimate** - a live estimate of the master's duration and
   approximate file size is shown before you build.
-- **Open Recent** — the File menu remembers recently opened folders, masters and
+- **Open Recent** - the File menu remembers recently opened folders, masters and
   job files.
-- **Accessibility appearance options** — adjustable UI text size and an optional
+- **Accessibility appearance options** - adjustable UI text size and an optional
   high-contrast theme (Tools → Settings).
-- **Save Diagnostics** (Help menu) — write a support report with version,
+- **Save Diagnostics** (Help menu) - write a support report with version,
   Python/wxPython/OS and FFmpeg details, and your current settings.
-- **Download & install updates** — "Check for Updates" can now download the
+- **Download & install updates** - "Check for Updates" can now download the
   right installer for your platform (over a verified HTTPS/GitHub connection)
   and launch it, instead of only opening the releases page. The CLI gains a
   matching `--update`.
@@ -547,29 +633,29 @@ A big "maximum magic" feature release. Everything stays fully keyboard
 accessible with screen-reader announcements.
 
 ### Added
-- **M4B audiobook export** — choose MP3 or M4B output. M4B writes proper MP4
+- **M4B audiobook export** - choose MP3 or M4B output. M4B writes proper MP4
   chapter metadata and an attached cover, ideal for audiobook players.
-- **In-app accessible player** — preview the master without leaving the app:
+- **In-app accessible player** - preview the master without leaving the app:
   Play/Pause, Stop, Previous/Next chapter, Rewind/Forward (by a configurable
   interval), a volume control and a position slider. The current chapter is
   announced as the play-head crosses each boundary; Previous restarts the
   current chapter unless you are within the first few seconds.
-- **Edit existing chaptered files** — open a finished MP3 (or M4B) to correct
+- **Edit existing chaptered files** - open a finished MP3 (or M4B) to correct
   its ID3 tags and chapter titles. MP3 edits save in place (no re-encode);
   any file can be written to a new file with **Save As**.
-- **Save As** — write the master, or an edited master, to a new file without
+- **Save As** - write the master, or an edited master, to a new file without
   touching the original.
-- **Auto-chapter by silence** — detect chapter breaks in a single long
+- **Auto-chapter by silence** - detect chapter breaks in a single long
   recording from its silent gaps, then rename and save them.
-- **Batch build a library** — point ChapterForge at a parent folder and build a
+- **Batch build a library** - point ChapterForge at a parent folder and build a
   master for every book sub-folder in one pass.
-- **Podcasting 2.0 chapters** — optionally write a `…chapters.json` sidecar with
+- **Podcasting 2.0 chapters** - optionally write a `…chapters.json` sidecar with
   per-chapter titles, and optional link URLs and images.
-- **Rich per-chapter metadata** — the Edit dialog now sets a chapter's title,
+- **Rich per-chapter metadata** - the Edit dialog now sets a chapter's title,
   link URL and image.
-- **Pre-flight checks** — before a build, ChapterForge warns about mixed sample
+- **Pre-flight checks** - before a build, ChapterForge warns about mixed sample
   rates or channel counts so you can decide whether to continue.
-- **Settings dialog** (Tools → Settings, `Ctrl+,`) — defaults for output format,
+- **Settings dialog** (Tools → Settings, `Ctrl+,`) - defaults for output format,
   re-encode quality, normalization, cover auto-detect, chapters JSON, the player
   skip interval and volume, announcement detail and silence-detection tuning.
 
@@ -582,34 +668,34 @@ accessible with screen-reader announcements.
 First public release.
 
 ### Added
-- **Master builder** — concatenate a folder of MP3s into one master MP3 with
+- **Master builder** - concatenate a folder of MP3s into one master MP3 with
   embedded ID3v2 `CHAP` chapter frames and an ordered `CTOC`. Uses lossless
   `-c copy` when source streams are uniform; re-encodes only when required.
-- **Accessible wxPython GUI** — fully keyboard-navigable, labeled controls,
+- **Accessible wxPython GUI** - fully keyboard-navigable, labeled controls,
   menus with mnemonics and accelerators, and screen-reader announcements for
   status and progress. Chapter list supports edit (F2), reorder (Alt+Up/Down)
   and remove (Delete).
-- **ID3 tagging** — title, artist, album-artist, album, genre, year, comment,
+- **ID3 tagging** - title, artist, album-artist, album, genre, year, comment,
   cover art (APIC), with auto-detected cover preview.
 - **Chapter titles from filenames**, with an option to keep or strip leading
   track numbers.
 - **Rich CLI** (`chapterforge-cli`) with `--help`, live terminal progress, and
   flags for tags, output path, job files, watching and update checks.
-- **Job files (`.cfjob`)** — simple, hand-editable definitions of file order
+- **Job files (`.cfjob`)** - simple, hand-editable definitions of file order
   and chapter titles. Generate, edit and load from the GUI or CLI.
-- **Reusable processes & folder watcher** — define watch folders with naming
+- **Reusable processes & folder watcher** - define watch folders with naming
   templates; a system-tray app processes new MP3 folders automatically in the
   background.
-- **Windows notifications** — toast + screen-reader announcements when jobs
+- **Windows notifications** - toast + screen-reader announcements when jobs
   start and complete, in both foreground and background modes.
-- **Visible output organization** — completed masters land in
+- **Visible output organization** - completed masters land in
   `_ChapterForge\Completed\<book>\` with a readable `… - chapters.txt` report;
   failures are recorded under `_ChapterForge\Failed\<book>.txt`.
-- **Existing-master detection** — a previously built master in the source
+- **Existing-master detection** - a previously built master in the source
   folder is skipped instead of being added as an extra chapter.
 - **Check for updates** via GitHub Releases.
 - **Run watcher at sign-in** (per-user) toggle.
-- **Packaging** — PyInstaller one-folder build (GUI + CLI exes, ffmpeg bundled)
+- **Packaging** - PyInstaller one-folder build (GUI + CLI exes, ffmpeg bundled)
   and an Inno Setup installer.
 - **About window** crediting **Blind Information Technology Solutions
   (BITS)**, showing the version and a 2026 copyright, with buttons linking to

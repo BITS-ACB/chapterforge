@@ -323,7 +323,7 @@
                 <div class="feature">
                     <h3>Chapters that work everywhere</h3>
                     <p>Your finished file plays in Apple Podcasts, Overcast, Pocket Casts, AntennaPod, VLC, foobar2000, AIMP, and any other app that reads standard ID3v2 chapter markers. One build, universal compatibility. Export as
-                    <a href="html/USER_GUIDE.html#22-metadata-and-tagging-panel">MP3 with chapter markers or M4B audiobook format</a> - whichever your audience prefers.</p>
+                    <a href="html/USER_GUIDE.html#22-metadata-and-tagging-panel">MP3 with chapter markers, M4B audiobook, lossless FLAC, or Opus</a> - whichever your audience prefers.</p>
                 </div>
 
                 <div class="feature">
@@ -353,12 +353,12 @@
 
                 <div class="feature">
                     <h3>Rich tags and automatic cover art</h3>
-                    <p>Set the title, artist, album, album artist, genre, year, comment, and track number on your master file. ChapterForge scans your source folder for a cover image and picks it up automatically - or choose one manually. Tags are written as <a href="html/USER_GUIDE.html#22-metadata-and-tagging-panel">ID3v2.3 for the widest player compatibility.</a></p>
+                    <p>Set the title, artist, album, album artist, genre, year, comment, narrator, and series on your master file - or fill them in automatically with a <a href="html/USER_GUIDE.html#22-metadata-and-tagging-panel">MusicBrainz and Open Library lookup</a>. ChapterForge scans your source folder for a cover image and picks it up automatically, or choose one manually. Tags are written as ID3v2.3 for the widest player compatibility.</p>
                 </div>
 
                 <div class="feature">
                     <h3>Import and export chapter lists</h3>
-                    <p>Already have chapter markers defined elsewhere? Import from Audacity label files, CUE sheets, or plain timestamp text. Export in the same formats, or as a <a href="html/AUPHONIC_INTEGRATION.html">Podcasting 2.0 JSON sidecar</a> with optional per-chapter URLs and images. Chapter lists move freely in and out.</p>
+                    <p>Already have chapter markers defined elsewhere? Import from Audacity label files, CUE sheets, plain timestamp text, or a CSV of titles. Export in the same formats, or as a <a href="html/AUPHONIC_INTEGRATION.html">Podcasting 2.0 JSON sidecar</a> with optional per-chapter URLs and images. Chapter lists move freely in and out.</p>
                 </div>
 
             </div>
@@ -409,7 +409,7 @@
 
             <div class="use-case">
                 <h3>Audiobook creators and narrators</h3>
-                <p>You record each chapter as a separate MP3. ChapterForge combines them into a single M4B or chaptered MP3, fills in the author, title, and cover, and produces exactly what you upload to ACX, Findaway Voices, or hand off directly to listeners. The <a href="html/USER_GUIDE.html#21-chapter-management-panel">chapter editor</a> lets you rename, reorder, merge, or split before anything is encoded.</p>
+                <p>You record each chapter as a separate MP3. ChapterForge combines them into a single M4B or chaptered MP3, fills in the author, title, narrator, series, and cover, and produces exactly what you upload to ACX, Findaway Voices, or hand off directly to listeners. It can check your master against ACX loudness, peak, and noise-floor requirements - and fix the loudness in one click. The <a href="html/USER_GUIDE.html#21-chapter-management-panel">chapter editor</a> lets you rename, reorder, merge, or split before anything is encoded.</p>
             </div>
 
             <div class="use-case">
@@ -432,12 +432,12 @@
 
                 <details>
                     <summary>What audio formats does ChapterForge accept?</summary>
-                    <p>ChapterForge works with MP3, FLAC, WAV, AAC, M4A, OGG, WMA, OPUS, and MP2 files as input. Output is either MP3 with embedded chapter markers or M4B audiobook format. When all your source files share the same format and bitrate, ChapterForge copies them losslessly - no quality loss at all. When they differ, it re-encodes cleanly with optional loudness normalization. See <a href="html/USER_GUIDE.html#22-metadata-and-tagging-panel">output options in the User Guide.</a></p>
+                    <p>ChapterForge works with MP3, FLAC, WAV, AAC, M4A, OGG, WMA, Opus, and MP2 files as input. Output is MP3 with embedded chapter markers, M4B audiobook, lossless FLAC, or Opus. When all your source files share the same format and bitrate, ChapterForge copies them losslessly - no quality loss at all. When they differ, it re-encodes cleanly with optional loudness normalization. See <a href="html/USER_GUIDE.html#22-metadata-and-tagging-panel">output options in the User Guide.</a></p>
                 </details>
 
                 <details>
                     <summary>Do I need to install anything else?</summary>
-                    <p>No. FFmpeg - the engine that does the audio work - is bundled inside ChapterForge. You do not need to install Python, FFmpeg, or any other software separately. Just run the installer and you are ready to build.</p>
+                    <p>You do not need Python or any developer tools. ChapterForge uses FFmpeg for the audio work; if FFmpeg is not already on your system, ChapterForge offers to download it for you automatically the first time you run it - a one-time download. After that, everything runs locally.</p>
                 </details>
 
                 <details>
@@ -452,7 +452,7 @@
 
                 <details>
                     <summary>Does ChapterForge need an internet connection?</summary>
-                    <p>No. Everything works offline. ChapterForge optionally checks for updates in the background - that is the only network request it makes, and it can be turned off in Tools &gt; Settings.</p>
+                    <p>Almost never. The first time you run ChapterForge it may download FFmpeg if it is not already installed - a one-time download. The optional metadata lookup (MusicBrainz and Open Library) also uses the internet when you choose to search. Everything else works offline, including the background update check, which you can turn off in Tools &gt; Settings.</p>
                 </details>
 
                 <details>

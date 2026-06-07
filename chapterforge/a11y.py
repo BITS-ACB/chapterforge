@@ -18,7 +18,6 @@ grammar, and we never self-voice over a screen reader that is already speaking.
 
 from __future__ import annotations
 
-import sys
 from dataclasses import dataclass, replace
 from importlib import import_module
 from typing import Any, Callable, List, Optional

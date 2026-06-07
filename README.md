@@ -23,7 +23,7 @@ Two options are available:
 2. Choose a task from the startup wizard, or go to **File > Open Folder** and pick a folder of MP3s.
 3. Review the chapter list - titles are filled in from your file names. Edit, reorder, or remove chapters as needed.
 4. Fill in the book's title, author, and other details. A cover image found in the folder is picked up automatically.
-5. Choose your output format (MP3 or M4B) and where to save the file.
+5. Choose your output format (MP3, M4B, FLAC, or Opus) and where to save the file.
 6. Press **Build** and ChapterForge puts everything together.
 
 The built-in player lets you preview the result before you share or distribute it.
@@ -32,12 +32,15 @@ The built-in player lets you preview the result before you share or distribute i
 
 - **Build a chaptered audiobook or podcast** from a folder of MP3s
 - **Works with all major players** - Apple Podcasts, Overcast, Pocket Casts, AntennaPod, VLC, foobar2000, AIMP, and more
-- **Edit before you build** - adjust chapter titles, reorder tracks, and set the title, author, cover art, genre, and year
-- **MP3 or M4B output** - standard MP3 with chapter markers, or Apple's M4B audiobook format with native chapters
+- **Edit before you build** - adjust chapter titles, reorder tracks, and set the title, author, narrator, series, cover art, genre, and year
+- **MP3, M4B, FLAC, or Opus output** - standard MP3 with chapter markers, Apple's M4B audiobook format with native chapters, lossless FLAC, or compact Opus
 - **Preview in the built-in player** before you share
 - **Fix existing chaptered files** - open a finished MP3 or M4B to correct chapters and tags without rebuilding from scratch
-- **Import chapter lists** from Audacity, CUE sheets, or plain timestamp files
+- **Look up metadata** - search MusicBrainz and Open Library to fill in title, author, narrator, and series
+- **Check ACX compliance** - measure loudness, peak, and noise floor against ACX audiobook requirements, with a one-click loudness fix
+- **Import and export chapter lists** - Audacity labels, CUE sheets, timestamp text, Podcasting 2.0 JSON, and CSV
 - **Auto-chapter by silence** - ChapterForge can detect chapter breaks in a single long recording automatically
+- **Generate a podcast RSS feed** alongside the audio for self-hosted shows
 - **Background watcher** - set a folder to watch and ChapterForge builds new books automatically when you drop files in, with a Windows notification when it finishes
 - **Updates built in** - checks for new versions and downloads the right installer in one click
 
@@ -64,8 +67,10 @@ ChapterForge is developed by **Blind Information Technology Solutions
 ChapterForge is free and open source, released under the **MIT License** - see
 [LICENSE](LICENSE). (c) 2026 Blind Information Technology Solutions (BITS).
 
-The installer includes third-party components (FFmpeg and others). See
-[THIRD_PARTY.md](THIRD_PARTY.md) for full license details and attributions.
+ChapterForge uses FFmpeg for audio processing. If FFmpeg is not already on your
+system, ChapterForge offers to download it automatically the first time you run
+it (also available any time from Help > Download FFmpeg). See
+[THIRD_PARTY.md](THIRD_PARTY.md) for license details and attributions.
 
 ## For developers
 

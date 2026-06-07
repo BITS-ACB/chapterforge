@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ChapterForge 1.0.0 — Press Release</title>
+<title>ChapterForge 1.0.0 - Press Release</title>
 <style>:root {
   --bg: #ffffff; --fg: #1b1b1b; --muted: #555; --accent: #0b5fa5;
   --border: #d0d7de; --code-bg: #f3f4f6; --nav-bg: #f6f8fa;
@@ -71,7 +71,7 @@ footer.site { color: var(--muted); border-top: 1px solid var(--border);
 <h1>FOR IMMEDIATE RELEASE</h1>
 <h2 id="chapterforge-100-launches-as-the-premier-accessible-audio-chapter-management-solution">ChapterForge 1.0.0 Launches as the Premier Accessible Audio Chapter Management Solution</h2>
 <h3 id="revolutionary-software-delivers-unprecedented-accessibility-and-professional-grade-tools-for-audiobook-creators-podcasters-and-visually-impaired-users">Revolutionary Software Delivers Unprecedented Accessibility and Professional-Grade Tools for Audiobook Creators, Podcasters, and Visually Impaired Users</h3>
-<p><strong>Tucson, AZ — June 5, 2026</strong> — Blind Information Technology Solutions (BITS), a leader in accessible technology solutions, today announced the official launch of ChapterForge 1.0.0, their acclaimed audio chapter management software. This inaugural release introduces comprehensive format compatibility, a completely accessible interface, and professional tools that make audio chapter management accessible to everyone.</p>
+<p><strong>Tucson, AZ - June 5, 2026</strong> - Blind Information Technology Solutions (BITS), a leader in accessible technology solutions, today announced the official launch of ChapterForge 1.0.0, their acclaimed audio chapter management software. This inaugural release introduces comprehensive format compatibility, a completely accessible interface, and professional tools that make audio chapter management accessible to everyone.</p>
 <p>ChapterForge 1.0.0 transforms how users convert collections of audio files into professionally chaptered audiobooks, podcasts, or educational content.</p>
 <p>&quot;This release represents the culmination of years of development focused on accessibility and user experience,&quot; said Jeff Bishop, President of BITS. &quot;We&#x27;ve created a tool that ensures everyone, regardless of ability, can create professional-quality audio content independently.&quot;</p>
 <h3 id="unmatched-accessibility-for-all-users">Unmatched Accessibility for All Users</h3>
@@ -83,32 +83,35 @@ footer.site { color: var(--muted); border-top: 1px solid var(--border);
 <li>Compatibility with NVDA, JAWS, and Windows Narrator</li>
 </ul>
 <h3 id="universal-format-support-and-professional-features">Universal Format Support and Professional Features</h3>
-<p>ChapterForge 1.0.0 supports import from and export to popular audio formats, including MP3, FLAC, WAV, AAC, M4A, OGG, WMA, OPUS, and MP2. Professional-grade features include:</p>
+<p>ChapterForge 1.0.0 imports from a wide range of audio formats - MP3, FLAC, WAV, AAC, M4A, OGG, WMA, Opus, and MP2 - and exports to MP3, M4B, FLAC, or Opus. Professional-grade features include:</p>
 <ul>
-<li>Comprehensive ID3 tag editor with custom field support</li>
+<li>Comprehensive ID3 tag editor, including narrator and series fields</li>
 <li>Album art embedding with automatic cover art detection</li>
+<li>Metadata lookup from MusicBrainz and Open Library</li>
+<li>ACX compliance check (loudness, peak, noise floor) with a one-click loudness fix</li>
 <li>Batch processing for library-wide conversions</li>
 <li>Silence-based chapter detection for single long recordings</li>
 <li>Lossless audio processing when possible</li>
-<li>Chapter splitting functionality for long recordings</li>
+<li>Chapter splitting and merging functionality</li>
+<li>Podcast RSS feed and Podcasting 2.0 chapter sidecar generation</li>
 <li>Background folder watching with system tray integration</li>
 <li>Job file system for saving and reusing configurations</li>
 <li>Command-line interface for automation and scripting</li>
 </ul>
 <h3 id="enhanced-user-experience-with-accessible-interface">Enhanced User Experience with Accessible Interface</h3>
-<p>The interface features a clean design with a dark/light theme toggle. An intuitive drag-and-drop chapter reordering system which is also fully keyboard friendly, combined with straightforward editing tools, makes complex editing tasks simple and efficient.</p>
+<p>The interface features a clean design with light, dark, and high-contrast themes. Fully keyboard-driven chapter reordering (Alt+Up and Alt+Down), combined with straightforward editing tools, makes complex editing tasks simple and efficient.</p>
 <h3 id="official-launch-marks-milestone-in-accessible-technology">Official Launch Marks Milestone in Accessible Technology</h3>
 <p>As the first official release of ChapterForge, version 1.0.0 represents a significant milestone in accessible audio software development. The software incorporates feedback from beta testers and accessibility advocates to deliver a robust, professional tool.</p>
 <h3 id="key-features-in-chapterforge-100">Key Features in ChapterForge 1.0.0</h3>
 <h4 id="multi-format-audio-processing">Multi-Format Audio Processing</h4>
-<p>Support for popular audio formats including MP3, FLAC, WAV, AAC, M4A, OGG, WMA, OPUS, and MP2. Import from any supported format and export to MP3 with ID3v2 CHAP/CTOC chapters or M4B/AAC with native MP4 chapters.</p>
+<p>Import from popular audio formats including MP3, FLAC, WAV, AAC, M4A, OGG, WMA, Opus, and MP2. Export to MP3 with ID3v2 CHAP/CTOC chapters, M4B/AAC with native MP4 chapters, lossless FLAC, or Opus.</p>
 <h4 id="intelligent-silence-based-chapter-detection">Intelligent Silence-Based Chapter Detection</h4>
 <p>Automatically detect chapter breaks in long audio recordings by analyzing silence gaps, making it easy to convert single long recordings into properly chaptered audiobooks. Configurable noise threshold and minimum silence duration settings allow for precise control.</p>
 <h4 id="chapter-management">Chapter Management</h4>
 <ul>
-<li>Drag-and-drop chapter reordering with full keyboard accessibility</li>
+<li>Chapter reordering with full keyboard control (Alt+Up and Alt+Down)</li>
 <li>Chapter merging and splitting functionality</li>
-<li>Chapter title customization</li>
+<li>Chapter title customization, including bulk rename and CSV import</li>
 </ul>
 <h4 id="background-processing-and-automation">Background Processing and Automation</h4>
 <ul>
@@ -144,15 +147,16 @@ footer.site { color: var(--muted); border-top: 1px solid var(--border);
 <ul>
 <li>Configurable bitrate settings for different quality requirements</li>
 <li>Inter-chapter gap insertion with precise timing control</li>
-<li>Podcasting 2.0 chapters JSON sidecar file generation</li>
-<li>Multiple export format support (MP3, M4B)</li>
+<li>Per-chapter loudness normalization to a LUFS target (use -23 for ACX)</li>
+<li>Podcasting 2.0 chapters JSON sidecar and podcast RSS feed generation</li>
+<li>Multiple output formats (MP3, M4B, FLAC, Opus)</li>
 </ul>
 <h3 id="technical-specifications">Technical Specifications</h3>
 <ul>
 <li><strong>Platform</strong>: Windows 10/11 (64-bit)</li>
 <li><strong>Accessibility</strong>: Full keyboard navigation, screen reader support (NVDA, JAWS, Narrator)</li>
-<li><strong>Formats</strong>: Input - MP3, FLAC, WAV, AAC, M4A, OGG, WMA, OPUS, MP2; Output - MP3, M4B</li>
-<li><strong>Dependencies</strong>: Bundled FFmpeg for all audio processing</li>
+<li><strong>Formats</strong>: Input - MP3, FLAC, WAV, AAC, M4A, OGG, WMA, Opus, MP2; Output - MP3, M4B, FLAC, Opus</li>
+<li><strong>Dependencies</strong>: FFmpeg for audio processing, downloaded automatically on first run if not already installed</li>
 <li><strong>Licensing</strong>: MIT License - free for personal and commercial use</li>
 </ul>
 <h3 id="availability-and-pricing">Availability and Pricing</h3>

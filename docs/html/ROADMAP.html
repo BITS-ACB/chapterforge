@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ChapterForge - Roadmap</title>
+<style>:root {
+  --bg: #ffffff; --fg: #1b1b1b; --muted: #555; --accent: #0b5fa5;
+  --border: #d0d7de; --code-bg: #f3f4f6; --nav-bg: #f6f8fa;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0d1117; --fg: #e6edf3; --muted: #9da7b1; --accent: #58a6ff;
+    --border: #30363d; --code-bg: #161b22; --nav-bg: #161b22;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0; background: var(--bg); color: var(--fg);
+  font: 1rem/1.6 -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+}
+.skip {
+  position: absolute; left: -999px; top: 0; background: var(--accent);
+  color: #fff; padding: .6rem 1rem; z-index: 100;
+}
+.skip:focus { left: 0; }
+header.site {
+  border-bottom: 1px solid var(--border); background: var(--nav-bg);
+  padding: .5rem 1rem;
+}
+header.site nav ul {
+  list-style: none; display: flex; flex-wrap: wrap; gap: .25rem 1rem;
+  margin: 0; padding: 0;
+}
+header.site nav a { text-decoration: none; color: var(--accent); padding: .25rem 0; }
+header.site nav a[aria-current="page"] { font-weight: 700; text-decoration: underline; }
+.wrap { max-width: 52rem; margin: 0 auto; padding: 1rem 1.25rem 4rem; }
+main { outline: none; }
+h1 { font-size: 2rem; line-height: 1.2; margin: 1rem 0 .5rem; }
+h2 { font-size: 1.5rem; margin-top: 2.2rem; border-bottom: 1px solid var(--border); padding-bottom: .2rem; }
+h3 { font-size: 1.2rem; margin-top: 1.6rem; }
+a { color: var(--accent); }
+a:focus-visible, button:focus-visible, input:focus-visible {
+  outline: 3px solid var(--accent); outline-offset: 2px;
+}
+code { background: var(--code-bg); padding: .1rem .35rem; border-radius: 4px;
+  font-family: Consolas, "SFMono-Regular", Menlo, monospace; font-size: .9em; }
+pre { background: var(--code-bg); padding: 1rem; border-radius: 8px;
+  overflow: auto; border: 1px solid var(--border); }
+pre code { background: none; padding: 0; }
+table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+th, td { border: 1px solid var(--border); padding: .5rem .7rem; text-align: left; vertical-align: top; }
+thead th { background: var(--nav-bg); }
+li.task { list-style: none; margin-left: -1.2rem; }
+li.task input { margin-right: .4rem; }
+nav.toc { background: var(--nav-bg); border: 1px solid var(--border);
+  border-radius: 8px; padding: .75rem 1rem; margin: 1.5rem 0; }
+nav.toc p { margin: 0 0 .4rem; font-weight: 700; }
+nav.toc ul { margin: 0; padding-left: 1.2rem; }
+nav.toc li.lvl3 { margin-left: 1rem; list-style: circle; }
+footer.site { color: var(--muted); border-top: 1px solid var(--border);
+  margin-top: 3rem; padding: 1rem 1.25rem; font-size: .9rem; }</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="site"><nav aria-label="Documentation"><ul><li><a href="index.html">Home</a></li><li><a href="USER_GUIDE.html">User Guide</a></li><li><a href="AUPHONIC_INTEGRATION.html">Auphonic</a></li><li><a href="CHANGELOG.html">Changelog</a></li><li><a href="THIRD_PARTY.html">Third-Party Notices</a></li></ul></nav></header>
+<div class="wrap">
+<main id="main" tabindex="-1">
+<nav class="toc" aria-label="On this page"><p>On this page</p><ul><li><a href="#medium-term">Medium-term</a></li><li class="lvl3"><a href="#waveform-display-for-silence-detection">Waveform display for silence detection</a></li><li><a href="#long-term">Long-term</a></li><li class="lvl3"><a href="#macos-gui-port">macOS GUI port</a></li><li class="lvl3"><a href="#cloud-folder-watching">Cloud folder watching</a></li><li class="lvl3"><a href="#direct-upload-to-distribution-platforms">Direct upload to distribution platforms</a></li><li><a href="#accessibility-specific-improvements">Accessibility-specific improvements</a></li></ul></nav>
+<h1>ChapterForge Roadmap</h1>
+<p>This document captures planned and proposed enhancements to ChapterForge. Items are grouped by rough horizon, not by strict release commitment. Feedback and priorities are tracked on <a href="https://github.com/BITS-ACB/chapterforge/issues">GitHub Issues</a>.</p>
+<hr>
+<h2 id="medium-term">Medium-term</h2>
+<p>These items are well-motivated but require more design or implementation work before they are ready to build.</p>
+<h3 id="waveform-display-for-silence-detection">Waveform display for silence detection</h3>
+<p>The auto-chapter by silence feature currently requires the user to set a threshold and minimum gap and then trust that the detected breaks are correct. There is no way to see where breaks were found before committing to them.</p>
+<p>For sighted users, a waveform view showing the detected boundaries with the option to drag them would make the feature far more trustworthy. For screen reader users, the equivalent would be a navigable list of detected breaks with start time, gap duration, and an accept/reject control for each - so every boundary can be reviewed and corrected before the chapter list is populated.</p>
+<hr>
+<h2 id="long-term">Long-term</h2>
+<p>These items are directional. They represent significant scope and some have open design questions.</p>
+<h3 id="macos-gui-port">macOS GUI port</h3>
+<p>The ChapterForge core - all file scanning, FFmpeg handling, chapter tagging, and format conversion - is already cross-platform Python. The wxPython GUI also runs on macOS. The platform-specific pieces are the system tray, Windows toast notifications, and the Inno Setup installer.</p>
+<p>Porting to macOS would make ChapterForge available to a substantial population of blind Mac users who currently have no equivalent tool. The tray and notification code would need macOS equivalents; the installer would need a replacement (likely a signed .pkg or .dmg); and VoiceOver integration would need to be tested and tuned.</p>
+<h3 id="cloud-folder-watching">Cloud folder watching</h3>
+<p>The background watcher currently monitors local folders only. A significant portion of audio production happens with files synced via OneDrive, Dropbox, or Google Drive. Extending the watcher to treat the local sync folder for any of these services as a watch target - or, more ambitiously, watching a cloud folder directly via its API - would let ChapterForge fit into cloud-based production workflows.</p>
+<h3 id="direct-upload-to-distribution-platforms">Direct upload to distribution platforms</h3>
+<p>A finish-and-upload workflow - ACX check passes, build succeeds, file uploads to ACX, Findaway Voices, or an S3-compatible bucket - would eliminate the manual step of opening a browser and uploading. This depends on stable APIs from those platforms and would need secure credential storage. It is a meaningful quality-of- life improvement for high-volume producers.</p>
+<hr>
+<h2 id="accessibility-specific-improvements">Accessibility-specific improvements</h2>
+<ul>
+<li><strong>Braille display optimization</strong> - review all control labels and live regions for conciseness, since braille displays show far fewer characters per line than speech output reads per second.</li>
+</ul>
+</main>
+</div>
+<footer class="site">© 2026 Blind Information Technology Solutions (BITS). ChapterForge documentation, generated from Markdown.</footer>
+</body>
+</html>

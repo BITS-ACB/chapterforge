@@ -15,7 +15,7 @@ from __future__ import annotations
 import json
 import os
 import re
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass
 from datetime import date
 from typing import Dict, List
 
@@ -42,6 +42,10 @@ class Process:
     title_source: str = "filename"   # 'filename' | 'embedded'
     bitrate: str = "192k"
     normalize: bool = False
+    narrator: str = ""
+    series_title: str = ""
+    series_index: str = ""
+    preset: str = ""   # named build preset from settings; overrides bitrate/normalize/format if set
 
     def to_dict(self) -> Dict:
         return asdict(self)

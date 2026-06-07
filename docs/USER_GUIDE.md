@@ -1,4 +1,4 @@
-# ChapterForge 1.0.0 — Comprehensive User Guide
+# ChapterForge 1.0.0 - Comprehensive User Guide
 
 Welcome to ChapterForge 1.0.0, an accessible audio chapter management solution. This comprehensive user guide will walk you through every feature, function, and workflow to help you create chaptered audio content.
 
@@ -63,7 +63,7 @@ Each panel is fully accessible with keyboard navigation and screen reader suppor
 - **Memory**: 4GB RAM minimum (8GB recommended)
 - **Storage**: 500MB available disk space plus space for audio files
 - **Accessibility**: Compatible with NVDA, JAWS, and Windows Narrator
-- **Additional**: Internet connection recommended for updates
+- **Additional**: Internet connection for the one-time FFmpeg download (if FFmpeg is not already installed), optional metadata lookup, and update checks
 
 ---
 
@@ -102,8 +102,9 @@ ChapterForge 1.0.0 includes a professional-grade metadata editor that supports a
 - **Album Artist**: For multi-artist collections
 - **Genre**: Categorization for organization
 - **Year**: Publication or recording year
-- **Track Number**: Position in album/series
 - **Comment**: Additional descriptive information
+- **Narrator**: The voice talent, written as ID3v2 TPE4 (and as a Vorbis or MP4 field for other formats)
+- **Series**: Series title and part number, for audiobook apps that group by series
 
 #### Advanced Tagging Features
 - **Custom Fields**: Add custom ID3 fields
@@ -111,9 +112,9 @@ ChapterForge 1.0.0 includes a professional-grade metadata editor that supports a
 - **Tag Templates**: Save tagging configurations for reuse across projects
 
 #### Format and Quality Options
-- **Output Format**: Choose from MP3 with CHAP/CTOC or M4B with native MP4 chapters
+- **Output Format**: MP3 (CHAP/CTOC chapters), M4B (native MP4 chapters), FLAC (lossless), or Opus
 - **Bitrate Settings**: Configure quality levels from 128k to 320k bitrate
-- **Loudness Normalization**: Audio level normalization
+- **Loudness Normalization**: Two options - normalize the whole book in one pass, or normalize each chapter individually to a LUFS target (use -23 for ACX). The per-chapter option takes priority if both are enabled.
 - **Inter-Chapter Gaps**: Insert configurable silence between chapters
 
 ### 2.3 Preview and Control Panel
@@ -214,7 +215,6 @@ ChapterForge 1.0.0 is designed from the ground up for full keyboard accessibilit
 - **Screen Reader Optimization**: Intelligent announcements provide context-aware feedback
 - **High Contrast Themes**: Multiple high-contrast color schemes for visual accessibility
 - **Customizable Text Size**: Adjust interface text from 8pt to 24pt
-- **Voice Commands**: Optional voice control for hands-free operation
 - **Keyboard Focus Indicators**: Clear visual indication of currently focused controls
 - **Alternative Navigation**: Tab-based navigation through all interface elements
 
@@ -378,8 +378,8 @@ chapterforge .\chapters --normalize
 # Show what would be processed without building
 chapterforge .\chapters --dry-run --list
 
-# Generate a job file for later processing
-chapterforge .\chapters --generate-job mybook.cfjob
+# Choose the output format (mp3, m4b, flac or opus)
+chapterforge .\chapters --format m4b
 
 # Process using existing job file
 chapterforge --job mybook.cfjob
@@ -393,17 +393,20 @@ chapterforge --help
 
 ### Advanced CLI Features
 ```bash
-# Batch process multiple folders
-chapterforge --batch "C:\Audiobooks" --recursive
+# Batch-build every book sub-folder under a parent folder
+chapterforge --batch "C:\Audiobooks"
 
-# Process with specific quality settings
-chapterforge .\chapters --bitrate 192k --quality high
+# Set the re-encode bitrate
+chapterforge .\chapters --bitrate 192k
 
-# Enable loudness normalization to specific LUFS target
-chapterforge .\chapters --normalize --target-lufs -16.0
+# Normalize each chapter to a loudness target (use -23 for ACX)
+chapterforge .\chapters --per-file-normalize --normalize-lufs -16.0
 
-# Export chapters to multiple formats
-chapterforge .\chapters --export-cue --export-txt --export-json
+# Also write a Podcasting 2.0 chapters JSON sidecar
+chapterforge .\chapters --pod2-chapters
+
+# Set narrator and series metadata
+chapterforge .\chapters --narrator "John Reader" --series "My Series" --series-part 2
 
 # Process with custom cover art
 chapterforge .\chapters --cover artwork.jpg
@@ -411,34 +414,36 @@ chapterforge .\chapters --cover artwork.jpg
 # Split a long recording into chapters by silence
 chapterforge --split-silence --noise-db -30 --min-silence 0.8 long_recording.mp3
 
-# Verbose output for debugging
-chapterforge .\chapters --verbose
+# Trim leading/trailing silence from each file before joining
+chapterforge .\chapters --trim-silence
 
-# Silent mode for automated scripts
-chapterforge .\chapters --silent
+# Quiet mode for automated scripts (errors only)
+chapterforge .\chapters --quiet
 
-# Export processing report
-chapterforge .\chapters --report report.txt
+# Write a podcast RSS feed pointing at the hosted media URL
+chapterforge .\chapters --rss-url https://example.com/book.mp3
 ```
 
 ### CLI Return Codes
 - `0`: Success
-- `1`: General error
-- `2`: Invalid arguments
-- `3`: Processing error
-- `4`: File not found
-- `5`: Insufficient permissions
+- `1`: Aborted (for example, the output exists and was not overwritten)
+- `2`: Invalid arguments, or the input is not a folder
+- `3`: FFmpeg not found
+- `4`: No usable audio files found
+- `5`: Build error
+- `6`: Update check or download error
+- `130`: Cancelled (Ctrl+C)
 
 ### CLI Automation Examples
 ```bash
-# Process an entire library silently
-for /d %i in ("C:\Audiobooks\*") do chapterforge "%i" --silent
+# Process an entire library quietly
+for /d %i in ("C:\Audiobooks\*") do chapterforge "%i" --quiet
 
-# Batch convert with error logging
-chapterforge --batch "C:\Audiobooks" --recursive --report batch_report.txt
+# Batch-build a whole library
+chapterforge --batch "C:\Audiobooks"
 
-# Nightly processing script
-chapterforge --batch "C:\Audiobooks" --recursive --normalize --target-lufs -16.0
+# Nightly processing script with per-chapter normalization
+chapterforge --batch "C:\Audiobooks" --quiet
 ```
 
 ---
@@ -450,7 +455,7 @@ chapterforge --batch "C:\Audiobooks" --recursive --normalize --target-lufs -16.0
 #### Issue: "FFmpeg not found" error
 **Solution**: 
 1. Ensure FFmpeg is installed and on your system PATH
-2. Or use the bundled FFmpeg by installing the complete ChapterForge package
+2. Or let ChapterForge download FFmpeg for you - it offers this automatically on first run, and any time from Help > Download FFmpeg
 3. Verify installation with `ffmpeg -version` in command prompt
 
 #### Issue: Chapters not displaying in player
@@ -614,13 +619,13 @@ Only audio files are accepted. Any file containing a video stream is rejected at
 | `Ctrl+Shift+O` | Open folder of MP3 files |
 | `Ctrl+O` | Open an existing chaptered file to edit |
 | `Ctrl+S` | Build (build mode) or Save Changes (edit mode) |
-| `Ctrl+B` | Build master — explicit |
-| `Ctrl+Shift+S` | Save changes to the open master — explicit |
+| `Ctrl+B` | Build master - explicit |
+| `Ctrl+Shift+S` | Save changes to the open master - explicit |
 | `Ctrl+L` | Load a Saved Setup (`.cfjob`) |
 | `Ctrl+G` | Save This Setup as a Template |
 | `Ctrl+W` | Set Up Automatic Building |
 | `Ctrl+,` | Settings |
-| `Ctrl+Shift+P` | Command Palette — search all commands |
+| `Ctrl+Shift+P` | Command Palette - search all commands |
 | `Ctrl+/` | Open keyboard shortcuts in browser |
 | `Ctrl+=` | Larger text |
 | `Ctrl+-` | Smaller text |
@@ -681,18 +686,19 @@ ChapterForge 1.0.0 includes a professional-grade metadata editor:
 - **Album Artist**: For multi-artist collections
 - **Genre**: Categorization for organization
 - **Year**: Publication or recording year
-- **Track Number**: Position in album/series
 - **Comment**: Additional descriptive information
+- **Narrator**: The voice talent, written as ID3v2 TPE4 (and as a Vorbis or MP4 field for other formats)
+- **Series**: Series title and part number, for audiobook apps that group by series
 
 #### Advanced Tagging Features
 - **Custom Fields**: Add any number of custom ID3 fields
 - **Cover Art**: Automatic detection or manual selection of album art
 - **Multiple Images**: Attach multiple images with different types (cover, artist, etc.)
-- **Import Metadata**: Fetch information from MusicBrainz, Discogs, or other databases
+- **Import Metadata**: Fetch information from MusicBrainz and Open Library (Tools > Look Up Metadata)
 - **Export Templates**: Save tagging configurations for reuse
 
 #### Format and Quality Options
-- **Output Format**: Choose from MP3, M4B, FLAC, WAV, and other supported formats
+- **Output Format**: Choose from MP3, M4B, FLAC, and Opus
 - **Bitrate Settings**: Configure quality levels from 64k to 320k bitrate
 - **Loudness Normalization**: ITU-R BS.1770-4 compliant loudness adjustment
 - **Sample Rate Conversion**: Automatic or manual sample rate settings
@@ -780,7 +786,6 @@ ChapterForge 1.0.0 is designed from the ground up for full keyboard accessibilit
 - **Screen Reader Optimization**: Intelligent announcements provide context-aware feedback
 - **High Contrast Themes**: Multiple high-contrast color schemes for visual accessibility
 - **Customizable Text Size**: Adjust interface text from 8pt to 24pt
-- **Voice Commands**: Optional voice control for hands-free operation
 - **Keyboard Focus Indicators**: Clear visual indication of currently focused controls
 - **Alternative Navigation**: Tab-based navigation through all interface elements
 
@@ -921,8 +926,8 @@ chapterforge .\chapters --normalize
 # Show what would be processed without building
 chapterforge .\chapters --dry-run --list
 
-# Generate a job file for later processing
-chapterforge .\chapters --generate-job mybook.cfjob
+# Choose the output format (mp3, m4b, flac or opus)
+chapterforge .\chapters --format m4b
 
 # Process using existing job file
 chapterforge --job mybook.cfjob
@@ -936,38 +941,43 @@ chapterforge --help
 
 ### Advanced CLI Features
 ```bash
-# Batch process multiple folders
-chapterforge --batch "C:\Audiobooks" --recursive
+# Batch-build every book sub-folder under a parent folder
+chapterforge --batch "C:\Audiobooks"
 
-# Process with specific quality settings
-chapterforge .\chapters --bitrate 192k --quality high
+# Set the re-encode bitrate
+chapterforge .\chapters --bitrate 192k
 
-# Enable loudness normalization to specific LUFS target
-chapterforge .\chapters --normalize --target-lufs -16.0
+# Normalize each chapter to a loudness target (use -23 for ACX)
+chapterforge .\chapters --per-file-normalize --normalize-lufs -16.0
 
-# Export chapters to multiple formats
-chapterforge .\chapters --export-cue --export-txt --export-json
+# Also write a Podcasting 2.0 chapters JSON sidecar
+chapterforge .\chapters --pod2-chapters
+
+# Set narrator and series metadata
+chapterforge .\chapters --narrator "John Reader" --series "My Series" --series-part 2
 
 # Process with custom cover art
 chapterforge .\chapters --cover artwork.jpg
 
-# Verbose output for debugging
-chapterforge .\chapters --verbose
+# Trim leading/trailing silence from each file before joining
+chapterforge .\chapters --trim-silence
 
-# Silent mode for automated scripts
-chapterforge .\chapters --silent
+# Quiet mode for automated scripts (errors only)
+chapterforge .\chapters --quiet
 
-# Export processing report
-chapterforge .\chapters --report report.txt
+# Write a podcast RSS feed pointing at the hosted media URL
+chapterforge .\chapters --rss-url https://example.com/book.mp3
 ```
 
 ### CLI Return Codes
 - `0`: Success
-- `1`: General error
-- `2`: Invalid arguments
-- `3`: Processing error
-- `4`: File not found
-- `5`: Insufficient permissions
+- `1`: Aborted (for example, the output exists and was not overwritten)
+- `2`: Invalid arguments, or the input is not a folder
+- `3`: FFmpeg not found
+- `4`: No usable audio files found
+- `5`: Build error
+- `6`: Update check or download error
+- `130`: Cancelled (Ctrl+C)
 
 ## 6. Troubleshooting and Support
 
@@ -976,7 +986,7 @@ chapterforge .\chapters --report report.txt
 #### Issue: "FFmpeg not found" error
 **Solution**:
 1. Ensure FFmpeg is installed and on your system PATH
-2. Or use the bundled FFmpeg by installing the complete ChapterForge package
+2. Or let ChapterForge download FFmpeg for you - it offers this automatically on first run, and any time from Help > Download FFmpeg
 3. Verify installation with `ffmpeg -version` in command prompt
 
 #### Issue: Chapters not displaying in player

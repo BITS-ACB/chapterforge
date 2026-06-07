@@ -7,14 +7,13 @@ from __future__ import annotations
 
 import json
 import mimetypes
-import os
 import urllib.error
 import urllib.parse
 import urllib.request
 import uuid
-from typing import Any, BinaryIO, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
-from .models import AuphonicUser, AuphonicPreset, OutputFile
+from .models import AuphonicUser
 
 AUPHONIC_BASE = "https://auphonic.com"
 _API = f"{AUPHONIC_BASE}/api"

@@ -13,15 +13,14 @@ from __future__ import annotations
 
 import os
 import threading
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Dict, List
 
 import wx
 
-from .auphonic import AuphonicService, AuphonicError, AudioValidationError
+from .auphonic import AuphonicService, AudioValidationError
 from .auphonic.models import JobStatus, ProductionRequest
-from .auphonic.presets import BUILTIN_PRESETS, all_presets
+from .auphonic.presets import all_presets
 from .auphonic.estimate import estimate_credits, credits_sufficient, format_credits, format_duration
-from .auphonic.output_filter import classify_output, ALLOWED_OUTPUT_TYPES
 from . import a11y
 
 

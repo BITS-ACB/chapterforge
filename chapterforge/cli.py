@@ -54,6 +54,10 @@ def build_parser() -> argparse.ArgumentParser:
     tag.add_argument("--genre", help="Genre.")
     tag.add_argument("--year", help="Year.")
     tag.add_argument("--comment", help="Comment.")
+    tag.add_argument("--narrator", help="Narrator (written as TPE4).")
+    tag.add_argument("--series", help="Series title.")
+    tag.add_argument("--series-part", dest="series_part",
+                     help="Series part / number.")
     tag.add_argument("--cover", metavar="IMAGE", help="Cover image (JPEG/PNG).")
     tag.add_argument("--no-auto-cover", dest="auto_cover", action="store_false",
                      help="Do not auto-detect a cover image in the folder.")
@@ -62,13 +66,32 @@ def build_parser() -> argparse.ArgumentParser:
     enc.add_argument("--title-source", choices=["filename", "embedded"],
                      default="filename",
                      help="Where chapter titles come from (default: filename).")
-    enc.add_argument("--format", choices=["mp3", "m4b"], dest="fmt",
+    enc.add_argument("--format", choices=["mp3", "m4b", "flac", "opus"], dest="fmt",
                      help="Output format. Default: inferred from -o, else mp3. "
-                          "m4b produces an AAC audiobook with MP4 chapters.")
+                          "m4b is an AAC audiobook with MP4 chapters; flac is "
+                          "lossless; opus is small modern audio.")
     enc.add_argument("--bitrate", default="192k",
                      help="Bitrate for the re-encode path, e.g. 192k (default: 192k).")
     enc.add_argument("--normalize", action="store_true",
-                     help="Normalize loudness (forces a re-encode).")
+                     help="Normalize loudness across the whole master "
+                          "(single-pass, forces a re-encode).")
+    enc.add_argument("--per-file-normalize", dest="per_file_normalize",
+                     action="store_true",
+                     help="Normalize each source file individually before "
+                          "concatenation (MP3 output).")
+    enc.add_argument("--normalize-lufs", dest="normalize_lufs", type=float,
+                     default=-16.0,
+                     help="Target loudness in LUFS for --per-file-normalize "
+                          "(default: -16; use -23 for ACX).")
+    enc.add_argument("--fade-ms", dest="fade_ms", type=int, default=0,
+                     help="Fade-in and fade-out duration in milliseconds applied "
+                          "to each source file (MP3 output; default: 0).")
+    enc.add_argument("--trim-silence", dest="trim_silence", action="store_true",
+                     help="Trim leading/trailing silence from each source file "
+                          "before concatenation.")
+    enc.add_argument("--rss-url", dest="rss_url", metavar="URL",
+                     help="Also write an .rss podcast feed pointing at this "
+                          "public media URL for the built file.")
     enc.add_argument("--gap-seconds", dest="gap_seconds", type=float, default=0.0,
                      help="Insert this many seconds of silence between chapters "
                           "(forces a re-encode; default: 0).")
@@ -334,7 +357,8 @@ def _update_cli(quiet: bool) -> int:
 
 def _output_ext(args) -> str:
     if args.fmt:
-        return ".m4b" if args.fmt == "m4b" else ".mp3"
+        return {"m4b": ".m4b", "flac": ".flac", "opus": ".opus"}.get(
+            args.fmt, ".mp3")
     if args.output:
         ext = os.path.splitext(args.output)[1].lower()
         if ext:
@@ -432,7 +456,9 @@ def _run_split_silence(args, src: str, quiet: bool) -> int:
     tags = core.Tags(
         title=args.title or base, artist=args.artist or "",
         album=args.album or base, album_artist=args.album_artist or "",
-        genre=args.genre or "", year=args.year or "", comment=args.comment or "")
+        genre=args.genre or "", year=args.year or "", comment=args.comment or "",
+        narrator=args.narrator or "", series_title=args.series or "",
+        series_index=args.series_part or "")
     if args.cover:
         tags.cover_path = args.cover
 
@@ -561,6 +587,9 @@ def run(argv: Optional[List[str]] = None) -> int:
         genre=args.genre or "",
         year=args.year or "",
         comment=args.comment or "",
+        narrator=args.narrator or "",
+        series_title=args.series or "",
+        series_index=args.series_part or "",
     )
     cover = args.cover
     if not cover and args.auto_cover:
@@ -596,14 +625,28 @@ def run(argv: Optional[List[str]] = None) -> int:
             _err(f"error: {output} exists (use --yes to overwrite).")
             return 1
 
+    # Optional per-track silence trimming before concatenation.
+    build_items = good
+    _trim_dir = None
+    if getattr(args, "trim_silence", False):
+        import tempfile as _tmpmod
+        _trim_dir = _tmpmod.mkdtemp(prefix="chapterforge_trim_")
+        build_items = [core.trim_silence_item(it, _trim_dir) for it in good]
+
     bar = _ProgressBar("Building", enabled=not quiet)
-    chapters = core.compute_chapters(good)
+    chapters = core.compute_chapters(build_items)
     started = time.time()
+    # The two loudness options are mutually exclusive; per-chapter wins.
+    _pfn = getattr(args, "per_file_normalize", False)
     try:
         result = core.build_master(
-            good, output, tags, chapters=chapters,
-            bitrate=args.bitrate, normalize=args.normalize,
+            build_items, output, tags, chapters=chapters,
+            bitrate=args.bitrate, normalize=(args.normalize and not _pfn),
             gap_ms=int(round(getattr(args, "gap_seconds", 0.0) * 1000)),
+            per_file_normalize=_pfn,
+            normalize_lufs=getattr(args, "normalize_lufs", -16.0),
+            fade_in_ms=getattr(args, "fade_ms", 0),
+            fade_out_ms=getattr(args, "fade_ms", 0),
             progress=bar.update)
     except core.ChapterForgeError as exc:
         bar.finish()
@@ -613,6 +656,10 @@ def run(argv: Optional[List[str]] = None) -> int:
         bar.finish()
         _err("Cancelled.")
         return 130
+    finally:
+        if _trim_dir:
+            import shutil as _shutil
+            _shutil.rmtree(_trim_dir, ignore_errors=True)
     bar.finish()
 
     elapsed = time.time() - started
@@ -632,6 +679,16 @@ def run(argv: Optional[List[str]] = None) -> int:
             _print(f"  Chapters JSON: {sidecar}", quiet)
         except OSError:
             pass
+    if getattr(args, "rss_url", ""):
+        try:
+            from . import rss as rss_mod
+            rss_path = rss_mod.write_rss(result, tags, args.rss_url,
+                                         narrator=tags.narrator,
+                                         series_title=tags.series_title,
+                                         series_index=tags.series_index)
+            _print(f"  RSS feed: {rss_path}", quiet)
+        except Exception as exc:
+            _err(f"warning: could not write RSS feed: {exc}")
     return 0
 
 

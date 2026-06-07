@@ -33,6 +33,7 @@ samples/test.mp3
 # Bundled binaries (large; fetched/placed locally for builds)
 bin/ffmpeg.exe
 bin/ffprobe.exe
+bin/mpv/libmpv-2.dll
 
 # Watcher output folders
 _ChapterForge/

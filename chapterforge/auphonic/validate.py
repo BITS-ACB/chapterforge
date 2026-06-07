@@ -13,7 +13,6 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from dataclasses import dataclass
-from typing import Optional, Tuple
 
 from ..core import _find_tool, CREATE_NO_WINDOW
 

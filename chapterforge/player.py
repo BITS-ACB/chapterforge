@@ -2,10 +2,11 @@
 
 The player is a self-contained :class:`wx.Panel` built from standard, native
 controls (buttons, a slider and a read-only text field) so that screen readers
-announce every control and every state change clearly. The actual decoding is
-delegated to :class:`wx.media.MediaCtrl` (the platform media backend), which is
-not itself very screen-reader friendly - so the panel never relies on it for
-accessibility. Instead every meaningful event is surfaced through:
+announce every control and every state change clearly. The actual decoding and
+playback is delegated to :class:`audio_engine.MpvAudioEngine` (libmpv via
+``python-mpv``), which is not itself screen-reader friendly - so the panel
+never relies on it for accessibility. Instead every meaningful event is
+surfaced through:
 
 * visible, named buttons / slider with explicit accessible names,
 * a status line that is updated (and announced) on play / pause / seek, and
@@ -14,12 +15,13 @@ accessibility. Instead every meaningful event is surfaced through:
 
 Design points worth knowing:
 
-* ``wx.media.MediaCtrl`` keeps the media file open on Windows. Before the rest
+* The audio engine keeps the media file open while decoding. Before the rest
   of the app overwrites or re-tags a file the player may have loaded, call
-  :meth:`PlayerPanel.release` - it stops playback and recreates the underlying
-  control so the OS file handle is released.
-* All media calls happen on the main thread (driven by a ``wx.Timer``), so they
-  never race the build worker thread.
+  :meth:`PlayerPanel.release` - it stops playback and closes the engine so the
+  OS file handle is released.
+* All engine calls happen on the main thread (driven by a ``wx.Timer``); the
+  engine marshals its own background-thread events back via ``wx.CallAfter``,
+  so nothing here races the build worker thread.
 """
 
 from __future__ import annotations
@@ -31,8 +33,8 @@ import threading
 from typing import Callable, List, Optional, Sequence
 
 import wx
-import wx.media
 
+from . import audio_engine
 from . import core
 
 
@@ -48,26 +50,37 @@ class PlayerPanel(wx.Panel):
     #: pressing Previous within this many ms of a chapter start jumps to the
     #: previous chapter; later than this it restarts the current chapter.
     PREV_RESTART_MS = 3000
+    #: "Pause at end of chapter" only fires when the play-head advanced by no
+    #: more than this between ticks - i.e. it crossed the boundary by simply
+    #: playing forward, not via an explicit seek/skip that happened to land
+    #: just past it (which gets its own chapter announcement on the next tick).
+    BOUNDARY_PAUSE_MAX_DELTA_MS = 5000
 
-    SPEED_VALUES = [0.75, 1.0, 1.25, 1.5, 1.75, 2.0]
+    SPEED_VALUES = [0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0, 3.5, 4.0]
     SPEED_LABELS = [
-        "0.75x - slower", "1.0x - normal", "1.25x",
-        "1.5x", "1.75x", "2.0x - double speed"]
+        "0.5x - half speed", "0.75x - slower", "1.0x - normal", "1.25x",
+        "1.5x", "1.75x", "2.0x - double speed", "2.5x",
+        "3.0x - triple speed", "3.5x", "4.0x - quadruple speed"]
 
     def __init__(self, parent, announce: Callable[[str], None],
                  get_skip_seconds: Callable[[], int],
                  get_volume: Callable[[], int],
-                 on_volume_change: Optional[Callable[[int], None]] = None):
+                 on_volume_change: Optional[Callable[[int], None]] = None,
+                 on_load_started: Optional[Callable[[], None]] = None,
+                 get_pause_at_chapter_end: Optional[Callable[[], bool]] = None):
         super().__init__(parent)
         self._announce = announce
         self._get_skip = get_skip_seconds
         self._get_volume = get_volume
         self._on_volume_change = on_volume_change
+        self._on_load_started = on_load_started
+        self._get_pause_at_chapter_end = get_pause_at_chapter_end or (lambda: False)
 
         self.media_path: str = ""
         self.chapters: List[core.Chapter] = []
         self._starts: List[int] = []
         self._announced_idx: int = -1
+        self._last_tick_pos_ms: int = 0
         self._loaded = False
         self._pending_play = False
         self._pending_seek_ms: Optional[int] = None
@@ -86,10 +99,10 @@ class PlayerPanel(wx.Panel):
         self._trim_active: bool = False
 
         self._box = wx.StaticBoxSizer(wx.VERTICAL, self, "Player")
-        self._media_holder = wx.BoxSizer(wx.VERTICAL)
-        self.mc: Optional[wx.media.MediaCtrl] = None
-        self._make_media_ctrl()
-        self._box.Add(self._media_holder, 0)
+        self._engine = audio_engine.MpvAudioEngine(
+            on_loaded=self._on_engine_loaded,
+            on_finished=self._on_engine_finished,
+            on_error=self._on_engine_error)
 
         # --- transport buttons -------------------------------------------
         row = wx.BoxSizer(wx.HORIZONTAL)
@@ -139,7 +152,7 @@ class PlayerPanel(wx.Panel):
         slbl = wx.StaticText(self, label="S&peed:")
         spd_row.Add(slbl, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 4)
         self.speed_choice = wx.Choice(self, choices=self.SPEED_LABELS)
-        self.speed_choice.SetSelection(1)  # 1.0x default
+        self.speed_choice.SetSelection(self.SPEED_VALUES.index(1.0))  # 1.0x default
         self.speed_choice.SetName(
             "Playback speed - audio is re-processed by FFmpeg when speed is changed")
         self.speed_choice.SetToolTip(
@@ -154,7 +167,7 @@ class PlayerPanel(wx.Panel):
             "Save the audio at the current playback speed as a new MP3 file")
         self.btn_save_speed.SetToolTip(
             "Export the audio at the selected speed to an MP3 file.\n"
-            "The pitch is preserved — speech sounds natural at any speed.")
+            "The pitch is preserved - speech sounds natural at any speed.")
         self.btn_save_speed.Bind(wx.EVT_BUTTON, self._on_save_at_speed)
         self.btn_save_speed.Enable(False)
         spd_row.Add(self.btn_save_speed, 0, wx.ALL, 4)
@@ -208,22 +221,6 @@ class PlayerPanel(wx.Panel):
     # ------------------------------------------------------------------
     # Construction helpers
     # ------------------------------------------------------------------
-    def _make_media_ctrl(self):
-        mc = wx.media.MediaCtrl()
-        ok = mc.Create(self, style=wx.SIMPLE_BORDER)
-        if not ok:
-            mc.Destroy()
-            mc = None
-        else:
-            mc.SetMinSize((0, 0))
-            # Do NOT hide: the Windows backend requires a visible, realized
-            # HWND before Load() can attach to the media pipeline.
-            # SetMinSize((0,0)) already makes it take no visual space.
-            mc.Bind(wx.media.EVT_MEDIA_LOADED, self._on_media_loaded)
-            mc.Bind(wx.media.EVT_MEDIA_FINISHED, self._on_media_finished)
-            self._media_holder.Add(mc, 0)
-        self.mc = mc
-
     def _button(self, sizer, label, handler, name):
         btn = wx.Button(self, label=label)
         btn.SetName(name)
@@ -257,19 +254,18 @@ class PlayerPanel(wx.Panel):
         """
         is_speed_temp = (path == self._speed_temp)
         if not is_speed_temp:
-            # Brand new source — discard any previous speed-adjusted temp
+            # Brand new source - discard any previous speed-adjusted temp
             self._cleanup_speed_temp()
             self._orig_path = path
             self._orig_chapters = list(chapters)
             self._speed = 1.0
-            self.speed_choice.SetSelection(1)
+            self.speed_choice.SetSelection(self.SPEED_VALUES.index(1.0))
             self._trim_start_ms = 0
             self._trim_end_ms = 0
             wx.CallAfter(self._update_trim_label)
-        self.release(recreate=True)
-        if self.mc is None:
-            self._set_status("Audio playback is unavailable on this system.")
-            return False
+        if self._on_load_started:
+            self._on_load_started()
+        self.release()
         self.media_path = path
         self.chapters = list(chapters)
         self._starts = [c.start_ms for c in self.chapters]
@@ -277,63 +273,37 @@ class PlayerPanel(wx.Panel):
         self._loaded = False
         self._pending_play = False
         self._pending_seek_ms = None
-        try:
-            ok = self.mc.Load(path)
-            if not ok:
-                # Some Windows backends need a file:// URI rather than a bare path.
-                uri = "file:///" + path.replace("\\", "/")
-                ok = self.mc.LoadURI(uri)
-        except Exception:
-            ok = False
-        if not ok:
-            self._set_status("This file could not be loaded for playback.")
-            self._enable_controls(False)
-            return False
         self._set_status("Loading audio…")
+        self._engine.load(path)
         return True
 
-    def release(self, recreate: bool = True):
-        """Stop playback and free the OS file handle on the loaded media.
-
-        Recreating the underlying control is the only reliable way on Windows
-        to make the media backend close the file so it can be overwritten or
-        re-tagged.
-        """
+    def release(self):
+        """Stop playback and free the OS file handle on the loaded media."""
         if self._timer.IsRunning():
             self._timer.Stop()
-        if self.mc is not None:
-            try:
-                self.mc.Stop()
-            except Exception:
-                pass
-            self._media_holder.Detach(self.mc)
-            self.mc.Destroy()
-            self.mc = None
+        self._engine.close()
         self._loaded = False
         self.media_path = ""
         self.chapters = []
         self._starts = []
         self._pending_play = False
         self._pending_seek_ms = None
-        if recreate:
-            self._make_media_ctrl()
-            self.Layout()
         self._enable_controls(False)
         self.btn_play.SetLabel("&Play")
         self._set_status("No audio loaded.")
 
     def shutdown(self):
-        self.release(recreate=False)
+        self.release()
         self._cleanup_speed_temp()
+        self._engine.shutdown()
 
     def is_playing(self) -> bool:
-        return (self.mc is not None
-                and self.mc.GetState() == wx.media.MEDIASTATE_PLAYING)
+        return self._engine.is_playing()
 
     def play_chapter(self, idx: int) -> bool:
         """Public: jump to chapter *idx* and start playing. Honours a load that
         is still in flight by queueing the seek + play."""
-        if self.mc is None or not self.chapters:
+        if not self.chapters:
             return False
         if not (0 <= idx < len(self.chapters)):
             return False
@@ -341,18 +311,26 @@ class PlayerPanel(wx.Panel):
             self._pending_seek_ms = self.chapters[idx].start_ms
             self._pending_play = True
             return True
-        self._seek_chapter(idx)
-        self._do_play()
+        self._announced_idx = idx
+        self._suppress_announce = True
+        # Seek and resume must happen as one atomic engine restart - calling
+        # _do_play() afterwards would race the async reload (see _on_engine_loaded).
+        self._engine.seek(self.chapters[idx].start_ms, resume=True)
+        self._refresh_position(announce_chapter=False)
+        self._sync_playing_ui()
+        self._announce(
+            f"Chapter {idx + 1} of {len(self.chapters)}: "
+            f"{self.chapters[idx].title}.")
         return True
 
     def playhead_ms(self) -> int:
         """Public: current playback position in milliseconds (0 if unloaded)."""
-        if self.mc is None or not self._loaded:
+        if not self._loaded:
             return 0
         return self._tell()
 
     def has_media(self) -> bool:
-        return self.mc is not None and self._loaded
+        return self._loaded
 
     def set_chapters(self, chapters: Sequence[core.Chapter]):
         """Update the chapter map WITHOUT reloading the media file, so playback
@@ -364,12 +342,9 @@ class PlayerPanel(wx.Panel):
             self._refresh_position(announce_chapter=False)
 
     # ------------------------------------------------------------------
-    # Media events
+    # Engine events (always delivered on the main thread via wx.CallAfter)
     # ------------------------------------------------------------------
-    def _on_media_loaded(self, _evt):
-        # Ignore a late event from a control we have since recreated.
-        if _evt.GetEventObject() is not self.mc:
-            return
+    def _on_engine_loaded(self, _length_ms: int):
         self._loaded = True
         self._enable_controls(True)
         self._apply_volume(self.vol_slider.GetValue())
@@ -379,27 +354,41 @@ class PlayerPanel(wx.Panel):
                             if self.chapters else "."))
         self._refresh_position(announce_chapter=False)
         if self._pending_seek_ms is not None:
-            self._seek(self._pending_seek_ms)
+            target = self._pending_seek_ms
             self._pending_seek_ms = None
-        if self._pending_play:
+            resume = self._pending_play
+            self._pending_play = False
+            # Seek and resume must happen as one atomic engine restart -
+            # calling _do_play() afterwards would race the async reload.
+            self._engine.seek(target, resume=resume)
+            self._refresh_position(announce_chapter=False)
+            if resume:
+                self._sync_playing_ui()
+                self._announce("Playing.")
+        elif self._pending_play:
             self._pending_play = False
             self._do_play()
 
-    def _on_media_finished(self, _evt):
+    def _on_engine_finished(self):
         if self._timer.IsRunning():
             self._timer.Stop()
         self.btn_play.SetLabel("&Play")
         self._set_status("Finished.")
         self._announce("Playback finished.")
 
+    def _on_engine_error(self, message: str):
+        self._set_status(message)
+        self._enable_controls(False)
+        self._announce(message)
+
     # ------------------------------------------------------------------
     # Transport handlers
     # ------------------------------------------------------------------
     def _on_play_pause(self, _evt):
-        if self.mc is None or not self._loaded:
+        if not self._loaded:
             return
         if self.is_playing():
-            self.mc.Pause()
+            self._engine.pause()
             self.btn_play.SetLabel("&Play")
             if self._timer.IsRunning():
                 self._timer.Stop()
@@ -408,19 +397,23 @@ class PlayerPanel(wx.Panel):
             self._do_play()
 
     def _do_play(self):
-        if self.mc is None:
+        if not self._loaded:
             return
-        self.mc.Play()
+        self._engine.play()
+        self._sync_playing_ui()
+        self._announce("Playing.")
+
+    def _sync_playing_ui(self):
+        """Reflect "now playing" in the transport button, timer, and volume."""
         self._apply_volume(self.vol_slider.GetValue())
         self.btn_play.SetLabel("Pa&use")
         if not self._timer.IsRunning():
             self._timer.Start(self.TICK_MS)
-        self._announce("Playing.")
 
     def _on_stop(self, _evt):
-        if self.mc is None:
+        if not self._loaded:
             return
-        self.mc.Stop()
+        self._engine.stop()
         self.btn_play.SetLabel("&Play")
         if self._timer.IsRunning():
             self._timer.Stop()
@@ -487,19 +480,44 @@ class PlayerPanel(wx.Panel):
         self._refresh_position(announce_chapter=True)
 
     def _refresh_position(self, announce_chapter: bool):
-        if self.mc is None or not self._loaded:
+        if not self._loaded:
             return
         length = self._length()
         pos = self._tell()
+        idx = self._chapter_index(pos)
+
+        pausing_at_boundary = False
+        if announce_chapter:
+            delta = pos - self._last_tick_pos_ms
+            if (self._announced_idx >= 0 and idx == self._announced_idx + 1
+                    and 0 <= delta <= self.BOUNDARY_PAUSE_MAX_DELTA_MS
+                    and self.is_playing() and self._get_pause_at_chapter_end()):
+                pausing_at_boundary = True
+                pos = self.chapters[idx].start_ms
+                self._engine.seek(pos, resume=False)
+            self._last_tick_pos_ms = pos
+
         if length > 0:
             self.pos_slider.SetValue(max(0, min(1000, int(pos / length * 1000))))
-        idx = self._chapter_index(pos)
         title = ""
         if 0 <= idx < len(self.chapters):
             title = self.chapters[idx].title
         suffix = f" - {title}" if title else ""
         self._set_status(f"{_fmt(pos)} / {_fmt(length)}{suffix}",
                          announce=False)
+
+        if pausing_at_boundary:
+            prev_idx = self._announced_idx
+            self._announced_idx = idx
+            self.btn_play.SetLabel("&Play")
+            if self._timer.IsRunning():
+                self._timer.Stop()
+            self._announce(
+                f"End of chapter {prev_idx + 1}. Paused at the start of "
+                f"chapter {idx + 1}: {title}.")
+            self._suppress_announce = False
+            return
+
         if announce_chapter and idx != self._announced_idx and idx >= 0:
             self._announced_idx = idx
             if not self._suppress_announce:
@@ -524,36 +542,20 @@ class PlayerPanel(wx.Panel):
         return max(0, i)
 
     # ------------------------------------------------------------------
-    # Thin MediaCtrl wrappers (all main-thread)
+    # Thin engine wrappers (all main-thread)
     # ------------------------------------------------------------------
     def _length(self) -> int:
-        try:
-            return int(self.mc.Length()) if self.mc else 0
-        except Exception:
-            return 0
+        return self._engine.length()
 
     def _tell(self) -> int:
-        try:
-            return int(self.mc.Tell()) if self.mc else 0
-        except Exception:
-            return 0
+        return self._engine.tell()
 
     def _seek(self, ms: int):
-        if self.mc is None:
-            return
-        try:
-            self.mc.Seek(int(ms))
-        except Exception:
-            pass
+        self._engine.seek(int(ms))
         self._refresh_position(announce_chapter=False)
 
     def _apply_volume(self, vol: int):
-        if self.mc is None:
-            return
-        try:
-            self.mc.SetVolume(max(0.0, min(1.0, vol / 100.0)))
-        except Exception:
-            pass
+        self._engine.set_volume(max(0.0, min(1.0, vol / 100.0)))
 
     def _set_status(self, text: str, announce: bool = False):
         self.status.SetLabel(text)
@@ -611,7 +613,7 @@ class PlayerPanel(wx.Panel):
         self._speed = new_speed
 
         if abs(new_speed - 1.0) < 0.001:
-            # Back to normal — just reload the original without FFmpeg.
+            # Back to normal - just reload the original without FFmpeg.
             self._cleanup_speed_temp()
             scaled = self._orig_chapters
             self._speed_temp = None
@@ -640,7 +642,7 @@ class PlayerPanel(wx.Panel):
                     resume: bool, ok: bool):
         self._speed_busy = False
         if not ok:
-            self._set_status("Speed change failed — check the audio file.", announce=True)
+            self._set_status("Speed change failed - check the audio file.", announce=True)
             # Revert selector to the previous working speed
             try:
                 prev_idx = self.SPEED_VALUES.index(1.0)
@@ -707,7 +709,7 @@ class PlayerPanel(wx.Panel):
         if ok:
             self._set_status(f"Saved: {os.path.basename(dst)}", announce=True)
         else:
-            self._set_status("Export failed — check the audio file.", announce=True)
+            self._set_status("Export failed - check the audio file.", announce=True)
 
     # ------------------------------------------------------------------
     # Trim / cut selection

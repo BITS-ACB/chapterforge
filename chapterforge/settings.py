@@ -26,8 +26,7 @@ DEFAULTS: Dict[str, Any] = {
     # Build preferences.
     "title_source": "filename",   # 'filename' or 'embedded'
     "prefer_id3_tags": False,     # when True, prefer ID3 tags over filename when available
-    "prefer_id3_tags": False,     # when True, prefer ID3 tags over filename when available
-    "output_format": "mp3",       # 'mp3' or 'm4b'
+    "output_format": "mp3",       # 'mp3', 'm4b', 'flac' or 'opus'
     "bitrate": "192k",
     "normalize": False,
     "auto_cover": True,
@@ -36,12 +35,12 @@ DEFAULTS: Dict[str, Any] = {
     # Accessibility / announcements.
     "announce_verbosity": "normal",  # 'quiet', 'normal' or 'verbose'
     "text_scale": 100,            # UI font scaling percent (100 = system default)
-    "high_contrast": False,       # high-contrast colour theme
     # Recently opened folders / masters / jobs (most-recent first).
     "recent": [],
     # Player preferences.
     "skip_seconds": 10,           # rewind / fast-forward step
     "default_volume": 80,         # 0-100
+    "pause_at_chapter_end": False,  # pause playback at each chapter boundary instead of continuing
     # Silence auto-chaptering defaults.
     "silence_noise_db": -30.0,
     "silence_min_seconds": 0.8,
@@ -50,7 +49,7 @@ DEFAULTS: Dict[str, Any] = {
     "win_h": 760,
     "win_x": -1,
     "win_y": -1,
-    "win_max": False,
+    "win_max": True,
     # Startup behaviour.
     "start_minimized": False,       # hide window on launch; show tray icon instead
     "check_updates_startup": True,  # silently check for updates at launch
@@ -71,6 +70,23 @@ DEFAULTS: Dict[str, Any] = {
     "fade_ms": 0,
     # Beta features opt-in: enables experimental functionality (e.g. Auphonic integration).
     "beta_features": False,
+    # Silence trimming: strip leading/trailing silence from each track before concat.
+    "trim_silence": False,
+    "trim_silence_db": -50.0,    # dBFS threshold
+    "trim_silence_min_ms": 100.0,  # minimum silence duration to detect at edges
+    # Narrator and series metadata fields.
+    "narrator": "",
+    "series_title": "",
+    "series_index": "",
+    # RSS feed export: write a .rss sidecar after a successful build.
+    "write_rss": False,
+    "rss_media_url": "",   # base URL where the audio file will be hosted
+    # ACX compliance check: run automatically after every build.
+    "acx_check_after_build": False,
+    # Build log: keep a rolling log of recent builds.
+    "log_build_history": True,
+    # Feature flags: {flag_key: bool} overrides layered on chapterforge.feature_flags.REGISTRY defaults.
+    "feature_flags": {},
 }
 
 

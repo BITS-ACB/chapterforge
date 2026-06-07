@@ -7,7 +7,6 @@ the supplied callback (wx.CallAfter or similar).
 from __future__ import annotations
 
 import threading
-import time
 from typing import Callable, Optional
 
 from .client import AuphonicClient, AuphonicError

@@ -12,7 +12,7 @@ from typing import List, Optional
 
 import wx
 
-from . import a11y
+from . import a11y, settings as settings_mod
 from .watcher_config import Process, load_processes, save_processes
 
 
@@ -69,6 +69,10 @@ class ProcessEditDialog(wx.Dialog):
         self.album_artist_ctrl = field("Album a&rtist:", process.album_artist,
                                        "Album artist")
         self.genre_ctrl = field("&Genre:", process.genre, "Genre")
+        self.narrator_ctrl = field("&Narrator:", process.narrator, "Narrator")
+        self.series_ctrl = field("&Series:", process.series_title, "Series title")
+        self.series_idx_ctrl = field("Series &part:", process.series_index,
+                                     "Series part or number")
 
         # Choices / checkboxes.
         grid.Add(wx.StaticText(panel, label="Chapter titles fro&m:"),
@@ -86,6 +90,19 @@ class ProcessEditDialog(wx.Dialog):
         self.bitrate.SetName("Re-encode quality")
         self.bitrate.SetStringSelection(process.bitrate or "192k")
         grid.Add(self.bitrate, 0)
+
+        # Build preset selector: if a preset is chosen it overrides bitrate and normalize.
+        self._preset_names = ["(none)"] + sorted(
+            settings_mod.load().get("presets", {}).keys())
+        grid.Add(wx.StaticText(panel, label="Build &preset:"),
+                 0, wx.ALIGN_CENTER_VERTICAL)
+        self.preset = wx.Choice(panel, choices=self._preset_names)
+        self.preset.SetName(
+            "Build preset - overrides quality and normalize settings when selected")
+        sel = (self._preset_names.index(process.preset)
+               if process.preset and process.preset in self._preset_names else 0)
+        self.preset.SetSelection(sel)
+        grid.Add(self.preset, 0)
 
         sizer.Add(grid, 0, wx.EXPAND | wx.ALL, 12)
 
@@ -134,6 +151,9 @@ class ProcessEditDialog(wx.Dialog):
         evt.Skip()
 
     def result(self) -> Process:
+        preset_sel = self.preset.GetSelection()
+        preset_name = (self._preset_names[preset_sel]
+                       if preset_sel > 0 else "")
         return Process(
             name=self.name_ctrl.GetValue().strip(),
             watch_folder=self.folder_ctrl.GetValue().strip(),
@@ -147,6 +167,10 @@ class ProcessEditDialog(wx.Dialog):
             title_source="embedded" if self.title_source.GetSelection() == 1 else "filename",
             bitrate=self.bitrate.GetStringSelection() or "192k",
             normalize=self.normalize_chk.GetValue(),
+            narrator=self.narrator_ctrl.GetValue().strip(),
+            series_title=self.series_ctrl.GetValue().strip(),
+            series_index=self.series_idx_ctrl.GetValue().strip(),
+            preset=preset_name,
         )
 
 

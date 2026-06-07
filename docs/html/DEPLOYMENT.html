@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ChapterForge — Deployment Guide</title>
+<title>ChapterForge - Deployment Guide</title>
 <style>:root {
   --bg: #ffffff; --fg: #1b1b1b; --muted: #555; --accent: #0b5fa5;
   --border: #d0d7de; --code-bg: #f3f4f6; --nav-bg: #f6f8fa;
@@ -67,8 +67,8 @@ footer.site { color: var(--muted); border-top: 1px solid var(--border);
 <header class="site"><nav aria-label="Documentation"><ul><li><a href="index.html">Home</a></li><li><a href="USER_GUIDE.html">User Guide</a></li><li><a href="AUPHONIC_INTEGRATION.html">Auphonic</a></li><li><a href="CHANGELOG.html">Changelog</a></li><li><a href="THIRD_PARTY.html">Third-Party Notices</a></li></ul></nav></header>
 <div class="wrap">
 <main id="main" tabindex="-1">
-<nav class="toc" aria-label="On this page"><p>On this page</p><ul><li><a href="#1-prerequisites-and-system-requirements">1. Prerequisites and System Requirements</a></li><li class="lvl3"><a href="#11-development-environment">1.1 Development Environment</a></li><li class="lvl3"><a href="#12-hardware-requirements">1.2 Hardware Requirements</a></li><li class="lvl3"><a href="#13-optional-tools-for-advanced-deployment">1.3 Optional Tools for Advanced Deployment</a></li><li><a href="#2-versioning-strategy">2. Versioning Strategy</a></li><li class="lvl3"><a href="#21-version-number-components">2.1 Version Number Components</a></li><li class="lvl3"><a href="#22-version-update-checklist">2.2 Version Update Checklist</a></li><li class="lvl3"><a href="#23-git-tagging-convention">2.3 Git Tagging Convention</a></li><li><a href="#3-testing-and-quality-assurance">3. Testing and Quality Assurance</a></li><li class="lvl3"><a href="#31-automated-test-suite">3.1 Automated Test Suite</a></li><li class="lvl3"><a href="#32-manual-testing-checklist">3.2 Manual Testing Checklist</a></li><li><a href="#4-building-chapterforge-100">4. Building ChapterForge 1.0.0</a></li><li class="lvl3"><a href="#41-development-build">4.1 Development Build</a></li><li class="lvl3"><a href="#42-pyinstaller-build-process">4.2 PyInstaller Build Process</a></li><li class="lvl3"><a href="#43-build-customization">4.3 Build Customization</a></li><li><a href="#5-creating-installers">5. Creating Installers</a></li><li class="lvl3"><a href="#51-standard-installer-inno-setup">5.1 Standard Installer (Inno Setup)</a></li><li class="lvl3"><a href="#52-portable-edition">5.2 Portable Edition</a></li><li class="lvl3"><a href="#53-command-line-only-distribution">5.3 Command-Line Only Distribution</a></li><li><a href="#6-code-signing-and-security">6. Code Signing and Security</a></li><li class="lvl3"><a href="#61-code-signing-process">6.1 Code Signing Process</a></li><li class="lvl3"><a href="#62-security-scanning">6.2 Security Scanning</a></li><li><a href="#7-release-process">7. Release Process</a></li><li class="lvl3"><a href="#71-pre-release-checklist">7.1 Pre-Release Checklist</a></li><li class="lvl3"><a href="#72-building-official-release">7.2 Building Official Release</a></li><li class="lvl3"><a href="#73-github-release-creation">7.3 GitHub Release Creation</a></li><li class="lvl3"><a href="#74-post-release-activities">7.4 Post-Release Activities</a></li><li><a href="#8-continuous-integration-and-deployment">8. Continuous Integration and Deployment</a></li><li class="lvl3"><a href="#81-github-actions-workflow">8.1 GitHub Actions Workflow</a></li><li class="lvl3"><a href="#82-automated-testing-matrix">8.2 Automated Testing Matrix</a></li><li><a href="#9-update-distribution-system">9. Update Distribution System</a></li><li class="lvl3"><a href="#91-github-releases-integration">9.1 GitHub Releases Integration</a></li><li class="lvl3"><a href="#92-update-release-workflow">9.2 Update Release Workflow</a></li><li class="lvl3"><a href="#93-downgrade-protection">9.3 Downgrade Protection</a></li><li><a href="#10-troubleshooting-common-build-issues">10. Troubleshooting Common Build Issues</a></li><li class="lvl3"><a href="#101-pyinstaller-issues">10.1 PyInstaller Issues</a></li><li class="lvl3"><a href="#102-inno-setup-issues">10.2 Inno Setup Issues</a></li><li class="lvl3"><a href="#103-ffmpeg-integration-issues">10.3 FFmpeg Integration Issues</a></li><li><a href="#2-versioning">2. Versioning</a></li><li><a href="#3-run-the-tests">3. Run the tests</a></li><li><a href="#4-build-the-executables-pyinstaller">4. Build the executables (PyInstaller)</a></li><li><a href="#5-build-the-installer-inno-setup">5. Build the installer (Inno Setup)</a></li><li><a href="#6-publish-a-github-release">6. Publish a GitHub Release</a></li><li><a href="#7-the-update-feed">7. The update feed</a></li><li><a href="#8-release-checklist">8. Release checklist</a></li></ul></nav>
-<h1>ChapterForge 1.0.0 — Comprehensive Deployment Guide</h1>
+<nav class="toc" aria-label="On this page"><p>On this page</p><ul><li><a href="#1-prerequisites-and-system-requirements">1. Prerequisites and System Requirements</a></li><li class="lvl3"><a href="#11-development-environment">1.1 Development Environment</a></li><li class="lvl3"><a href="#12-hardware-requirements">1.2 Hardware Requirements</a></li><li class="lvl3"><a href="#13-optional-tools-for-advanced-deployment">1.3 Optional Tools for Advanced Deployment</a></li><li><a href="#2-versioning-strategy">2. Versioning Strategy</a></li><li class="lvl3"><a href="#21-version-number-components">2.1 Version Number Components</a></li><li class="lvl3"><a href="#22-version-update-checklist">2.2 Version Update Checklist</a></li><li class="lvl3"><a href="#23-git-tagging-convention">2.3 Git Tagging Convention</a></li><li><a href="#3-testing-and-quality-assurance">3. Testing and Quality Assurance</a></li><li class="lvl3"><a href="#31-automated-test-suite">3.1 Automated Test Suite</a></li><li class="lvl3"><a href="#32-manual-testing-checklist">3.2 Manual Testing Checklist</a></li><li><a href="#4-building-chapterforge-100">4. Building ChapterForge 1.0.0</a></li><li class="lvl3"><a href="#41-development-build">4.1 Development Build</a></li><li class="lvl3"><a href="#42-pyinstaller-build-process">4.2 PyInstaller Build Process</a></li><li class="lvl3"><a href="#43-build-customization">4.3 Build Customization</a></li><li><a href="#5-creating-installers">5. Creating Installers</a></li><li class="lvl3"><a href="#51-standard-installer-inno-setup">5.1 Standard Installer (Inno Setup)</a></li><li class="lvl3"><a href="#52-portable-edition">5.2 Portable Edition</a></li><li class="lvl3"><a href="#53-command-line-tool">5.3 Command-Line Tool</a></li><li><a href="#6-code-signing-and-security">6. Code Signing and Security</a></li><li class="lvl3"><a href="#61-code-signing-process">6.1 Code Signing Process</a></li><li class="lvl3"><a href="#62-security-scanning">6.2 Security Scanning</a></li><li><a href="#7-release-process">7. Release Process</a></li><li class="lvl3"><a href="#71-pre-release-checklist">7.1 Pre-Release Checklist</a></li><li class="lvl3"><a href="#72-building-official-release">7.2 Building Official Release</a></li><li class="lvl3"><a href="#73-github-release-creation">7.3 GitHub Release Creation</a></li><li class="lvl3"><a href="#74-post-release-activities">7.4 Post-Release Activities</a></li><li><a href="#8-continuous-integration-and-deployment">8. Continuous Integration and Deployment</a></li><li class="lvl3"><a href="#81-github-actions-workflow">8.1 GitHub Actions Workflow</a></li><li class="lvl3"><a href="#82-automated-testing-matrix">8.2 Automated Testing Matrix</a></li><li><a href="#9-update-distribution-system">9. Update Distribution System</a></li><li class="lvl3"><a href="#91-github-releases-integration">9.1 GitHub Releases Integration</a></li><li class="lvl3"><a href="#92-update-release-workflow">9.2 Update Release Workflow</a></li><li class="lvl3"><a href="#93-downgrade-protection">9.3 Downgrade Protection</a></li><li><a href="#10-troubleshooting-common-build-issues">10. Troubleshooting Common Build Issues</a></li><li class="lvl3"><a href="#101-pyinstaller-issues">10.1 PyInstaller Issues</a></li><li class="lvl3"><a href="#102-inno-setup-issues">10.2 Inno Setup Issues</a></li><li class="lvl3"><a href="#103-ffmpeg-integration-issues">10.3 FFmpeg Integration Issues</a></li><li><a href="#2-versioning">2. Versioning</a></li><li><a href="#3-run-the-tests">3. Run the tests</a></li><li><a href="#4-build-the-executables-pyinstaller">4. Build the executables (PyInstaller)</a></li><li><a href="#5-build-the-installer-inno-setup">5. Build the installer (Inno Setup)</a></li><li><a href="#6-publish-a-github-release">6. Publish a GitHub Release</a></li><li><a href="#7-the-update-feed">7. The update feed</a></li><li><a href="#8-release-checklist">8. Release checklist</a></li></ul></nav>
+<h1>ChapterForge 1.0.0 - Comprehensive Deployment Guide</h1>
 <p>This document provides detailed instructions for building, packaging, releasing, and updating ChapterForge 1.0.0 on Windows. This guide covers everything from development environment setup to production deployment strategies.</p>
 <hr>
 <h2 id="1-prerequisites-and-system-requirements">1. Prerequisites and System Requirements</h2>
@@ -127,15 +127,15 @@ footer.site { color: var(--muted); border-top: 1px solid var(--border);
 <li><strong><code>installer/ChapterForge.iss</code></strong> → Inno Setup defines ``<code>pascal #define AppVersion &quot;1.0.0&quot;  # ← Update this </code>``</li>
 </ol>
 <ol>
-<li><strong><code>CHANGELOG.md</code></strong> → Add new version section with release date ```markdown ## [1.0.0] - 2026-06-05 ### Added</li>
+<li><strong><code>installer/ChapterForge-Portable.iss</code></strong> → Inno Setup defines ``<code>pascal #define AppVersion &quot;1.0.0&quot;  # ← Update this </code>``</li>
+</ol>
+<ol>
+<li><strong><code>CHANGELOG.md</code></strong> → Add new version section with release date ```markdown ## [1.0.0] - 2026-06-06 ### Added</li>
 </ol>
 <ul>
 <li>New features... ```</li>
 </ul>
-<ol>
-<li><strong><code>docs/conf.py</code></strong> → Documentation version (if applicable)</li>
-<li><strong><code>ChapterForge.spec</code></strong> → PyInstaller spec file version</li>
-</ol>
+<p>(The PyInstaller spec <code>ChapterForge.spec</code> does not contain a version string, and there is no <code>docs/conf.py</code> - the HTML docs are generated by <code>tools/build_docs.py</code> and pick up the version from <code>chapterforge/__init__.py</code>.)</p>
 <h3 id="23-git-tagging-convention">2.3 Git Tagging Convention</h3>
 <ul>
 <li><strong>Tag Format</strong>: <code>vMAJOR.MINOR.PATCH</code> (e.g., <code>v1.0.0</code>)</li>
@@ -186,7 +186,7 @@ python -m pytest -n auto</code></pre>
 <li class="task"><input type="checkbox" disabled> Full keyboard navigation</li>
 <li class="task"><input type="checkbox" disabled> Screen reader compatibility (NVDA, JAWS, Narrator)</li>
 <li class="task"><input type="checkbox" disabled> High contrast theme operation</li>
-<li class="task"><input type="checkbox" disabled> Voice announcement accuracy</li>
+<li class="task"><input type="checkbox" disabled> Screen reader announcement accuracy</li>
 </ul>
 <ol>
 <li><strong>Advanced Features</strong></li>
@@ -234,9 +234,9 @@ pyinstaller ChapterForge.spec
 # ├── ChapterForge.exe        # Graphical application
 # ├── chapterforge-cli.exe    # Command-line interface
 # ├── _internal/              # Runtime dependencies
-# │   ├── bin/                # Bundled FFmpeg binaries
 # │   ├── python312.dll       # Python runtime
-# │   └── ...                 # Other dependencies</code></pre>
+# │   └── ...                 # Other dependencies
+# (FFmpeg is NOT bundled - it is downloaded on first run)</code></pre>
 <h4 id="pyinstaller-build-options">PyInstaller Build Options</h4>
 <ul>
 <li><strong>One-Folder Build</strong> (Recommended): Faster startup, easier debugging ``<code>bash pyinstaller ChapterForge.spec </code>``</li>
@@ -249,31 +249,19 @@ pyinstaller ChapterForge.spec
 </ul>
 <h3 id="43-build-customization">4.3 Build Customization</h3>
 <h4 id="customizing-chapterforgespec">Customizing ChapterForge.spec</h4>
-<p>The <code>ChapterForge.spec</code> file controls the PyInstaller build process:</p>
-<pre><code># Key configuration options in ChapterForge.spec:
+<p>The <code>ChapterForge.spec</code> file controls the PyInstaller build process. It builds two executables from one spec (the GUI <code>main.py</code> and the console <code>cli_main.py</code>) and shares their dependencies with <code>MERGE</code>. Key points from the actual spec:</p>
+<pre><code># No version string lives in the spec; the version comes from
+# chapterforge/__init__.py at runtime.
 
-# Application version
-version = &#x27;1.0.0&#x27;
+# Nothing extra is bundled as data - FFmpeg is downloaded at runtime and the
+# docs are online, both to keep the build small.
+datas = []
 
-# Build directories
-distpath = &#x27;dist&#x27;
-workpath = &#x27;build&#x27;
+hiddenimports = [&#x27;wx._xml&#x27;, &#x27;wx.adv&#x27;, &#x27;wx.media&#x27;]
+excludes = [&#x27;tkinter&#x27;, &#x27;pytest&#x27;, &#x27;numpy&#x27;, &#x27;sympy&#x27;]
 
-# Runtime data files
-datas = [
-    (&#x27;chapterforge/data/*&#x27;, &#x27;chapterforge/data&#x27;),
-    (&#x27;chapterforge/templates/*&#x27;, &#x27;chapterforge/templates&#x27;),
-    (&#x27;LICENSE&#x27;, &#x27;.&#x27;),
-    (&#x27;README.md&#x27;, &#x27;.&#x27;),
-]
-
-# Excluded modules (to reduce size)
-excludes = [
-    &#x27;tkinter&#x27;,
-    &#x27;unittest&#x27;,
-    &#x27;email&#x27;,
-    &#x27;http&#x27;,
-]</code></pre>
+# Two Analysis targets (main.py and cli_main.py), merged so shared
+# dependencies are collected once, then COLLECT-ed into dist/ChapterForge/.</code></pre>
 <h4 id="environment-variables-for-builds">Environment Variables for Builds</h4>
 <p>Set environment variables to customize builds:</p>
 <pre><code># Set build version
@@ -301,7 +289,7 @@ pyinstaller ChapterForge.spec
 &quot;C:\Program Files (x86)\Inno Setup 6\ISCC.exe&quot; installer\ChapterForge.iss
 
 # Output location
-# installer_output\ChapterForge-Setup-1.0.0.exe</code></pre>
+# installer_output\ChapterForge-Setup.exe</code></pre>
 <h4 id="inno-setup-script-configuration">Inno Setup Script Configuration</h4>
 <p>Key settings in <code>installer/ChapterForge.iss</code>:</p>
 <pre><code>#define AppName &quot;ChapterForge&quot;
@@ -322,26 +310,22 @@ DefaultDirName={autopf}\{#AppName}
 DefaultGroupName={#AppName}
 AllowNoIcons=yes
 PrivilegesRequired=admin
-OutputBaseFilename=ChapterForge-Setup-{#AppVersion}
+OutputBaseFilename={#AppName}-Setup
 Compression=lzma2/max
 SolidCompression=yes</code></pre>
+<p>(The output base filename has no version suffix, so the asset is always <code>ChapterForge-Setup.exe</code>. This keeps the <code>releases/latest/download/...</code> URLs on the website stable across versions.)</p>
 <h3 id="52-portable-edition">5.2 Portable Edition</h3>
-<p>Create the portable edition:</p>
-<pre><code># Build PyInstaller one-folder version
+<p>Create the portable edition with its own Inno Setup script:</p>
+<pre><code># Build PyInstaller one-folder version (shared by both installers)
 pyinstaller ChapterForge.spec
 
-# Package as portable ZIP
-powershell Compress-Archive -Path &quot;dist\ChapterForge&quot; -DestinationPath &quot;installer_output\ChapterForge-Portable-1.0.0.zip&quot;
+# Build the portable installer
+&quot;C:\Program Files (x86)\Inno Setup 6\ISCC.exe&quot; installer\ChapterForge-Portable.iss
 
-# Or use Inno Setup for portable installer
-&quot;C:\Program Files (x86)\Inno Setup 6\ISCC.exe&quot; installer\ChapterForge-Portable.iss</code></pre>
-<h3 id="53-command-line-only-distribution">5.3 Command-Line Only Distribution</h3>
-<p>For server or automated environments:</p>
-<pre><code># Create minimal CLI distribution
-pyinstaller ChapterForge-cli.spec
-
-# Package for distribution
-powershell Compress-Archive -Path &quot;dist\chapterforge-cli&quot; -DestinationPath &quot;installer_output\ChapterForge-CLI-1.0.0.zip&quot;</code></pre>
+# Output location
+# installer_output\ChapterForge-Portable.exe</code></pre>
+<h3 id="53-command-line-tool">5.3 Command-Line Tool</h3>
+<p>There is no separate CLI distribution. The console executable <code>chapterforge-cli.exe</code> is produced by the same <code>ChapterForge.spec</code> build (via PyInstaller <code>MERGE</code>) and ships inside both the standard and portable packages.</p>
 <hr>
 <h2 id="6-code-signing-and-security">6. Code Signing and Security</h2>
 <h3 id="61-code-signing-process">6.1 Code Signing Process</h3>
@@ -405,13 +389,17 @@ pyinstaller ChapterForge.spec
 git tag -a v1.0.0 -m &quot;Release version 1.0.0&quot;
 git push origin v1.0.0
 
-# 2. Create GitHub release
+# 2. Create the GitHub release. Publishing it triggers the Build Release
+#    workflow (.github/workflows/build-release.yml), which builds with
+#    PyInstaller + Inno Setup and uploads the two installers automatically.
 gh release create v1.0.0 \
   --title &quot;ChapterForge 1.0.0&quot; \
-  --notes &quot;Release notes for version 1.0.0&quot; \
-  installer_output\ChapterForge-Setup-1.0.0.exe \
-  installer_output\ChapterForge-Portable-1.0.0.zip \
-  installer_output\ChapterForge-CLI-1.0.0.zip</code></pre>
+  --notes &quot;Release notes for version 1.0.0&quot;
+
+# To attach the installers manually instead, build them locally and run:
+#   gh release upload v1.0.0 \
+#     installer_output\ChapterForge-Setup.exe \
+#     installer_output\ChapterForge-Portable.exe</code></pre>
 <h3 id="74-post-release-activities">7.4 Post-Release Activities</h3>
 <ul>
 <li class="task"><input type="checkbox" disabled> Update website with new version information</li>
@@ -547,9 +535,9 @@ gh release create v1.0.0 --generate-notes \
 <pre><code>pyinstaller ChapterForge.spec</code></pre>
 <p>This produces a <strong>one-folder</strong> build under <code>dist\ChapterForge\</code>:</p>
 <ul>
-<li><code>ChapterForge.exe</code> — the GUI app (windowed, <code>console=False</code>).</li>
-<li><code>chapterforge-cli.exe</code> — the CLI (console, <code>console=True</code>).</li>
-<li><code>_internal\</code> — Python runtime, dependencies, and <code>_internal\bin\ffmpeg.exe</code> / <code>ffprobe.exe</code>.</li>
+<li><code>ChapterForge.exe</code> - the GUI app (windowed, <code>console=False</code>).</li>
+<li><code>chapterforge-cli.exe</code> - the CLI (console, <code>console=True</code>).</li>
+<li><code>_internal\</code> - Python runtime and dependencies. FFmpeg is not included here; ChapterForge downloads <code>ffmpeg.exe</code> / <code>ffprobe.exe</code> on first run (or the user supplies them on PATH).</li>
 </ul>
 <p>The one-folder layout is deliberate: there is <strong>no per-launch temp extraction</strong>, which avoids the temp-folder cleanup problems of one-file builds when the app closes.</p>
 <p>Smoke-test the build before packaging:</p>
@@ -579,7 +567,7 @@ GITHUB_REPO  = &quot;chapterforge&quot;</code></pre>
 <li>Only <strong>HTTPS</strong> URLs on trusted GitHub hosts are accepted for the download link.</li>
 <li>Network/parse failures are reported gracefully; they never crash the app.</li>
 </ul>
-<p>So each release is picked up automatically by existing installs once the tag is published — no separate update server is required.</p>
+<p>So each release is picked up automatically by existing installs once the tag is published - no separate update server is required.</p>
 <hr>
 <h2 id="8-release-checklist">8. Release checklist</h2>
 <ul>

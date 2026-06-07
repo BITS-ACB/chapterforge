@@ -41,6 +41,7 @@ _TAG_KEYS = {
     "title", "artist", "album", "album_artist", "albumartist",
     "genre", "year", "comment", "cover", "output", "bitrate", "normalize",
     "title_source", "titlesource",
+    "narrator", "series", "series_title", "series_index", "series_part",
 }
 
 _BOOL_TRUE = {"1", "true", "yes", "on"}
@@ -141,6 +142,9 @@ def manifest_tags(manifest: Manifest, folder: str) -> core.Tags:
         year=opt.get("year", ""),
         comment=opt.get("comment", ""),
         cover_path=cover if cover and os.path.isfile(cover) else "",
+        narrator=opt.get("narrator", ""),
+        series_title=opt.get("series") or opt.get("series_title", ""),
+        series_index=opt.get("series_part") or opt.get("series_index", ""),
     )
 
 

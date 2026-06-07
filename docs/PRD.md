@@ -1,4 +1,4 @@
-# ChapterForge 1.0.0 — Product Requirements Document
+# ChapterForge 1.0.0 - Product Requirements Document
 
 **Product**: ChapterForge  
 **Version**: 1.0.0  
@@ -9,7 +9,7 @@
 
 ## 1. Executive Summary
 
-ChapterForge is a Windows desktop application that converts a folder of audio files into a single master audio file with embedded, navigable chapter markers. It targets content creators — audiobook producers, podcasters, and lecture archivists — with a first-class requirement that the tool be fully operable by blind and low-vision users using only a keyboard and screen reader.
+ChapterForge is a Windows desktop application that converts a folder of audio files into a single master audio file with embedded, navigable chapter markers. It targets content creators - audiobook producers, podcasters, and lecture archivists - with a first-class requirement that the tool be fully operable by blind and low-vision users using only a keyboard and screen reader.
 
 The application ships with a GUI (wxPython), a CLI (Click), a background folder-watching engine with system-tray controller, and a beta Auphonic audio post-production integration. All core audio work is delegated to FFmpeg and Mutagen; ChapterForge provides the workflow, accessibility layer, and chapter-format expertise on top.
 
@@ -95,7 +95,7 @@ Entry points: `main.py` (GUI / watcher), `cli_main.py` (CLI console).
 The primary workflow: open a folder of audio files, review the automatically assembled chapter list, set metadata, and build a single master file with embedded chapter markers.
 
 - Supported input formats: MP3, FLAC, WAV, OGG, M4A, AAC, Opus, WMA, MP2
-- Output formats: MP3 (ID3v2 CHAP/CTOC), M4B (native MP4 chapters), FLAC lossless (Vorbis Comment chapters)
+- Output formats: MP3 (ID3v2 CHAP/CTOC), M4B (native MP4 chapters), FLAC lossless (Vorbis Comment chapters), Opus (Ogg Opus, Vorbis Comment chapters)
 - Bitrate options: 128k to 320k for lossy outputs; lossless copy for FLAC source-to-FLAC output
 - Cover art: auto-detected from folder or manually selected; embedded in output
 - Natural sort for track ordering (`track2` before `track10`)
@@ -155,8 +155,9 @@ Automatically detect chapter boundaries by analyzing silence gaps:
 
 Full ID3v2 and MP4/FLAC metadata support:
 
-- Standard fields: Title, Artist, Album Artist, Genre, Year, Track Number, Comment
+- Standard fields: Title, Artist, Album Artist, Genre, Year, Comment, Narrator, Series
 - Cover art (embedded)
+- Metadata lookup from MusicBrainz and Open Library
 - Podcasting 2.0 chapter sidecar (optional)
 - Sticky tag defaults: remembered between projects in settings
 
@@ -206,7 +207,7 @@ chapterforge -i .\chapters -o book.mp3       # Explicit in/out
 chapterforge .\chapters --normalize          # With loudness normalization
 chapterforge .\chapters --dry-run --list     # Preview without building
 chapterforge --job mybook.cfjob              # Process from job file
-chapterforge --batch "C:\Audiobooks" --recursive  # Batch mode
+chapterforge --batch "C:\Audiobooks"         # Batch mode (every book sub-folder)
 chapterforge --split-silence --noise-db -30 --min-silence 0.8 long.mp3
 ```
 

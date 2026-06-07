@@ -411,9 +411,12 @@ class StartupWizard(wx.Dialog):
 
     def _summary_text(self) -> str:
         s = self.settings
-        fmt = ("MP3 with embedded chapters"
-               if s.get("output_format", "mp3") == "mp3"
-               else "M4B audiobook")
+        fmt = {
+            "mp3": "MP3 with embedded chapters",
+            "m4b": "M4B audiobook",
+            "flac": "FLAC lossless",
+            "opus": "Opus",
+        }.get(s.get("output_format", "mp3"), "MP3 with embedded chapters")
         src = ("File name" if s.get("title_source", "filename") ==
                core.TITLE_SOURCE_FILENAME else "Embedded tag")
         bits = s.get("bitrate", "192k")
@@ -450,21 +453,25 @@ class StartupWizard(wx.Dialog):
                 else core.TITLE_SOURCE_FILENAME)
         return box, ctrl, apply_fn
 
+    _FORMATS = ["mp3", "m4b", "flac", "opus"]
+
     def _make_output_format(self, panel):
         box = wx.BoxSizer(wx.VERTICAL)
         lbl = wx.StaticText(panel, label="Output format:")
         box.Add(lbl, 0, wx.BOTTOM, 4)
         ctrl = wx.Choice(panel, choices=[
             "MP3 - universal, works in every app (recommended)",
-            "M4B - Apple audiobook format"])
-        ctrl.SetName("Output format - MP3 or M4B audiobook")
-        ctrl.SetSelection(
-            1 if self.settings.get("output_format") == "m4b" else 0)
+            "M4B - Apple audiobook format",
+            "FLAC - lossless, larger files",
+            "Opus - small files, modern apps"])
+        ctrl.SetName("Output format - MP3, M4B, FLAC or Opus")
+        cur = self.settings.get("output_format", "mp3")
+        ctrl.SetSelection(self._FORMATS.index(cur) if cur in self._FORMATS else 0)
         box.Add(ctrl, 0, wx.EXPAND)
 
         def apply_fn():
-            self.settings["output_format"] = (
-                "m4b" if ctrl.GetSelection() == 1 else "mp3")
+            sel = max(0, min(len(self._FORMATS) - 1, ctrl.GetSelection()))
+            self.settings["output_format"] = self._FORMATS[sel]
         return box, ctrl, apply_fn
 
     def _make_bitrate(self, panel):

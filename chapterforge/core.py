@@ -23,9 +23,8 @@ import subprocess
 import sys
 import tempfile
 import time
-from dataclasses import dataclass, field, replace
+from dataclasses import dataclass, replace
 from typing import Callable, List, Optional, Sequence, Tuple
-from datetime import datetime
 
 from mutagen.id3 import (
     ID3,
@@ -41,7 +40,8 @@ from mutagen.id3 import (
     TLEN,
     TPE1,
     TPE2,
-    WXXX,
+    TPE4,
+    TXXX,
 )
 from mutagen.mp3 import MP3
 from mutagen.flac import FLAC, Picture
@@ -198,6 +198,9 @@ class Tags:
     year: str = ""
     comment: str = ""
     cover_path: str = ""
+    narrator: str = ""        # written as TPE4 (ID3) / narrator Vorbis tag
+    series_title: str = ""   # written as TXXX:SERIES / SERIES Vorbis tag
+    series_index: str = ""   # written as TXXX:SERIES-PART / SERIES-PART Vorbis tag
 
 
 @dataclass
@@ -778,6 +781,12 @@ def write_tags_and_chapters(output: str, chapters: Sequence[Chapter],
         id3.add(COMM(encoding=3, lang="eng", desc="", text=[tags.comment]))
     if total_ms > 0:
         id3.add(TLEN(encoding=3, text=[str(int(total_ms))]))
+    if tags.narrator:
+        id3.add(TPE4(encoding=3, text=[tags.narrator]))
+    if tags.series_title:
+        id3.add(TXXX(encoding=3, desc="SERIES", text=[tags.series_title]))
+    if tags.series_index:
+        id3.add(TXXX(encoding=3, desc="SERIES-PART", text=[tags.series_index]))
 
     if tags.cover_path:
         ext = os.path.splitext(tags.cover_path)[1].lower()
@@ -819,13 +828,225 @@ M4B_EXTS = {".m4b", ".m4a", ".mp4"}
 
 
 def output_format(output_path: str) -> str:
-    """Return 'm4b' for MP4-family outputs, 'flac' for FLAC, otherwise 'mp3'."""
+    """Return 'm4b', 'flac', 'opus', or 'mp3' based on output extension."""
     ext = os.path.splitext(output_path)[1].lower()
     if ext in M4B_EXTS:
         return "m4b"
     if ext == ".flac":
         return "flac"
+    if ext == ".opus":
+        return "opus"
     return "mp3"
+
+
+def trim_silence_item(item: Mp3Item, tmp_dir: str,
+                      noise_db: float = -50.0,
+                      min_silence_ms: float = 100.0) -> Mp3Item:
+    """Trim leading and trailing silence from *item* into a temp file.
+
+    Uses FFmpeg's silencedetect filter to find the first and last non-silent
+    positions, then extracts that range with -c copy (lossless for MP3 sources).
+    Returns the original item unchanged if trimming fails or detects nothing.
+
+    Args:
+        item:           Source track to trim.
+        tmp_dir:        Directory for temp files.
+        noise_db:       dBFS threshold below which audio is considered silence.
+        min_silence_ms: Minimum silent duration (ms) to detect at edges.
+    """
+    ffmpeg = _find_tool("ffmpeg")
+    min_silence_s = max(0.01, min_silence_ms / 1000.0)
+    detect_cmd = [
+        ffmpeg, "-hide_banner", "-nostdin", "-y",
+        "-i", item.path,
+        "-af", f"silencedetect=n={noise_db}dB:d={min_silence_s:.3f}",
+        "-f", "null", "-",
+    ]
+    try:
+        proc = subprocess.run(detect_cmd, stdout=subprocess.PIPE,
+                              stderr=subprocess.STDOUT,
+                              creationflags=CREATE_NO_WINDOW, timeout=60)
+        output = (proc.stdout or b"").decode("utf-8", "replace")
+    except Exception:
+        return item
+
+    starts = [float(m) for m in re.findall(r"silence_start:\s*([\d.]+)", output)]
+    ends = [float(m) for m in re.findall(r"silence_end:\s*([\d.]+)", output)]
+
+    duration_s = item.duration
+    trim_start = 0.0
+    trim_end = duration_s
+
+    # Leading silence: if the file starts in silence, skip to first end.
+    if starts and starts[0] < 0.1 and ends:
+        trim_start = ends[0]
+    # Trailing silence: if file ends in silence (no matching end), trim to last start.
+    if starts and (not ends or len(starts) > len(ends)):
+        trim_end = starts[-1]
+
+    trim_start = max(0.0, trim_start)
+    trim_end = min(duration_s, trim_end)
+    if trim_end - trim_start < 0.5:
+        return item
+
+    dst = os.path.join(tmp_dir, f"trim_{os.path.basename(item.path)}")
+    trim_cmd = [
+        ffmpeg, "-hide_banner", "-nostdin", "-y",
+        "-i", item.path,
+        "-ss", f"{trim_start:.3f}", "-to", f"{trim_end:.3f}",
+        "-c", "copy", "-avoid_negative_ts", "make_zero",
+        dst,
+    ]
+    try:
+        r = subprocess.run(trim_cmd, capture_output=True,
+                           creationflags=CREATE_NO_WINDOW, timeout=120)
+        if r.returncode != 0 or not os.path.isfile(dst):
+            return item
+    except Exception:
+        return item
+
+    trimmed = probe_file(dst)
+    trimmed.title = item.title
+    trimmed.file_title = item.file_title
+    trimmed.embedded_title = item.embedded_title
+    trimmed.edited = item.edited
+    trimmed.url = item.url
+    trimmed.img = item.img
+    return trimmed
+
+
+def _concat_opus(items: Sequence[Mp3Item], output: str, total_ms: int,
+                 target_sr: int, target_ch: int, bitrate: str,
+                 canceller: Canceller,
+                 progress: Optional[Callable[[float], None]],
+                 normalize: bool = False, gap_ms: int = 0) -> None:
+    ffmpeg = _find_tool("ffmpeg")
+    cmd = [ffmpeg, "-hide_banner", "-nostdin", "-y"]
+    for it in items:
+        cmd += ["-i", it.path]
+    layout = "stereo" if target_ch == 2 else "mono"
+    gap_s = max(0, gap_ms) / 1000.0
+    parts = []
+    for i in range(len(items)):
+        chain = (f"[{i}:a]aresample={target_sr},"
+                 f"aformat=sample_fmts=s16:channel_layouts={layout}")
+        if gap_s > 0 and i < len(items) - 1:
+            chain += f",apad=pad_dur={gap_s:g}"
+        parts.append(chain + f"[a{i}]")
+    concat_in = "".join(f"[a{i}]" for i in range(len(items)))
+    graph = ";".join(parts) + ";" + concat_in + f"concat=n={len(items)}:v=0:a=1"
+    if normalize:
+        graph += "[cat];[cat]loudnorm=I=-16:TP=-1.5:LRA=11[out]"
+    else:
+        graph += "[out]"
+    opus_bitrate = bitrate if "k" in bitrate else "96k"
+    cmd += [
+        "-filter_complex", graph,
+        "-map", "[out]",
+        "-c:a", "libopus", "-b:a", opus_bitrate, "-vbr", "on",
+        "-map_metadata", "-1",
+        "-progress", "pipe:1", "-nostats",
+        output,
+    ]
+    _stream_ffmpeg(cmd, total_ms, canceller, progress)
+
+
+def build_opus(items: Sequence[Mp3Item], output_path: str, tags: Tags,
+               chapters: Optional[Sequence[Chapter]] = None,
+               bitrate: str = "96k",
+               normalize: bool = False,
+               scale_chapters: bool = True,
+               gap_ms: int = 0,
+               canceller: Optional[Canceller] = None,
+               progress: Optional[Callable[[float], None]] = None) -> BuildResult:
+    """Concatenate *items* into an Opus master with Vorbis comment chapter markers."""
+    items = list(items)
+    canceller = canceller or Canceller()
+    if not items:
+        raise NoAudioFilesError("There are no audio files to build.")
+    bad = [it for it in items if it.error or it.duration <= 0]
+    if bad:
+        names = ", ".join(it.filename for it in bad[:5])
+        raise ChapterForgeError(f"Some files could not be used: {names}")
+    canceller._check()
+
+    if chapters is None:
+        chapters = compute_chapters(items)
+    chapters = list(chapters)
+    if gap_ms > 0:
+        if len(chapters) != len(items):
+            raise ChapterForgeError(
+                "Inter-chapter gaps require exactly one chapter per input file.")
+        chapters = _chapters_with_gaps(items, gap_ms, base=chapters)
+        scale_chapters = False
+    total_ms = chapters[-1].end_ms if chapters else 0
+
+    target_sr, target_ch = _choose_target(items)
+    out_dir = os.path.dirname(os.path.abspath(output_path)) or "."
+    os.makedirs(out_dir, exist_ok=True)
+    fd, tmp_out = tempfile.mkstemp(suffix=".opus", prefix="chapterforge_", dir=out_dir)
+    os.close(fd)
+
+    try:
+        _concat_opus(items, tmp_out, total_ms, target_sr, target_ch,
+                     bitrate, canceller, progress, normalize=normalize, gap_ms=gap_ms)
+        canceller._check()
+
+        actual_ms = _probe_duration_ms(tmp_out)
+        if actual_ms > 0:
+            chapters = _clamp_chapters(chapters, actual_ms, scale=scale_chapters)
+            total_ms = actual_ms
+
+        # Opus uses OGG tags (Vorbis comments) - write via mutagen
+        try:
+            from mutagen.oggopus import OggOpus
+            audio = OggOpus(tmp_out)
+            if tags.title:
+                audio["title"] = [tags.title]
+            if tags.artist:
+                audio["artist"] = [tags.artist]
+            if tags.album:
+                audio["album"] = [tags.album]
+            if tags.album_artist:
+                audio["albumartist"] = [tags.album_artist]
+            if tags.genre:
+                audio["genre"] = [tags.genre]
+            if tags.year:
+                audio["date"] = [tags.year]
+            if tags.comment:
+                audio["comment"] = [tags.comment]
+            if tags.narrator:
+                audio["narrator"] = [tags.narrator]
+            if tags.series_title:
+                audio["series"] = [tags.series_title]
+            if tags.series_index:
+                audio["series-part"] = [tags.series_index]
+            for i, ch in enumerate(chapters, start=1):
+                audio[f"chapter{i:03d}"] = [_flac_chapter_timestamp(ch.start_ms)]
+                audio[f"chapter{i:03d}name"] = [ch.title]
+            audio.save()
+        except Exception:
+            pass
+
+        if os.path.exists(output_path):
+            os.remove(output_path)
+        os.replace(tmp_out, output_path)
+    except BaseException:
+        if os.path.exists(tmp_out):
+            try:
+                os.remove(tmp_out)
+            except OSError:
+                pass
+        raise
+
+    return BuildResult(
+        output_path=output_path,
+        chapters=chapters,
+        total_ms=total_ms,
+        reencoded=True,
+        target_sample_rate=target_sr,
+        target_channels=target_ch,
+    )
 
 
 def build_master(items: Sequence[Mp3Item], output_path: str, tags: Tags,
@@ -870,6 +1091,11 @@ def build_master(items: Sequence[Mp3Item], output_path: str, tags: Tags,
         return build_flac(items, output_path, tags, chapters=chapters,
                           normalize=normalize, scale_chapters=scale_chapters,
                           gap_ms=gap_ms, canceller=canceller, progress=progress)
+    if fmt == "opus":
+        return build_opus(items, output_path, tags, chapters=chapters,
+                          bitrate=bitrate, normalize=normalize,
+                          scale_chapters=scale_chapters, gap_ms=gap_ms,
+                          canceller=canceller, progress=progress)
     return build_mp3(items, output_path, tags, chapters=chapters,
                      bitrate=bitrate, normalize=normalize,
                      scale_chapters=scale_chapters, gap_ms=gap_ms,
@@ -1214,6 +1440,12 @@ def _write_flac_tags(path: str, tags: Tags, chapters: list) -> None:
         audio["GENRE"] = [tags.genre]
     if tags.comment:
         audio["COMMENT"] = [tags.comment]
+    if tags.narrator:
+        audio["NARRATOR"] = [tags.narrator]
+    if tags.series_title:
+        audio["SERIES"] = [tags.series_title]
+    if tags.series_index:
+        audio["SERIES-PART"] = [tags.series_index]
     # Chapter markers (Vorbis comment convention)
     for i, ch in enumerate(chapters, start=1):
         audio[f"CHAPTER{i:03d}"] = [_flac_chapter_timestamp(ch.start_ms)]
@@ -1367,6 +1599,8 @@ def _write_ffmetadata(path: str, chapters: Sequence[Chapter], tags: Tags,
         ("title", tags.title), ("album", tags.album or tags.title),
         ("artist", tags.artist), ("album_artist", tags.album_artist or tags.artist),
         ("genre", tags.genre), ("date", tags.year), ("comment", tags.comment),
+        ("narrator", tags.narrator), ("series", tags.series_title),
+        ("series-part", tags.series_index),
     ]
     for key, value in meta:
         if value:
@@ -1423,6 +1657,44 @@ def _probe_duration_ms(path: str) -> int:
         return int(round(audio.info.length * 1000))
     except Exception:
         return 0
+
+
+def probe_audio_stats(path: str) -> dict:
+    """Return a dict of audio stats for a built file.
+
+    Keys present on success: file_size_bytes, bit_rate_kbps, sample_rate, channels.
+    Returns an empty dict (or partial dict) on failure.
+    """
+    stats: dict = {}
+    try:
+        stats["file_size_bytes"] = os.path.getsize(path)
+    except OSError:
+        pass
+    try:
+        ffprobe = _find_tool("ffprobe")
+        proc = _run([
+            ffprobe, "-v", "error",
+            "-select_streams", "a:0",
+            "-show_entries", "stream=sample_rate,channels,bit_rate:format=bit_rate",
+            "-of", "json", path,
+        ])
+        if proc.returncode == 0:
+            data = json.loads(proc.stdout.decode("utf-8", "replace") or "{}")
+            streams = data.get("streams") or []
+            if streams:
+                s = streams[0]
+                if s.get("sample_rate"):
+                    stats["sample_rate"] = int(s["sample_rate"])
+                if s.get("channels"):
+                    stats["channels"] = int(s["channels"])
+                br = s.get("bit_rate")
+                if not br or br in ("N/A", ""):
+                    br = (data.get("format") or {}).get("bit_rate")
+                if br and br not in ("N/A", ""):
+                    stats["bit_rate_kbps"] = int(int(br) / 1000)
+    except Exception:
+        pass
+    return stats
 
 
 def _clamp_chapters(chapters: Sequence[Chapter], total_ms: int,
@@ -1651,7 +1923,8 @@ def chapter_report_path(output_path: str) -> str:
 
 
 def write_chapter_report(output_path: str, result: "BuildResult",
-                         tags: "Tags", items: Optional[Sequence["Mp3Item"]] = None
+                         tags: "Tags", items: Optional[Sequence["Mp3Item"]] = None,
+                         audio_stats: Optional[dict] = None,
                          ) -> str:
     """Write a readable ``… - chapters.txt`` next to a built master.
 
@@ -1662,17 +1935,27 @@ def write_chapter_report(output_path: str, result: "BuildResult",
     lines = [
         f"{__import__('chapterforge').__app_name__} - chapter report",
         "=" * 48,
-        f"Master file : {os.path.basename(result.output_path)}",
+        f"Master file  : {os.path.basename(result.output_path)}",
         f"Built        : {time.strftime('%Y-%m-%d %H:%M:%S')}",
         f"Total length : {format_timestamp(result.total_ms)}",
         f"Chapters     : {len(result.chapters)}",
         f"Mode         : {'re-encoded' if result.reencoded else 'lossless copy'}",
-        "",
-        "Tags",
-        "-" * 48,
     ]
+    if audio_stats:
+        if "file_size_bytes" in audio_stats:
+            lines.append(f"File size    : {format_size(audio_stats['file_size_bytes'])}")
+        if "bit_rate_kbps" in audio_stats:
+            lines.append(f"Bit rate     : {audio_stats['bit_rate_kbps']} kbps")
+        if "sample_rate" in audio_stats:
+            lines.append(f"Sample rate  : {audio_stats['sample_rate']} Hz")
+        if "channels" in audio_stats:
+            ch = audio_stats["channels"]
+            lines.append(f"Channels     : {ch} ({'mono' if ch == 1 else 'stereo' if ch == 2 else str(ch)})")
+    lines += ["", "Tags", "-" * 48]
     for label, value in (("Title", tags.title), ("Artist", tags.artist),
                          ("Album", tags.album), ("Album artist", tags.album_artist),
+                         ("Narrator", tags.narrator), ("Series", tags.series_title),
+                         ("Series part", tags.series_index),
                          ("Genre", tags.genre), ("Year", tags.year)):
         if value:
             lines.append(f"  {label:<12}: {value}")

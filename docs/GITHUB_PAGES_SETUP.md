@@ -23,7 +23,7 @@ GitHub will automatically deploy after pushing changes to the main branch.
 
 ## Custom Domain (Optional)
 
-To use a custom domain (e.g., `chapterforge.org`):
+To use a custom domain (the site is configured for `chapterforge.app` in `_config.yml`):
 
 1. In **Settings** → **Pages**, under "Custom domain", enter your domain
 2. Point your domain's DNS records to GitHub's servers:
@@ -50,6 +50,7 @@ The following files are excluded from the published website (see `_config.yml`):
 - CODE_QUALITY.md - Quality guidelines (developers only)
 - LINTING.md - Linting configuration (developers only)
 - press-release-v1.0.0.md - Press release content
+- roadmap - Roadmap source
 
 ## Build and Deployment
 

@@ -12,9 +12,20 @@ Two executables share the same folder:
 
 ffmpeg.exe and ffprobe.exe are shipped in a ``bin`` subfolder; chapterforge.core
 locates them next to the executable / inside the bundle automatically.
+
+libmpv-2.dll (the in-app player's playback engine, see THIRD_PARTY.md for its
+LGPL/GPL redistribution notice) is bundled at ``bin/mpv/libmpv-2.dll``;
+chapterforge.audio_engine looks for it at that path next to the executable.
 """
 
+import os
+
 block_cipher = None
+
+# chapterforge.audio_engine resolves this relative to the frozen exe dir, so
+# it must land at exactly this path inside the collected build.
+_libmpv_dll = os.path.join(SPECPATH, 'bin', 'mpv', 'libmpv-2.dll')
+gui_binaries = [(_libmpv_dll, 'bin/mpv')]
 
 datas = [
     # FFmpeg is downloaded at runtime if needed - not bundled to keep size small
@@ -27,7 +38,7 @@ excludes = ['tkinter', 'pytest', 'numpy', 'sympy']
 gui_a = Analysis(
     ['main.py'],
     pathex=[],
-    binaries=[],
+    binaries=gui_binaries,
     datas=datas,
     hiddenimports=hiddenimports,
     hookspath=[],
