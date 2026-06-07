@@ -15,6 +15,8 @@ requires a newer CPU).
 import hashlib
 import os
 import re
+import shutil
+import subprocess
 import sys
 import urllib.request
 import xml.etree.ElementTree as ET
@@ -55,6 +57,63 @@ def _find_latest_build():
     return None
 
 
+def _find_system_7z():
+    """Return a path to a system 7z executable, or None."""
+    found = shutil.which("7z") or shutil.which("7z.exe")
+    if found:
+        return found
+    for candidate in (
+        r"C:\Program Files\7-Zip\7z.exe",
+        r"C:\Program Files (x86)\7-Zip\7z.exe",
+    ):
+        if os.path.isfile(candidate):
+            return candidate
+    return None
+
+
+def _extract_dll(archive_path):
+    """Extract libmpv-2.dll from ``archive_path`` into ``BIN_DIR``.
+
+    mpv's x86_64 dev builds are compressed with the BCJ2 filter, which
+    py7zr cannot decode, so prefer the system 7-Zip CLI (present on GitHub's
+    windows-latest runners) and fall back to py7zr for archives it can read.
+    """
+    seven_zip = _find_system_7z()
+    if seven_zip:
+        result = subprocess.run(
+            [seven_zip, "e", str(archive_path), f"-o{BIN_DIR}", "-r", "-y", "libmpv-2.dll"],
+            capture_output=True, text=True,
+        )
+        if result.returncode != 0:
+            print(f"7z extraction failed:\n{result.stdout}{result.stderr}", file=sys.stderr)
+            return False
+    else:
+        import py7zr
+        with py7zr.SevenZipFile(archive_path, mode="r") as archive:
+            targets = [n for n in archive.getnames() if n.endswith("libmpv-2.dll")]
+            if not targets:
+                print("Error: libmpv-2.dll not found in archive", file=sys.stderr)
+                return False
+            archive.extract(path=BIN_DIR, targets=targets)
+
+    try:
+        extracted = next(BIN_DIR.rglob("libmpv-2.dll"))
+    except StopIteration:
+        print("Error: libmpv-2.dll not found after extraction", file=sys.stderr)
+        return False
+    if extracted != LIBMPV_DLL:
+        extracted.replace(LIBMPV_DLL)
+        # Clean up any now-empty directory the archive's path created.
+        for parent in extracted.parents:
+            if parent == BIN_DIR:
+                break
+            try:
+                parent.rmdir()
+            except OSError:
+                break
+    return True
+
+
 def download_libmpv():
     """Download, verify and extract libmpv-2.dll into bin/mpv/."""
     print("Looking up the latest libmpv build...")
@@ -90,32 +149,21 @@ def download_libmpv():
 
     print("Extracting libmpv-2.dll...")
     try:
-        import py7zr
-        with py7zr.SevenZipFile(archive_path, mode="r") as archive:
-            targets = [n for n in archive.getnames() if n.endswith("libmpv-2.dll")]
-            if not targets:
-                print("Error: libmpv-2.dll not found in archive", file=sys.stderr)
-                return False
-            archive.extract(path=BIN_DIR, targets=targets)
-        extracted = next(BIN_DIR.rglob("libmpv-2.dll"))
-        if extracted != LIBMPV_DLL:
-            extracted.replace(LIBMPV_DLL)
-            # Clean up any now-empty directory the archive's path created.
-            for parent in extracted.parents:
-                if parent == BIN_DIR:
-                    break
-                try:
-                    parent.rmdir()
-                except OSError:
-                    break
+        ok = _extract_dll(archive_path)
     except Exception as e:
         print(f"Error extracting libmpv: {e}", file=sys.stderr)
+        ok = False
+    finally:
+        try:
+            archive_path.unlink(missing_ok=True)
+        except OSError:
+            pass
+
+    if not ok:
         print(
             f"You can extract it manually with 7-Zip from {archive_path} - "
             f"copy mpv-dev-*/libmpv-2.dll to {LIBMPV_DLL}", file=sys.stderr)
         return False
-    finally:
-        archive_path.unlink(missing_ok=True)
 
     return True
 
