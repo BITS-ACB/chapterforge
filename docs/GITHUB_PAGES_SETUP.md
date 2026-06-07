@@ -6,8 +6,7 @@ The ChapterForge website is served via GitHub Pages from the `docs/` folder on t
 
 - **Source**: `docs/` folder on `main` branch
 - **Theme**: Minimal (via `_config.yml`)
-- **Landing Page**: `landing.html`
-- **Documentation Index**: `index.md`
+- **Home / Landing Page**: `index.html` (served directly at the site root)
 
 ## To Enable GitHub Pages
 
@@ -35,7 +34,7 @@ To use a custom domain (the site is configured for `chapterforge.app` in `_confi
 
 The website includes:
 
-- **landing.html** - Main landing/home page
+- **index.html** - Main landing/home page, served at the site root
 - **html/USER_GUIDE.html** - User documentation
 - **html/CHANGELOG.html** - Release history
 - **html/THIRD_PARTY.html** - Open source licenses
