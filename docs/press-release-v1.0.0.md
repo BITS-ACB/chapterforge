@@ -105,7 +105,7 @@ ChapterForge 1.0.0 is available immediately as a free download for Windows 10 an
 
 Founded in 2020, Blind Information Technology Solutions (BITS) is dedicated to creating accessible technology solutions that empower users of all abilities.
 
-For more information about ChapterForge 1.0.0, visit the [GitHub repository](https://github.com/BITS-ACB/chapterforge) or contact the BITS team at [info@chapterforge.org](mailto:info@chapterforge.org).
+For more information about ChapterForge 1.0.0, visit the [GitHub repository](https://github.com/BITS-ACB/chapterforge) or join the [community discussions](https://github.com/BITS-ACB/chapterforge/discussions).
 
 ---
 
@@ -113,7 +113,6 @@ For more information about ChapterForge 1.0.0, visit the [GitHub repository](htt
 Jeff Bishop  
 President  
 Blind Information Technology Solutions (BITS)  
-Email: info@chapterforge.org  
 Web: [github.com/BITS-ACB/chapterforge](https://github.com/BITS-ACB/chapterforge)
 
 ### Product Screenshots and Demo Videos:

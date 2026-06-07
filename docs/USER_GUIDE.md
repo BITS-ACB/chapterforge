@@ -548,17 +548,9 @@ chapterforge --batch "C:\Audiobooks" --quiet
 
 ### Getting Help
 
-#### Documentation Resources
-- **Online User Guide**: [chapterforge.org/docs](https://chapterforge.org/docs)
-- **Video Tutorials**: [youtube.com/chapterforge](https://youtube.com/chapterforge)
-- **Community Forum**: [forum.chapterforge.org](https://forum.chapterforge.org)
-- **API Documentation**: [chapterforge.org/api](https://chapterforge.org/api)
-
-#### Support Channels
-- **Email Support**: support@chapterforge.org
-- **Community Discord**: discord.gg/chapterforge
-- **GitHub Issues**: github.com/BITS-ACB/chapterforge/issues
-- **Professional Support**: Available for enterprise users
+- **User Guide**: [chapterforge.app](https://chapterforge.app) (this document, published online)
+- **Discussions**: [github.com/BITS-ACB/chapterforge/discussions](https://github.com/BITS-ACB/chapterforge/discussions) - ask questions, share ideas, and talk with the community
+- **Bug Reports**: [github.com/BITS-ACB/chapterforge/issues](https://github.com/BITS-ACB/chapterforge/issues)
 
 ---
 
@@ -1073,17 +1065,9 @@ chapterforge .\chapters --rss-url https://example.com/book.mp3
 
 ### Getting Help
 
-#### Documentation Resources
-- **Online User Guide**: [chapterforge.org/docs](https://chapterforge.org/docs)
-- **Video Tutorials**: [youtube.com/chapterforge](https://youtube.com/chapterforge)
-- **Community Forum**: [forum.chapterforge.org](https://forum.chapterforge.org)
-- **API Documentation**: [chapterforge.org/api](https://chapterforge.org/api)
-
-#### Support Channels
-- **Email Support**: support@chapterforge.org
-- **Community Discord**: discord.gg/chapterforge
-- **GitHub Issues**: github.com/BITS-ACB/chapterforge/issues
-- **Professional Support**: Available for enterprise users
+- **User Guide**: [chapterforge.app](https://chapterforge.app) (this document, published online)
+- **Discussions**: [github.com/BITS-ACB/chapterforge/discussions](https://github.com/BITS-ACB/chapterforge/discussions) - ask questions, share ideas, and talk with the community
+- **Bug Reports**: [github.com/BITS-ACB/chapterforge/issues](https://github.com/BITS-ACB/chapterforge/issues)
 
 ## 7. Tips and Best Practices
 
