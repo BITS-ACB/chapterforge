@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ChapterForge - Control Reference</title>
+<style>:root {
+  --bg: #ffffff; --fg: #1b1b1b; --muted: #555; --accent: #0b5fa5;
+  --border: #d0d7de; --code-bg: #f3f4f6; --nav-bg: #f6f8fa;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0d1117; --fg: #e6edf3; --muted: #9da7b1; --accent: #58a6ff;
+    --border: #30363d; --code-bg: #161b22; --nav-bg: #161b22;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0; background: var(--bg); color: var(--fg);
+  font: 1rem/1.6 -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+}
+.skip {
+  position: absolute; left: -999px; top: 0; background: var(--accent);
+  color: #fff; padding: .6rem 1rem; z-index: 100;
+}
+.skip:focus { left: 0; }
+header.site {
+  border-bottom: 1px solid var(--border); background: var(--nav-bg);
+  padding: .5rem 1rem;
+}
+header.site nav ul {
+  list-style: none; display: flex; flex-wrap: wrap; gap: .25rem 1rem;
+  margin: 0; padding: 0;
+}
+header.site nav a { text-decoration: none; color: var(--accent); padding: .25rem 0; }
+header.site nav a[aria-current="page"] { font-weight: 700; text-decoration: underline; }
+.wrap { max-width: 52rem; margin: 0 auto; padding: 1rem 1.25rem 4rem; }
+main { outline: none; }
+h1 { font-size: 2rem; line-height: 1.2; margin: 1rem 0 .5rem; }
+h2 { font-size: 1.5rem; margin-top: 2.2rem; border-bottom: 1px solid var(--border); padding-bottom: .2rem; }
+h3 { font-size: 1.2rem; margin-top: 1.6rem; }
+a { color: var(--accent); }
+a:focus-visible, button:focus-visible, input:focus-visible {
+  outline: 3px solid var(--accent); outline-offset: 2px;
+}
+code { background: var(--code-bg); padding: .1rem .35rem; border-radius: 4px;
+  font-family: Consolas, "SFMono-Regular", Menlo, monospace; font-size: .9em; }
+pre { background: var(--code-bg); padding: 1rem; border-radius: 8px;
+  overflow: auto; border: 1px solid var(--border); }
+pre code { background: none; padding: 0; }
+table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+th, td { border: 1px solid var(--border); padding: .5rem .7rem; text-align: left; vertical-align: top; }
+thead th { background: var(--nav-bg); }
+li.task { list-style: none; margin-left: -1.2rem; }
+li.task input { margin-right: .4rem; }
+nav.toc { background: var(--nav-bg); border: 1px solid var(--border);
+  border-radius: 8px; padding: .75rem 1rem; margin: 1.5rem 0; }
+nav.toc p { margin: 0 0 .4rem; font-weight: 700; }
+nav.toc ul { margin: 0; padding-left: 1.2rem; }
+nav.toc li.lvl3 { margin-left: 1rem; list-style: circle; }
+footer.site { color: var(--muted); border-top: 1px solid var(--border);
+  margin-top: 3rem; padding: 1rem 1.25rem; font-size: .9rem; }</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="site"><nav aria-label="Documentation"><ul><li><a href="index.html">Home</a></li><li><a href="USER_GUIDE.html">User Guide</a></li><li><a href="CONTROL_REFERENCE.html" aria-current="page">Control Reference</a></li><li><a href="AUPHONIC_INTEGRATION.html">Auphonic</a></li><li><a href="CHANGELOG.html">Changelog</a></li><li><a href="THIRD_PARTY.html">Third-Party Notices</a></li></ul></nav></header>
+<div class="wrap">
+<main id="main" tabindex="-1">
+<nav class="toc" aria-label="On this page"><p>On this page</p><ul><li><a href="#playback-transport">Playback transport</a></li><li class="lvl3"><a href="#play-pause-button">Play / Pause button</a></li><li class="lvl3"><a href="#stop-button">Stop button</a></li><li class="lvl3"><a href="#previous-chapter-button">Previous Chapter button</a></li><li class="lvl3"><a href="#next-chapter-button">Next Chapter button</a></li><li class="lvl3"><a href="#rewind-button">Rewind button</a></li><li class="lvl3"><a href="#forward-button">Forward button</a></li><li class="lvl3"><a href="#playback-position-slider">Playback position slider</a></li><li class="lvl3"><a href="#volume-slider">Volume slider</a></li><li><a href="#speed-and-export">Speed and export</a></li><li class="lvl3"><a href="#playback-speed">Playback speed</a></li><li class="lvl3"><a href="#save-at-this-speed-button">Save at This Speed button</a></li><li><a href="#trimming">Trimming</a></li><li class="lvl3"><a href="#set-trim-start-button">Set Trim Start button</a></li><li class="lvl3"><a href="#set-trim-end-button">Set Trim End button</a></li><li class="lvl3"><a href="#clear-trim-button">Clear Trim button</a></li><li class="lvl3"><a href="#pre-listen-to-cut-button">Pre-listen to Cut button</a></li><li class="lvl3"><a href="#save-trimmed-copy-button">Save Trimmed Copy button</a></li><li><a href="#chapter-list">Chapter list</a></li><li class="lvl3"><a href="#chapter-list">Chapter list</a></li><li class="lvl3"><a href="#chapter-title-field">Chapter title field</a></li><li class="lvl3"><a href="#move-up-button">Move Up button</a></li><li class="lvl3"><a href="#move-down-button">Move Down button</a></li><li class="lvl3"><a href="#remove-merge-up-button">Remove / Merge Up button</a></li><li class="lvl3"><a href="#set-link-image-button">Set Link &amp; Image button</a></li><li class="lvl3"><a href="#play-chapter-button">Play Chapter button</a></li><li class="lvl3"><a href="#split-here-button">Split Here button</a></li><li><a href="#project">Project</a></li><li class="lvl3"><a href="#source-folder-field">Source folder field</a></li></ul></nav>
+<h1>Control Reference</h1>
+<p>This page is generated from the same descriptions ChapterForge&#x27;s in-app <strong>Help on This Control</strong> (press F1 on any focused control) shows you - it can&#x27;t drift out of sync with what the app actually says. The live dialog tailors its wording to your current settings and the app&#x27;s state at the moment you press F1; the examples below use the application&#x27;s documented defaults instead, so this page reads sensibly on its own.</p>
+<h2 id="playback-transport">Playback transport</h2>
+<h3 id="play-pause-button">Play / Pause button</h3>
+<p>Starts or pauses playback of the loaded audio. Right now playback is stopped.</p>
+<p>Currently on chapter 3 of 12: &quot;Chapter Three&quot;.</p>
+<h3 id="stop-button">Stop button</h3>
+<p>Stops playback entirely and returns to the beginning of the loaded audio (unlike Pause, which keeps your place).</p>
+<h3 id="previous-chapter-button">Previous Chapter button</h3>
+<p>Jumps the player to the start of the previous chapter and keeps playing if it already was.</p>
+<p>Currently on chapter 3 of 12: &quot;Chapter Three&quot;.</p>
+<h3 id="next-chapter-button">Next Chapter button</h3>
+<p>Jumps the player to the start of the next chapter and keeps playing if it already was.</p>
+<p>Currently on chapter 3 of 12: &quot;Chapter Three&quot;.</p>
+<h3 id="rewind-button">Rewind button</h3>
+<p>Skips backward 10 seconds in the loaded audio. Change this amount in Settings under &quot;Skip seconds&quot;.</p>
+<h3 id="forward-button">Forward button</h3>
+<p>Skips forward 10 seconds in the loaded audio. Change this amount in Settings under &quot;Skip seconds&quot;.</p>
+<h3 id="playback-position-slider">Playback position slider</h3>
+<p>Drag, or use the arrow keys, Page Up/Down, Home and End, to scrub to any point in the loaded audio.</p>
+<p>Currently at 4:12 of 38:47.</p>
+<p>Currently on chapter 3 of 12: &quot;Chapter Three&quot;.</p>
+<h3 id="volume-slider">Volume slider</h3>
+<p>Sets the player&#x27;s playback volume, from 0 to 100 percent. Currently 80 percent. Your default starting volume (set in Settings) is 80 percent.</p>
+<h2 id="speed-and-export">Speed and export</h2>
+<h3 id="playback-speed">Playback speed</h3>
+<p>Currently set to 1x. Changes how fast the loaded audio plays back, from 0.5x (half speed) to 4.0x (quadruple speed), without changing its pitch.</p>
+<p>Choosing a new speed re-encodes a temporary copy of the file, which takes a few seconds and temporarily disables this control. Use &quot;Save at This Speed...&quot; afterwards to keep a permanent copy at the new speed.</p>
+<h3 id="save-at-this-speed-button">Save at This Speed button</h3>
+<p>Writes a permanent copy of the loaded audio at its current playback speed (1x) to a file you choose. Only available once a speed other than the original has finished being applied.</p>
+<h2 id="trimming">Trimming</h2>
+<h3 id="set-trim-start-button">Set Trim Start button</h3>
+<p>Marks the player&#x27;s current position as where the trimmed copy should begin. Trimming removes silence from the edges of the loaded audio before it&#x27;s used elsewhere (e.g. saving a trimmed copy), without altering the original file.</p>
+<h3 id="set-trim-end-button">Set Trim End button</h3>
+<p>Marks the player&#x27;s current position as where the trimmed copy should end. Trimming removes silence from the edges of the loaded audio before it&#x27;s used elsewhere (e.g. saving a trimmed copy), without altering the original file.</p>
+<h3 id="clear-trim-button">Clear Trim button</h3>
+<p>Removes both trim markers, restoring the full length of the audio. Trimming removes silence from the edges of the loaded audio before it&#x27;s used elsewhere (e.g. saving a trimmed copy), without altering the original file.</p>
+<h3 id="pre-listen-to-cut-button">Pre-listen to Cut button</h3>
+<p>Plays back just the portion that trimming would remove, so you can check the markers before committing to them. Trimming removes silence from the edges of the loaded audio before it&#x27;s used elsewhere (e.g. saving a trimmed copy), without altering the original file.</p>
+<h3 id="save-trimmed-copy-button">Save Trimmed Copy button</h3>
+<p>Writes a new audio file containing only the portion between the trim markers. Trimming removes silence from the edges of the loaded audio before it&#x27;s used elsewhere (e.g. saving a trimmed copy), without altering the original file.</p>
+<h2 id="chapter-list">Chapter list</h2>
+<h3 id="chapter-list">Chapter list</h3>
+<p>Shows the 12 chapter(s) in the current project, one row per chapter. You&#x27;re in build mode (you&#x27;re assembling a new master from source files).</p>
+<p>Select a row, then use the buttons or right-click / Menu key for what you can do with it - the choices change depending on whether you&#x27;re building or editing.</p>
+<h3 id="chapter-title-field">Chapter title field</h3>
+<p>Shows and edits the title of the selected chapter. Type a new title and press Enter, or move focus away, to apply it.</p>
+<h3 id="move-up-button">Move Up button</h3>
+<p>In build mode, this moves the selected chapter one position earlier in the list, reordering the underlying source files (and therefore the audio) along with it. In edit mode the same button instead swaps just the chapter titles, leaving the audio in place.</p>
+<p>In edit mode, this swaps the selected chapter&#x27;s title with the one above it - the audio itself does not move, only the labels trade places. This is the more surprising of the two behaviours: in build mode the same button reorders the audio.</p>
+<h3 id="move-down-button">Move Down button</h3>
+<p>In build mode, this moves the selected chapter one position later in the list, reordering the underlying source files (and therefore the audio) along with it. In edit mode the same button instead swaps just the chapter titles, leaving the audio in place.</p>
+<p>In edit mode, this swaps the selected chapter&#x27;s title with the one below it - the audio itself does not move, only the labels trade places. This is the more surprising of the two behaviours: in build mode the same button reorders the audio.</p>
+<h3 id="remove-merge-up-button">Remove / Merge Up button</h3>
+<p>In build mode this button reads &quot;Remove&quot;: it deletes the selected chapter, and its source audio file, from the project. In edit mode the same button instead reads &quot;Merge Up&quot; and merges the chapter into the one above it without discarding any audio.</p>
+<p>In edit mode this button reads &quot;Merge Up&quot;: it merges the selected chapter into the one immediately above it, removing the boundary between them (the combined audio stays - nothing is deleted). It&#x27;s disabled when only one chapter remains, since there would be nothing left to merge into. In build mode the same button instead reads &quot;Remove&quot; and deletes the selected chapter (and its source file) from the project outright.</p>
+<h3 id="set-link-image-button">Set Link &amp; Image button</h3>
+<p>Opens a dialog to set the selected chapter&#x27;s link URL and cover image. To rename the chapter itself, type directly into the title field instead - this button doesn&#x27;t rename.</p>
+<h3 id="play-chapter-button">Play Chapter button</h3>
+<p>Loads (if needed) and jumps the player to the selected chapter, then starts playing it immediately.</p>
+<h3 id="split-here-button">Split Here button</h3>
+<p>Divides the chapter the player is currently inside into two chapters at the player&#x27;s playhead position - not at whichever row happens to be selected in the list. The player is currently at 4:12. Only available in edit mode.</p>
+<h2 id="project">Project</h2>
+<h3 id="source-folder-field">Source folder field</h3>
+<p>Shows the folder or file ChapterForge is currently working with. Read-only - use File &gt; Open Folder or File &gt; Open Existing Master to change it.</p>
+</main>
+</div>
+<footer class="site">© 2026 Blind Information Technology Solutions (BITS). ChapterForge documentation, generated from Markdown.</footer>
+</body>
+</html>

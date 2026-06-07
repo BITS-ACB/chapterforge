@@ -129,6 +129,14 @@ Fully keyboard-accessible, chapter-aware audio player:
 - Rewind / Fast-forward by configurable step (default 10 seconds)
 - Volume control
 - Go to Time dialog (Ctrl+G): accepts HH:MM:SS, MM:SS, or decimal seconds
+- Right-click or Menu key brings up a "Play Controls" menu - on the player
+  itself, and as a submenu of the chapter list's context menu - with Play/
+  Pause, Stop, Previous/Next Chapter, Rewind, Forward and Go to Time. Items
+  reflect the player's current state (e.g. "Pause" once something is
+  playing) and are disabled when no audio is loaded
+- When minimized to the system tray with audio loaded, the tray menu offers
+  Play/Pause, Stop, and Previous/Next Chapter, so playback continues to be
+  controllable without restoring the window
 
 ### 7.5 Lossless Trim and Cut
 
@@ -196,6 +204,10 @@ Automated processing engine with system-tray integration:
 - Output written to `_ChapterForge` sub-folder to avoid re-triggering the watch
 - Start at sign-in option for persistent watching
 - Progress via toast and screen-reader notifications
+- When the main app (not the standalone watcher) is minimized to the tray
+  with audio loaded, its tray menu adds Play/Pause, Stop, and Previous/Next
+  Chapter, so playback continues to be controllable without restoring the
+  window
 
 ### 7.13 Command Line Interface
 
@@ -216,6 +228,45 @@ Return codes: 0 success, 1 general error, 2 invalid arguments, 3 processing erro
 ### 7.14 Diagnostics
 
 Tools > Save Diagnostics: exports a report for support including FFmpeg version, Python version, settings, and system info.
+
+### 7.15 Release Channels and Feature Flags
+
+Help > Feature Flags lets users choose how early they want access to new,
+optional functionality and turn individual features on or off:
+
+- A General / Beta / Alpha release channel selector controls which optional
+  features are available to opt into - choosing an earlier channel reveals
+  features not yet offered to everyone, each with its own description shown
+  inline
+- Individual available features can be switched on or off independently of
+  the channel that unlocked them
+- Disabled features are removed from menus and the interface entirely
+  (never merely greyed out), so the app only presents what's actually usable
+- Persisted as `release_channel` and `feature_flags` (a per-feature on/off
+  override map layered on top of the built-in registry defaults) in
+  `settings.json`
+
+### 7.16 Context-Sensitive Help (F1)
+
+Press F1 on any focused control for an immediate, screen-reader-friendly
+explanation of what it is, what it currently shows, and what activating it
+will do right now:
+
+- Descriptions reflect live application state and the user's own settings -
+  for example, the Rewind button's help names the user's actual configured
+  skip-seconds value, not a generic default
+- Controls whose meaning changes between build and edit mode (Move Up/Down,
+  Remove/Merge Up) explain both meanings and identify which one currently
+  applies
+- Anything not covered by a bespoke description still gets a useful generic
+  explanation, built from the control's accessible name, tooltip, and type
+- Shown in a small read-only dialog styled like the setup wizard - title,
+  multi-line body, and a single Close button
+- Both this in-app help and a generated Control Reference page (published
+  alongside the User Guide in the HTML documentation) are rendered from one
+  shared, token-driven schema (`chapterforge/control_help.json`), so the two
+  can never describe a control differently
+- Ctrl+F1 opens the User Guide instead, for a fuller walkthrough
 
 ---
 
@@ -271,9 +322,12 @@ These rules are binding and must not be violated:
 | Ctrl+Shift+P | Command palette |
 | Ctrl+Z / Ctrl+Y | Undo / Redo |
 | F2 | Edit selected chapter title |
+| F1 | Help on the focused control |
+| Ctrl+F1 | User Guide |
 | Alt+Up / Alt+Down | Move chapter up / down |
 | Space | Play / Pause |
 | Ctrl+Left / Ctrl+Right | Previous / Next chapter |
+| Menu key / Shift+F10 | Context menu for the focused control |
 
 Keyboard shortcut overrides: users can remap any command via Settings (stored in `settings.json` under `"key_overrides"`).
 
@@ -318,6 +372,8 @@ Key configurable settings:
 | `start_minimized` | `false` | Hide window on launch, show tray icon |
 | `check_updates_startup` | `true` | Silent update check at launch |
 | `beta_features` | `false` | Enables beta features (Auphonic integration) |
+| `release_channel` | `"general"` | general, beta, or alpha - controls which optional features can be opted into |
+| `feature_flags` | `{}` | Per-feature on/off overrides layered on the channel's registry defaults |
 | `silence_noise_db` | `-30.0` | Silence detection threshold |
 | `silence_min_seconds` | `0.8` | Minimum silence duration for chapter break |
 

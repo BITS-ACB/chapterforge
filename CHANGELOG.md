@@ -5,6 +5,54 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
 
+## [Unreleased]
+
+### Added
+
+- **Release channels** - The Help > Feature Flags dialog now offers a
+  General/Beta/Alpha update-channel selector alongside individual feature
+  toggles. Each optional feature names the earliest channel it appears on;
+  switching to an earlier-access channel reveals newly-available features
+  with their descriptions on the spot, so users can opt in (or stay on
+  General) with a clear picture of what they're choosing. Implemented in
+  `chapterforge/feature_flags.py`.
+- **Context-sensitive help (F1)** - Press **F1** on any focused control for
+  a short, spoken-friendly explanation of exactly what it does and what
+  pressing it will do *right now* - including live state (current speed,
+  volume, chapter, playback position, build vs. edit mode) and the settings
+  that shape its behavior (skip seconds, default volume). Move Up/Down and
+  Remove/Merge Up - whose meaning changes between build and edit mode - get
+  bespoke explanations that name both meanings. Anything not specifically
+  covered falls back to a description built from its accessible name,
+  tooltip and control type, so F1 always answers *something*. Shown in a
+  read-only dialog styled like the setup wizard (multi-line text plus a
+  Close button). The User Guide moved to **Ctrl+F1** to make room.
+  Implemented in `chapterforge/context_help.py` and
+  `chapterforge/control_help.py`.
+- **Generated Control Reference page** - A new "Control Reference" page,
+  generated from the same description schema that powers the F1 help
+  (`chapterforge/control_help.json`), documents every control in one place
+  with the application's default settings filled in - it can never describe
+  a control differently than the app itself does, because both are rendered
+  from the same templates. Regenerated automatically by
+  `tools/build_docs.py`.
+- **Richer context menus for playback** - The chapter list's right-click /
+  Menu key menu now includes a "Play Controls" submenu (Play/Pause, Stop,
+  Previous/Next Chapter, Rewind, Forward, Go to Time), and the player panel
+  itself now has a context menu with the same commands - previously it had
+  none at all. Both reflect the player's current state (e.g. "Pause" instead
+  of "Play" once something is playing) and are disabled appropriately when
+  no audio is loaded.
+- **System tray playback controls** - When ChapterForge is minimized to the
+  system tray with audio loaded, its tray menu gains Play/Pause, Stop, and
+  Previous/Next Chapter items, so playback can be controlled without
+  restoring the window. The standalone background-watcher tray is unchanged
+  (it has no player to control). Implemented in `chapterforge/tray.py`.
+- **Clearer build/edit mode switching** - Entering edit mode now announces,
+  in plain language, that Move Up/Down swap chapter titles (without moving
+  the audio) and that Remove becomes Merge Up in this mode - the two button
+  pairs most likely to surprise someone moving between modes.
+
 ## [1.0.0] - 2026-06-06
 
 ### Fixed

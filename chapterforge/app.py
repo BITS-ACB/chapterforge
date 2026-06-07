@@ -429,7 +429,10 @@ class MainFrame(wx.Frame):
             "Walk through the guided setup wizard to configure ChapterForge")
         help_menu.AppendSeparator()
         self.mi_guide = help_menu.Append(
-            wx.ID_ANY, "&User Guide\tF1", "Open the User Guide in your browser")
+            wx.ID_ANY, "&User Guide\tCtrl+F1", "Open the User Guide in your browser")
+        self.mi_context_help = help_menu.Append(
+            wx.ID_ANY, "&Help on This Control\tF1",
+            "Show help for whichever control currently has keyboard focus")
         self.mi_keys = help_menu.Append(
             wx.ID_ANY, "&Keyboard Shortcuts\tCtrl+/",
             "Open the keyboard shortcuts reference in your browser")
@@ -521,6 +524,7 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, lambda e: self.Close(), id=wx.ID_EXIT)
         self.Bind(wx.EVT_MENU, self._on_wizard, self.mi_wizard)
         self.Bind(wx.EVT_MENU, self._on_guide, self.mi_guide)
+        self.Bind(wx.EVT_MENU, self._on_context_help, self.mi_context_help)
         self.Bind(wx.EVT_MENU, self._on_keys, self.mi_keys)
         self.Bind(wx.EVT_MENU, self._on_changelog_doc, self.mi_changelog)
         self.Bind(wx.EVT_MENU, self._on_docs_home, self.mi_docs_home)
@@ -809,6 +813,7 @@ class MainFrame(wx.Frame):
                 self.settings.get("pause_at_chapter_end", False)),
             on_volume_change=self._on_player_volume,
             on_load_started=self._reveal_player)
+        self.player.Bind(wx.EVT_CONTEXT_MENU, self._on_player_context_menu)
         outer.Add(self.player, 0, wx.EXPAND | wx.ALL, 8)
         # Hidden until a file is loaded - _reveal_player shows it as soon as
         # loading begins (the media backend needs the panel realized before
@@ -1392,6 +1397,45 @@ class MainFrame(wx.Frame):
         else:
             evt.Skip()
 
+    def _build_play_controls_menu(self, building: bool) -> wx.Menu:
+        """A "Play Controls" menu - one item per transport command, enabled
+        and labelled to match the player's current state. Shared by the
+        chapter list's context menu and the player's own."""
+        p = self.player
+        has_media = p.has_media()
+        menu = wx.Menu()
+
+        mi_pp = menu.Append(wx.ID_ANY, "Pa&use" if p.is_playing() else "&Play")
+        mi_pp.Enable(not building and has_media)
+        self.Bind(wx.EVT_MENU, p._on_play_pause, mi_pp)
+
+        mi_stop = menu.Append(wx.ID_ANY, "&Stop")
+        mi_stop.Enable(not building and has_media)
+        self.Bind(wx.EVT_MENU, p._on_stop, mi_stop)
+
+        mi_prev = menu.Append(wx.ID_ANY, "Pre&vious Chapter")
+        mi_prev.Enable(not building and has_media and bool(p.chapters))
+        self.Bind(wx.EVT_MENU, p._on_prev, mi_prev)
+
+        mi_next = menu.Append(wx.ID_ANY, "Ne&xt Chapter")
+        mi_next.Enable(not building and has_media and bool(p.chapters))
+        self.Bind(wx.EVT_MENU, p._on_next, mi_next)
+
+        mi_rew = menu.Append(wx.ID_ANY, "Re&wind")
+        mi_rew.Enable(not building and has_media)
+        self.Bind(wx.EVT_MENU, p._on_rewind, mi_rew)
+
+        mi_ff = menu.Append(wx.ID_ANY, "&Forward")
+        mi_ff.Enable(not building and has_media)
+        self.Bind(wx.EVT_MENU, p._on_forward, mi_ff)
+
+        menu.AppendSeparator()
+        mi_goto = menu.Append(wx.ID_ANY, "&Go to Time…\tCtrl+G")
+        mi_goto.Enable(not building and has_media)
+        self.Bind(wx.EVT_MENU, self._on_goto_time, mi_goto)
+
+        return menu
+
     def _on_list_context_menu(self, _evt):
         sel = self.list.GetFirstSelected()
         if sel < 0:
@@ -1426,6 +1470,8 @@ class MainFrame(wx.Frame):
             mi_split = menu.Append(wx.ID_ANY, "Split Here")
             mi_split.Enable(not building and self.player.has_media())
             self.Bind(wx.EVT_MENU, self._on_split_chapter, mi_split)
+
+        menu.AppendSubMenu(self._build_play_controls_menu(building), "Play &Controls")
 
         menu.AppendSeparator()
 
@@ -2299,6 +2345,14 @@ class MainFrame(wx.Frame):
     def _on_player_volume(self, vol: int):
         self.settings["default_volume"] = int(vol)
 
+    def _on_player_context_menu(self, _evt):
+        """Right-click or Menu key anywhere on the player: a Play Controls
+        menu, same items as the chapter list's submenu, just promoted to
+        the top level since the player has no other context actions."""
+        menu = self._build_play_controls_menu(self._is_building())
+        self.player.PopupMenu(menu)
+        menu.Destroy()
+
     # ------------------------------------------------------------------
     # Play-from-here / split / estimate
     # ------------------------------------------------------------------
@@ -2932,7 +2986,10 @@ class MainFrame(wx.Frame):
                 " (in-place saving is MP3 only).")
         self._announce(
             f"Editing {os.path.basename(path)}: {len(chapters)} chapter(s). "
-            f"Edit titles, links, images and tags." + note)
+            f"Edit titles, links, images and tags. In this mode, Move Up and "
+            f"Move Down swap chapter titles without moving the audio, and "
+            f"Remove is replaced by Merge Up, which combines a chapter into "
+            f"the one above it. Press F1 on a button for more." + note)
         if self.player.load(path, chapters):
             self.panel.Layout()
         self.list.SetFocus()
@@ -3448,7 +3505,8 @@ class MainFrame(wx.Frame):
             self._watch_controller,
             on_open=self._restore_from_tray,
             on_manage=lambda: self._on_watch_folders(None),
-            on_quit=self._quit_from_tray)
+            on_quit=self._quit_from_tray,
+            get_player=lambda: self.player)
         self._watch_controller.start()
         self.notifier.notify(
             __app_name__, "Background watcher started. ChapterForge is in the "
@@ -3487,6 +3545,17 @@ class MainFrame(wx.Frame):
             on_setup_watch=lambda: self._on_watch_folders(None))
         self.settings["wizard_seen"] = True
         settings_mod.save(self.settings)
+
+    def _on_context_help(self, _evt):
+        """F1: explain whichever control currently has keyboard focus."""
+        from . import context_help
+        title, body = context_help.describe_focused(self)
+        focused = wx.Window.FindFocus()
+        dlg = context_help.ContextHelpDialog(self, title, body)
+        dlg.ShowModal()
+        dlg.Destroy()
+        if focused:
+            focused.SetFocus()
 
     def _on_guide(self, _evt):
         from . import docs
@@ -3615,12 +3684,16 @@ class MainFrame(wx.Frame):
         self.SetFocus()
 
     def _on_feature_flags(self, _evt):
-        """Show or hide optional features from the Help menu."""
+        """Choose a release channel and show or hide optional features."""
         dlg = feature_flags.FeatureFlagsDialog(self, self.settings)
         if dlg.ShowModal() == wx.ID_OK:
             overrides = dlg.get_overrides()
-            if overrides != self.settings.get("feature_flags", {}):
+            channel = dlg.get_channel()
+            changed = (overrides != self.settings.get("feature_flags", {})
+                       or channel != feature_flags.get_channel(self.settings))
+            if changed:
                 self.settings["feature_flags"] = overrides
+                feature_flags.set_channel(self.settings, channel)
                 settings_mod.save(self.settings)
                 self._announce(
                     "Feature flags updated. Restart ChapterForge for the "
@@ -3811,7 +3884,8 @@ class MainFrame(wx.Frame):
             None,
             on_open=self._restore_from_tray,
             on_manage=lambda: self._on_watch_folders(None),
-            on_quit=self._quit_from_tray)
+            on_quit=self._quit_from_tray,
+            get_player=lambda: self.player)
 
     def _on_minimize_to_tray(self, _evt=None):
         """Hide the window and show a tray icon so the user can restore later."""
@@ -4325,7 +4399,8 @@ class SettingsDialog(wx.Dialog):
             ("Save This Setup as a Template…", "Ctrl+Shift+G"),
             ("Settings…",            "Ctrl+,"),
             ("Command Palette",      "Ctrl+Shift+P"),
-            ("User Guide",           "F1"),
+            ("Help on This Control", "F1"),
+            ("User Guide",           "Ctrl+F1"),
             ("Keyboard Shortcuts",   "Ctrl+/"),
             ("Larger Text",          "Ctrl+="),
             ("Smaller Text",         "Ctrl+-"),
@@ -5184,7 +5259,8 @@ class CommandPaletteDialog:
             ("Minimize to System Tray",       None,             lambda: f._on_minimize_to_tray(None),    lambda: True),
             ("Command Palette",               "Ctrl+Shift+P",   lambda: f._open_command_palette(),       lambda: True),
             ("Setup Wizard…",                 None,             lambda: f._on_wizard(None),              lambda: True),
-            ("User Guide",                    "F1",             lambda: f._on_guide(None),               lambda: True),
+            ("Help on This Control",          "F1",             lambda: f._on_context_help(None),        lambda: True),
+            ("User Guide",                    "Ctrl+F1",        lambda: f._on_guide(None),               lambda: True),
             ("Keyboard Shortcuts",            "Ctrl+/",         lambda: f._on_keys(None),                lambda: True),
             ("Get Help Information…",         None,             lambda: f._on_save_diagnostics(None),    lambda: True),
             ("Look for Updates…",             None,             lambda: f._on_check_updates(None),       lambda: True),

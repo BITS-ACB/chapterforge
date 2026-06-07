@@ -1,0 +1,214 @@
+{
+  "_comment": "Canonical descriptions of ChapterForge's controls - the single source for both the in-app F1 'Help on This Control' dialog (chapterforge/context_help.py) and the generated Control Reference documentation page (tools/build_docs.py). Each control's 'template' is plain text with {token} placeholders. A token is either 'setting' (resolves against the user's current settings in-app, and against the documented defaults when generating docs) or 'live' (resolves against the running app's state in-app, and against an illustrative 'doc_example' string when generating docs - so the reference reads naturally without a live app behind it). Controls whose meaning depends on build vs. edit mode carry 'variants' instead of (or alongside) a plain template: the in-app dialog renders only the variant matching the current mode (plus a contrasting note), while the documentation renders both, clearly labelled, since a reader may encounter the control in either mode.",
+
+  "tokens": {
+    "skip_seconds": {
+      "kind": "setting",
+      "key": "skip_seconds",
+      "format": "{value} seconds",
+      "doc_note": "configurable in Settings under \"Skip seconds\"; shown here at its default"
+    },
+    "default_volume": {
+      "kind": "setting",
+      "key": "default_volume",
+      "format": "{value} percent",
+      "doc_note": "configurable in Settings under \"Default volume\"; shown here at its default"
+    },
+    "play_state": {
+      "kind": "live",
+      "resolver": "play_state",
+      "doc_example": "stopped"
+    },
+    "chapter_position": {
+      "kind": "live",
+      "resolver": "chapter_position",
+      "doc_example": "Currently on chapter 3 of 12: \"Chapter Three\"."
+    },
+    "playback_position": {
+      "kind": "live",
+      "resolver": "playback_position",
+      "doc_example": "Currently at 4:12 of 38:47.\n\nCurrently on chapter 3 of 12: \"Chapter Three\"."
+    },
+    "current_volume": {
+      "kind": "live",
+      "resolver": "current_volume",
+      "doc_example": "80 percent"
+    },
+    "current_speed": {
+      "kind": "live",
+      "resolver": "current_speed",
+      "doc_example": "1x"
+    },
+    "chapter_count": {
+      "kind": "live",
+      "resolver": "chapter_count",
+      "doc_example": "12 chapter(s)"
+    },
+    "mode_description": {
+      "kind": "live",
+      "resolver": "mode_description",
+      "doc_example": "build mode (you're assembling a new master from source files)"
+    },
+    "playhead_clause": {
+      "kind": "live",
+      "resolver": "playhead_clause",
+      "doc_example": " The player is currently at 4:12."
+    }
+  },
+
+  "controls": [
+    {
+      "id": "btn_play",
+      "title": "Play / Pause button",
+      "category": "Playback transport",
+      "template": "Starts or pauses playback of the loaded audio. Right now playback is {play_state}.\n\n{chapter_position}"
+    },
+    {
+      "id": "btn_stop",
+      "title": "Stop button",
+      "category": "Playback transport",
+      "template": "Stops playback entirely and returns to the beginning of the loaded audio (unlike Pause, which keeps your place)."
+    },
+    {
+      "id": "btn_prev",
+      "title": "Previous Chapter button",
+      "category": "Playback transport",
+      "template": "Jumps the player to the start of the previous chapter and keeps playing if it already was.\n\n{chapter_position}"
+    },
+    {
+      "id": "btn_next",
+      "title": "Next Chapter button",
+      "category": "Playback transport",
+      "template": "Jumps the player to the start of the next chapter and keeps playing if it already was.\n\n{chapter_position}"
+    },
+    {
+      "id": "btn_rew",
+      "title": "Rewind button",
+      "category": "Playback transport",
+      "template": "Skips backward {skip_seconds} in the loaded audio. Change this amount in Settings under \"Skip seconds\"."
+    },
+    {
+      "id": "btn_ff",
+      "title": "Forward button",
+      "category": "Playback transport",
+      "template": "Skips forward {skip_seconds} in the loaded audio. Change this amount in Settings under \"Skip seconds\"."
+    },
+    {
+      "id": "pos_slider",
+      "title": "Playback position slider",
+      "category": "Playback transport",
+      "template": "Drag, or use the arrow keys, Page Up/Down, Home and End, to scrub to any point in the loaded audio.\n\n{playback_position}"
+    },
+    {
+      "id": "vol_slider",
+      "title": "Volume slider",
+      "category": "Playback transport",
+      "template": "Sets the player's playback volume, from 0 to 100 percent. Currently {current_volume}. Your default starting volume (set in Settings) is {default_volume}."
+    },
+    {
+      "id": "speed_choice",
+      "title": "Playback speed",
+      "category": "Speed and export",
+      "template": "Currently set to {current_speed}. Changes how fast the loaded audio plays back, from 0.5x (half speed) to 4.0x (quadruple speed), without changing its pitch.\n\nChoosing a new speed re-encodes a temporary copy of the file, which takes a few seconds and temporarily disables this control. Use \"Save at This Speed...\" afterwards to keep a permanent copy at the new speed."
+    },
+    {
+      "id": "btn_save_speed",
+      "title": "Save at This Speed button",
+      "category": "Speed and export",
+      "template": "Writes a permanent copy of the loaded audio at its current playback speed ({current_speed}) to a file you choose. Only available once a speed other than the original has finished being applied."
+    },
+    {
+      "id": "btn_trim_start",
+      "title": "Set Trim Start button",
+      "category": "Trimming",
+      "template": "Marks the player's current position as where the trimmed copy should begin. Trimming removes silence from the edges of the loaded audio before it's used elsewhere (e.g. saving a trimmed copy), without altering the original file."
+    },
+    {
+      "id": "btn_trim_end",
+      "title": "Set Trim End button",
+      "category": "Trimming",
+      "template": "Marks the player's current position as where the trimmed copy should end. Trimming removes silence from the edges of the loaded audio before it's used elsewhere (e.g. saving a trimmed copy), without altering the original file."
+    },
+    {
+      "id": "btn_trim_clear",
+      "title": "Clear Trim button",
+      "category": "Trimming",
+      "template": "Removes both trim markers, restoring the full length of the audio. Trimming removes silence from the edges of the loaded audio before it's used elsewhere (e.g. saving a trimmed copy), without altering the original file."
+    },
+    {
+      "id": "btn_prelisten_cut",
+      "title": "Pre-listen to Cut button",
+      "category": "Trimming",
+      "template": "Plays back just the portion that trimming would remove, so you can check the markers before committing to them. Trimming removes silence from the edges of the loaded audio before it's used elsewhere (e.g. saving a trimmed copy), without altering the original file."
+    },
+    {
+      "id": "btn_save_trimmed",
+      "title": "Save Trimmed Copy button",
+      "category": "Trimming",
+      "template": "Writes a new audio file containing only the portion between the trim markers. Trimming removes silence from the edges of the loaded audio before it's used elsewhere (e.g. saving a trimmed copy), without altering the original file."
+    },
+    {
+      "id": "list",
+      "title": "Chapter list",
+      "category": "Chapter list",
+      "template": "Shows the {chapter_count} in the current project, one row per chapter. You're in {mode_description}.\n\nSelect a row, then use the buttons or right-click / Menu key for what you can do with it - the choices change depending on whether you're building or editing."
+    },
+    {
+      "id": "title_ctrl",
+      "title": "Chapter title field",
+      "category": "Chapter list",
+      "template": "Shows and edits the title of the selected chapter. Type a new title and press Enter, or move focus away, to apply it."
+    },
+    {
+      "id": "btn_up",
+      "title": "Move Up button",
+      "category": "Chapter list",
+      "variants": {
+        "build": "In build mode, this moves the selected chapter one position earlier in the list, reordering the underlying source files (and therefore the audio) along with it. In edit mode the same button instead swaps just the chapter titles, leaving the audio in place.",
+        "edit": "In edit mode, this swaps the selected chapter's title with the one above it - the audio itself does not move, only the labels trade places. This is the more surprising of the two behaviours: in build mode the same button reorders the audio."
+      }
+    },
+    {
+      "id": "btn_down",
+      "title": "Move Down button",
+      "category": "Chapter list",
+      "variants": {
+        "build": "In build mode, this moves the selected chapter one position later in the list, reordering the underlying source files (and therefore the audio) along with it. In edit mode the same button instead swaps just the chapter titles, leaving the audio in place.",
+        "edit": "In edit mode, this swaps the selected chapter's title with the one below it - the audio itself does not move, only the labels trade places. This is the more surprising of the two behaviours: in build mode the same button reorders the audio."
+      }
+    },
+    {
+      "id": "btn_remove",
+      "title": "Remove / Merge Up button",
+      "category": "Chapter list",
+      "variants": {
+        "build": "In build mode this button reads \"Remove\": it deletes the selected chapter, and its source audio file, from the project. In edit mode the same button instead reads \"Merge Up\" and merges the chapter into the one above it without discarding any audio.",
+        "edit": "In edit mode this button reads \"Merge Up\": it merges the selected chapter into the one immediately above it, removing the boundary between them (the combined audio stays - nothing is deleted). It's disabled when only one chapter remains, since there would be nothing left to merge into. In build mode the same button instead reads \"Remove\" and deletes the selected chapter (and its source file) from the project outright."
+      }
+    },
+    {
+      "id": "btn_edit",
+      "title": "Set Link & Image button",
+      "category": "Chapter list",
+      "template": "Opens a dialog to set the selected chapter's link URL and cover image. To rename the chapter itself, type directly into the title field instead - this button doesn't rename."
+    },
+    {
+      "id": "btn_play_sel",
+      "title": "Play Chapter button",
+      "category": "Chapter list",
+      "template": "Loads (if needed) and jumps the player to the selected chapter, then starts playing it immediately."
+    },
+    {
+      "id": "btn_split",
+      "title": "Split Here button",
+      "category": "Chapter list",
+      "template": "Divides the chapter the player is currently inside into two chapters at the player's playhead position - not at whichever row happens to be selected in the list.{playhead_clause} Only available in edit mode."
+    },
+    {
+      "id": "folder_ctrl",
+      "title": "Source folder field",
+      "category": "Project",
+      "template": "Shows the folder or file ChapterForge is currently working with. Read-only - use File > Open Folder or File > Open Existing Master to change it."
+    }
+  ]
+}

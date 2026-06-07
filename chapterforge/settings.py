@@ -87,6 +87,9 @@ DEFAULTS: Dict[str, Any] = {
     "log_build_history": True,
     # Feature flags: {flag_key: bool} overrides layered on chapterforge.feature_flags.REGISTRY defaults.
     "feature_flags": {},
+    # Release channel: 'general', 'beta' or 'alpha'. Controls which optional
+    # features in the registry are available to opt into at all.
+    "release_channel": "general",
 }
 
 

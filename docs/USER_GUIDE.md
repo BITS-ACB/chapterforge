@@ -132,6 +132,16 @@ The Preview and Control Panel provides playback controls for reviewing your audi
 #### Basic Information
 - **Chapter Information**: Current chapter details and timing
 
+#### Play Controls Menu
+Right-click the player, or press the Menu key (Shift+F10) while it's
+focused, for a "Play Controls" menu with Play/Pause, Stop, Previous/Next
+Chapter, Rewind, Forward, and Go to Time. The same menu appears as a
+submenu when you right-click a chapter in the chapter list, so you can
+start playing or jump around without first moving focus to the player.
+Items are enabled or disabled to match what's currently possible - for
+example, "Pause" replaces "Play" once something is playing, and Previous/
+Next Chapter are unavailable when there's nothing to navigate to.
+
 ### 2.4 Audio Trimming and Cutting Tools
 
 ChapterForge 1.0.0 includes powerful audio editing tools for precise trimming and cutting:
@@ -166,7 +176,8 @@ ChapterForge 1.0.0 is designed from the ground up for full keyboard accessibilit
 | `Ctrl+Shift+S` | Save As... |
 | `Ctrl+P` | Print/export report |
 | `Ctrl+Q` | Quit application |
-| `F1` | Open User Guide |
+| `F1` | Help on the focused control |
+| `Ctrl+F1` | Open User Guide |
 | `F2` | Rename selected chapter |
 | `F5` | Refresh chapter list |
 | `F11` | Toggle full screen mode |
@@ -226,6 +237,27 @@ ChapterForge 1.0.0 includes advanced screen reader support:
 - **Progress Reporting**: Real-time progress updates during long operations
 - **Error Guidance**: Clear, actionable error messages with recovery suggestions
 - **Workflow Assistance**: Step-by-step guidance through complex operations
+
+#### Context-Sensitive Help (F1)
+Press `F1` while any control has keyboard focus to hear exactly what it is,
+what it currently shows, and what activating it will do right now:
+- Descriptions reflect your own settings and the app's current state - for
+  example, the Rewind button names the skip amount you've actually
+  configured, and the chapter list names how many chapters you have and
+  whether you're in build or edit mode
+- Buttons whose meaning changes between modes (Move Up/Down, Remove/Merge
+  Up) explain both meanings and tell you which one currently applies
+- Anything not specifically covered still gets a useful description built
+  from its accessible name, tooltip, and control type
+- The help opens in a small read-only window - title, description, and a
+  Close button - so it's easy to dismiss and read with a screen reader
+- Press `Ctrl+F1` instead for the full User Guide
+
+Every description here comes from the same source the app itself reads
+from at runtime, so this guide and the in-app help can never disagree. For
+a complete list of every control and what F1 says about it (with
+illustrative example values in place of live state), see the generated
+**Control Reference** page alongside this guide.
 
 ---
 
@@ -320,6 +352,13 @@ The Background Watcher allows automated processing of audio folders with system 
 - **Failure Backoff**: `.chapterforge_failed` files retry only after content changes
 - **Output Exclusion**: Generated masters are written to `_ChapterForge` sub-folder
 
+#### Playback from the Tray
+If you minimize the main window to the system tray while audio is loaded
+in the player, the tray icon's right-click menu gains Play/Pause, Stop,
+and Previous/Next Chapter, so you can keep listening and navigate between
+chapters without restoring the window. (The standalone watcher-only tray
+icon doesn't show these, since it has no player of its own.)
+
 ### 4.3 Batch Processing System
 
 Process entire libraries with minimal setup using the Batch Processing Wizard:
@@ -354,6 +393,29 @@ Automatically detect chapter boundaries in long recordings using silence detecti
 #### Using Silence Detection
 1. **Method 1 - GUI**: Select a long audio file and enable silence detection in processing options
 2. **Method 2 - CLI**: Use `chapterforge --split-silence --noise-db -30 --min-silence 0.8 input.mp3`
+
+### 4.5 Release Channels and Feature Flags
+
+**Help → Feature Flags** is where you choose how early you want access to
+new, optional functionality, and switch individual features on or off:
+
+1. Pick a **release channel** - **General** (the default, fully tested
+   features only), **Beta**, or **Alpha** (earlier access to newer
+   features, which may be less polished)
+2. Switching to an earlier channel immediately reveals any features it
+   unlocks, each shown with its own description so you know what you're
+   opting into
+3. Turn any available feature on or off individually - your choice is
+   remembered even if you later switch channels
+4. Features you turn off disappear from menus and the interface entirely,
+   rather than being merely greyed out, so you only ever see what you can
+   actually use
+
+Your channel and per-feature choices are saved as `release_channel` and
+`feature_flags` in your settings. **Restart ChapterForge for changes to
+take effect** - menus and panels are only built once at startup, so a
+newly enabled (or disabled) feature appears (or disappears) the next time
+the app opens.
 
 ---
 
@@ -745,7 +807,8 @@ ChapterForge 1.0.0 is designed from the ground up for full keyboard accessibilit
 | `Ctrl+Shift+S` | Save As... |
 | `Ctrl+P` | Print/export report |
 | `Ctrl+Q` | Quit application |
-| `F1` | Open User Guide |
+| `F1` | Help on the focused control |
+| `Ctrl+F1` | Open User Guide |
 | `F2` | Rename selected chapter |
 | `F5` | Refresh chapter list |
 | `F11` | Toggle full screen mode |

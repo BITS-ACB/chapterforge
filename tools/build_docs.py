@@ -28,6 +28,9 @@ import sys
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT_DIR = os.path.join(REPO_ROOT, "docs", "html")
 
+if REPO_ROOT not in sys.path:
+    sys.path.insert(0, REPO_ROOT)
+
 FOOTER = ("\u00a9 2026 Blind Information Technology Solutions (BITS). "
           "ChapterForge documentation, generated from Markdown.")
 
@@ -38,6 +41,8 @@ PAGES = [
     ("README.md", "index.html", "Home", "ChapterForge", True),
     (os.path.join("docs", "USER_GUIDE.md"), "USER_GUIDE.html",
      "User Guide", "ChapterForge - User Guide", True),
+    (os.path.join("docs", "CONTROL_REFERENCE.md"), "CONTROL_REFERENCE.html",
+     "Control Reference", "ChapterForge - Control Reference", True),
     (os.path.join("docs", "AUPHONIC_INTEGRATION.md"), "AUPHONIC_INTEGRATION.html",
      "Auphonic", "ChapterForge - Auphonic Integration", True),
     (os.path.join("docs", "DEPLOYMENT.md"), "DEPLOYMENT.html",
@@ -58,6 +63,8 @@ MD_TO_HTML = {
     "readme.md": "index.html",
     "docs/user_guide.md": "USER_GUIDE.html",
     "user_guide.md": "USER_GUIDE.html",
+    "docs/control_reference.md": "CONTROL_REFERENCE.html",
+    "control_reference.md": "CONTROL_REFERENCE.html",
     "docs/auphonic_integration.md": "AUPHONIC_INTEGRATION.html",
     "auphonic_integration.md": "AUPHONIC_INTEGRATION.html",
     "docs/deployment.md": "DEPLOYMENT.html",
@@ -379,8 +386,21 @@ def page_html(title: str, nav: str, toc_html: str, body: str) -> str:
 """
 
 
+def _write_control_reference() -> None:
+    """Regenerate docs/CONTROL_REFERENCE.md from the control_help schema -
+    the single source shared with the in-app F1 help (see
+    chapterforge/control_help.py) - so the page is always current and can
+    never describe a control differently than the app itself does."""
+    from chapterforge import control_help
+    out_path = os.path.join(REPO_ROOT, "docs", "CONTROL_REFERENCE.md")
+    with open(out_path, "w", encoding="utf-8") as fh:
+        fh.write(control_help.generate_markdown())
+    print("  generated docs/CONTROL_REFERENCE.md from control_help.json")
+
+
 def main() -> int:
     os.makedirs(OUT_DIR, exist_ok=True)
+    _write_control_reference()
     built = []
     for src, out_name, _label, title, _nav in PAGES:
         src_path = os.path.join(REPO_ROOT, src)

@@ -1,28 +1,72 @@
-"""Feature-flag registry for optional ChapterForge features.
+"""Feature-flag registry and release channels for optional ChapterForge features.
 
 Lets users hide optional features they don't want cluttering menus and the
-interface, without uninstalling or recompiling anything. Flags are read once
-at startup (when the menu bar and panels are built) and stored as overrides
-in settings under the ``feature_flags`` key - a ``{flag_key: bool}`` dict
-layered on top of the registry defaults below, so adding a new flag never
-requires migrating existing settings files.
+interface, and choose how early they want access to newer ones, without
+uninstalling or recompiling anything.
+
+Two settings work together:
+
+* ``release_channel`` - one of "general", "beta" or "alpha". Each flag in the
+  registry below names the channel it first becomes available on; a feature
+  marked "beta" is available on both the beta and alpha channels, "alpha"
+  only on alpha. Moving to an earlier-access channel can reveal features that
+  were previously hidden entirely - the Feature Flags dialog rebuilds its
+  list live as the channel changes, showing each newly available feature's
+  description so the user can decide whether to opt in.
+* ``feature_flags`` - a ``{flag_key: bool}`` dict of overrides layered on the
+  registry defaults, for opting individual available features in or out.
+
+Both are read once at startup (when the menu bar and panels are built). The
+Help menu's "Feature Flags..." dialog edits them; "Reset Feature Flags to
+Defaults" clears the overrides (leaving the chosen channel untouched, since
+that's a separate, deliberate choice). Changes take effect after restarting
+ChapterForge, since the menu bar and panels are only built once at startup.
 
 Only genuinely optional, cleanly separable features are listed here - core
 workflow (opening folders, building, editing chapters and tags) is not
 flaggable, since disabling it would leave the app unusable.
-
-The Help menu's "Feature Flags..." dialog edits the overrides; "Reset
-Feature Flags to Defaults" clears them, restoring every feature. Both write
-through to ``chapterforge.settings``. Changes take effect after restarting
-ChapterForge, since the menu bar and panels are only built once at startup.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict
+from typing import Dict, List, Tuple
 
 import wx
+
+# Release channels, from most to least stable. A flag's ``channel`` is the
+# earliest (least-stable) channel it appears on; users on a later entry in
+# this list see everything from the entries before it too.
+CHANNELS: List[Tuple[str, str, str]] = [
+    ("general", "General",
+     "Stable, fully tested features. Recommended for most users."),
+    ("beta", "Beta",
+     "Everything in General, plus newer features that are still being "
+     "refined and may have occasional rough edges."),
+    ("alpha", "Alpha",
+     "Everything in Beta, plus early, experimental features that may "
+     "change significantly or be removed without notice."),
+]
+_CHANNEL_RANK: Dict[str, int] = {key: rank for rank, (key, _, _) in enumerate(CHANNELS)}
+_CHANNEL_DESCRIPTIONS: Dict[str, str] = {key: desc for key, _, desc in CHANNELS}
+DEFAULT_CHANNEL = CHANNELS[0][0]
+
+
+def channel_rank(channel: str) -> int:
+    """Stability rank of *channel* (0 = most stable). Unknown -> most stable."""
+    return _CHANNEL_RANK.get(channel, 0)
+
+
+def get_channel(settings) -> str:
+    """The user's chosen release channel, falling back to the default."""
+    channel = settings.get("release_channel", DEFAULT_CHANNEL)
+    return channel if channel in _CHANNEL_RANK else DEFAULT_CHANNEL
+
+
+def set_channel(settings, channel: str) -> None:
+    """Switch the user's release channel (no-op for an unknown channel)."""
+    if channel in _CHANNEL_RANK:
+        settings["release_channel"] = channel
 
 
 @dataclass(frozen=True)
@@ -31,6 +75,7 @@ class Flag:
     label: str
     description: str
     default: bool = True
+    channel: str = DEFAULT_CHANNEL  # earliest channel this feature appears on
 
 
 # Order here is the display order in the Feature Flags dialog.
@@ -63,78 +108,153 @@ _FLAGS = [
 REGISTRY: Dict[str, Flag] = {flag.key: flag for flag in _FLAGS}
 
 
-def is_enabled(settings, key: str) -> bool:
-    """True if the feature named *key* should be shown/available.
+def is_available(settings, key: str) -> bool:
+    """True if *key* appears at all on the user's chosen channel.
 
-    Unknown keys are treated as enabled (fail open) so a flag that's
+    Unknown keys are treated as available (fail open) so a flag that's
     removed in a future version doesn't silently hide something else.
     """
     flag = REGISTRY.get(key)
     if flag is None:
         return True
+    return channel_rank(get_channel(settings)) >= channel_rank(flag.channel)
+
+
+def is_enabled(settings, key: str) -> bool:
+    """True if the feature named *key* should be shown/available.
+
+    A feature must both be on the user's channel and not be turned off by
+    an override (or, lacking an override, be enabled by default).
+    """
+    if not is_available(settings, key):
+        return False
+    flag = REGISTRY[key]
     overrides = settings.get("feature_flags", {})
     return bool(overrides.get(key, flag.default))
 
 
 def reset_to_defaults(settings) -> None:
-    """Clear all overrides, restoring every feature to its registry default."""
+    """Clear all overrides, restoring every available feature to its default.
+
+    Leaves the release channel untouched - that's a separate, deliberate
+    choice, not something a flag reset should undo.
+    """
     settings["feature_flags"] = {}
 
 
 class FeatureFlagsDialog(wx.Dialog):
-    """Lets the user show or hide optional features.
+    """Lets the user choose a release channel and show or hide its features.
 
     Disabled features are removed from menus and the interface entirely
-    (not just greyed out) the next time ChapterForge starts.
+    (not just greyed out) the next time ChapterForge starts. Switching to
+    an earlier-access channel can reveal features that were previously
+    hidden - the list below rebuilds immediately to show them, along with
+    their descriptions, so the user can decide whether to opt in.
     """
 
     def __init__(self, parent, settings):
         super().__init__(parent, title="Feature Flags",
                          style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
+        self._settings = settings
+        # Keep every override (even for flags hidden on the current channel)
+        # so switching channels back and forth doesn't discard preferences.
+        self._pending_overrides: Dict[str, bool] = dict(settings.get("feature_flags", {}))
+        self._checks: Dict[str, wx.CheckBox] = {}
+
         outer = wx.BoxSizer(wx.VERTICAL)
 
         intro = wx.StaticText(self, label=(
-            "Turn optional features on or off. A disabled feature's menus "
-            "and controls are removed from the interface entirely.\n"
+            "Choose how early you want access to new features, and turn "
+            "individual ones on or off. A disabled feature's menus and "
+            "controls are removed from the interface entirely.\n"
             "Restart ChapterForge for changes to take effect."))
-        intro.Wrap(440)
+        intro.Wrap(460)
         outer.Add(intro, 0, wx.EXPAND | wx.ALL, 12)
 
-        overrides = settings.get("feature_flags", {})
-        self._checks: Dict[str, wx.CheckBox] = {}
-        for flag in _FLAGS:
-            cb = wx.CheckBox(self, label=flag.label)
-            cb.SetValue(bool(overrides.get(flag.key, flag.default)))
-            cb.SetName(flag.label)
-            cb.SetToolTip(flag.description)
-            self._checks[flag.key] = cb
-            outer.Add(cb, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 12)
+        self.channel_box = wx.RadioBox(
+            self, label="Update channel",
+            choices=[label for _, label, _ in CHANNELS],
+            majorDimension=1, style=wx.RA_SPECIFY_ROWS)
+        self.channel_box.SetSelection(channel_rank(get_channel(settings)))
+        self.channel_box.Bind(wx.EVT_RADIOBOX, self._on_channel_changed)
+        outer.Add(self.channel_box, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 12)
+
+        self.channel_desc = wx.StaticText(self, label="")
+        self.channel_desc.Wrap(460)
+        outer.Add(self.channel_desc, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 12)
+
+        self.flags_panel = wx.Panel(self)
+        outer.Add(self.flags_panel, 1, wx.EXPAND | wx.LEFT | wx.RIGHT, 12)
 
         btn_row = wx.BoxSizer(wx.HORIZONTAL)
-        self.btn_reset = wx.Button(self, label="&Reset to Defaults")
-        self.btn_reset.SetToolTip("Re-enable every feature in this dialog (without closing it)")
+        self.btn_reset = wx.Button(self, label="&Reset Features to Defaults")
+        self.btn_reset.SetToolTip(
+            "Re-enable every feature available on the selected channel "
+            "(without closing this dialog)")
         self.btn_reset.Bind(wx.EVT_BUTTON, self._on_reset)
         btn_row.Add(self.btn_reset, 0)
         btn_row.AddStretchSpacer()
         btn_row.Add(self.CreateSeparatedButtonSizer(wx.OK | wx.CANCEL), 1, wx.EXPAND)
         outer.Add(btn_row, 0, wx.EXPAND | wx.ALL, 12)
 
+        self._outer = outer
+        self._rebuild_flags()
         self.SetSizerAndFit(outer)
-        self.SetMinSize((480, -1))
+        self.SetMinSize((520, -1))
         self.CentreOnParent()
-        self._checks[_FLAGS[0].key].SetFocus()
+        self.channel_box.SetFocus()
+
+    def _selected_channel(self) -> str:
+        return CHANNELS[self.channel_box.GetSelection()][0]
+
+    def _on_channel_changed(self, _evt):
+        self._rebuild_flags()
+
+    def _rebuild_flags(self):
+        """Rebuild the feature checklist for the currently selected channel."""
+        channel = self._selected_channel()
+        rank = channel_rank(channel)
+        self.channel_desc.SetLabel(_CHANNEL_DESCRIPTIONS[channel])
+        self.channel_desc.Wrap(460)
+
+        self.flags_panel.DestroyChildren()
+        self._checks = {}
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        visible = [f for f in _FLAGS if channel_rank(f.channel) <= rank]
+        if not visible:
+            msg = wx.StaticText(
+                self.flags_panel,
+                label="No optional features are available on this channel.")
+            sizer.Add(msg, 0, wx.ALL, 6)
+        for flag in visible:
+            cb = wx.CheckBox(self.flags_panel, label=flag.label)
+            cb.SetValue(bool(self._pending_overrides.get(flag.key, flag.default)))
+            cb.SetName(flag.label)
+            cb.Bind(wx.EVT_CHECKBOX,
+                    lambda evt, key=flag.key: self._pending_overrides.__setitem__(
+                        key, evt.IsChecked()))
+            self._checks[flag.key] = cb
+            sizer.Add(cb, 0, wx.TOP, 6)
+            desc = wx.StaticText(self.flags_panel, label=flag.description)
+            desc.Wrap(430)
+            sizer.Add(desc, 0, wx.LEFT | wx.BOTTOM, 24)
+        self.flags_panel.SetSizer(sizer)
+        self.flags_panel.Layout()
+        self._outer.Layout()
+        self.Fit()
 
     def _on_reset(self, _evt):
+        rank = channel_rank(self._selected_channel())
         for flag in _FLAGS:
-            self._checks[flag.key].SetValue(flag.default)
-        self._checks[_FLAGS[0].key].SetFocus()
+            if channel_rank(flag.channel) <= rank:
+                self._pending_overrides.pop(flag.key, None)
+                self._checks[flag.key].SetValue(flag.default)
+
+    def get_channel(self) -> str:
+        return self._selected_channel()
 
     def get_overrides(self) -> Dict[str, bool]:
         """Return a ``{flag_key: bool}`` dict of values that differ from
         their registry default - the form stored in settings."""
-        result = {}
-        for flag in _FLAGS:
-            value = self._checks[flag.key].GetValue()
-            if value != flag.default:
-                result[flag.key] = value
-        return result
+        return {key: value for key, value in self._pending_overrides.items()
+                if key in REGISTRY and value != REGISTRY[key].default}

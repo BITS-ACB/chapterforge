@@ -78,12 +78,16 @@ class ChapterForgeTaskBarIcon(wx.adv.TaskBarIcon):
     def __init__(self, controller: Optional[WatcherController],
                  on_open: Callable[[], None],
                  on_manage: Callable[[], None],
-                 on_quit: Callable[[], None]) -> None:
+                 on_quit: Callable[[], None],
+                 get_player: Optional[Callable[[], Optional[object]]] = None) -> None:
         super().__init__()
         self.controller = controller
         self.on_open = on_open
         self.on_manage = on_manage
         self.on_quit = on_quit
+        # Returns the main app's PlayerPanel, or None - only the main app's
+        # tray icon supplies this; the standalone watcher has no player.
+        self.get_player = get_player
         self.SetIcon(make_app_icon(), self._tooltip())
         self.Bind(wx.adv.EVT_TASKBAR_LEFT_DCLICK, lambda e: self.on_open())
 
@@ -100,6 +104,21 @@ class ChapterForgeTaskBarIcon(wx.adv.TaskBarIcon):
         menu = wx.Menu()
         open_item = menu.Append(wx.ID_ANY, "&Open ChapterForge")
         self.Bind(wx.EVT_MENU, lambda e: self.on_open(), open_item)
+
+        player = self.get_player() if self.get_player else None
+        if player is not None and player.has_media():
+            menu.AppendSeparator()
+            pp = menu.Append(wx.ID_ANY, "Pa&use" if player.is_playing() else "&Play")
+            self.Bind(wx.EVT_MENU, player._on_play_pause, pp)
+            stop = menu.Append(wx.ID_ANY, "&Stop")
+            self.Bind(wx.EVT_MENU, player._on_stop, stop)
+            prev = menu.Append(wx.ID_ANY, "Pre&vious Chapter")
+            prev.Enable(bool(player.chapters))
+            self.Bind(wx.EVT_MENU, player._on_prev, prev)
+            nxt = menu.Append(wx.ID_ANY, "Ne&xt Chapter")
+            nxt.Enable(bool(player.chapters))
+            self.Bind(wx.EVT_MENU, player._on_next, nxt)
+
         if self.controller is not None:
             toggle = menu.Append(
                 wx.ID_ANY,
