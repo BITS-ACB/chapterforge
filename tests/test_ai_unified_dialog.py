@@ -310,6 +310,58 @@ def test_on_save_clears_done_when_pick_missing(fake_home, frame):
 
 
 # ---------------------------------------------------------------------------
+# _run_setup end-to-end (monkey-patched)
+# ---------------------------------------------------------------------------
+
+
+def test_run_setup_success_path(fake_home, frame):
+    """_run_setup should call _finish_setup(True, ...) on happy path."""
+    from chapterforge.app import AIModelUnifiedDialog
+    from unittest.mock import patch, MagicMock
+
+    s = {"ai_engine_tier": "Strong", "ai_model_name": "small",
+         "ai_setup_done": False}
+    dlg = AIModelUnifiedDialog(frame, s)
+    dlg._go_to(2)  # completion step
+
+    finish_calls = []
+    with patch.object(dlg, "_finish_setup", side_effect=finish_calls.append):
+        with patch("chapterforge.app._check_ai_package", return_value=True):
+            with patch("chapterforge.app._download_model"):
+                dlg._run_setup()
+
+    assert len(finish_calls) == 1
+    success, msg = finish_calls[0]
+    assert success is True
+    assert "complete" in msg.lower() or "ready" in msg.lower()
+    dlg.Destroy()
+
+
+def test_run_setup_failure_path(fake_home, frame):
+    """_run_setup should call _finish_setup(False, ...) when download raises."""
+    from chapterforge.app import AIModelUnifiedDialog
+    from unittest.mock import patch
+
+    s = {"ai_engine_tier": "Strong", "ai_model_name": "small",
+         "ai_setup_done": False}
+    dlg = AIModelUnifiedDialog(frame, s)
+    dlg._go_to(2)
+
+    finish_calls = []
+    with patch.object(dlg, "_finish_setup", side_effect=finish_calls.append):
+        with patch("chapterforge.app._check_ai_package", return_value=True):
+            with patch("chapterforge.app._download_model",
+                       side_effect=RuntimeError("network error")):
+                dlg._run_setup()
+
+    assert len(finish_calls) == 1
+    success, msg = finish_calls[0]
+    assert success is False
+    assert "fail" in msg.lower() or "error" in msg.lower()
+    dlg.Destroy()
+
+
+# ---------------------------------------------------------------------------
 # Accessibility (binding contract)
 # ---------------------------------------------------------------------------
 

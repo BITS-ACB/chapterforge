@@ -731,14 +731,22 @@ The Chapter Management Panel is where you organize, edit, and optimize your chap
 - **Edit Chapter Title**: Double-click on a chapter title or select and press `F2`
 - **Batch Edit**: Select multiple chapters using `Ctrl+Click` or `Shift+Click` for bulk operations
 
-#### Smart Chapter Detection AI
-One of the most revolutionary features in ChapterForge 1.0.0 is our proprietary Smart Chapter Detection AI:
-1. Select one or more chapters you want to optimize
-2. Click **AI Analyze Selection** or press `Ctrl+Shift+A`
-3. The AI will analyze the audio content and suggest optimal chapter boundaries
-4. Review the suggestions in the **AI Recommendations Panel**
-5. Accept individual suggestions or apply all with one click
-6. Fine-tune manually using the waveform visualization
+#### AI Transcription
+
+ChapterForge can transcribe your audio to text and suggest chapter boundaries using a local AI model (no internet connection required after setup).
+
+**Setup:** Open **Transcription > AI Model...** to download and configure a model. The dialog detects what is already on your system:
+- If a model is already downloaded it opens in settings mode, showing the current tier and model with a Save button.
+- If nothing is downloaded it opens a three-step wizard that installs the required package and downloads the model. Estimated download sizes range from 75 MB (tiny) to 3 GB (large).
+
+**Tiers:**
+- **Basic** - uses whisper.cpp (no Python packages needed; binary must be on PATH).
+- **Strong** - uses faster-whisper (requires `pip install faster-whisper`; recommended for most users).
+- **Premium** - uses Parakeet ONNX (requires `pip install onnxruntime`; highest accuracy on English).
+
+**Using AI features after setup:**
+- **Transcription > Transcribe Audio...** - transcribes the loaded audio to a text file.
+- **Transcription > Suggest AI Chapters...** - runs transcription and automatically inserts chapter markers at detected boundaries.
 
 #### Waveform Visualization
 The enhanced waveform visualization provides real-time visual feedback:

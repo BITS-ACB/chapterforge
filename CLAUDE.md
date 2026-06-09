@@ -50,6 +50,21 @@ The app is organized as a Python package under `chapterforge/` with a clean sepa
 
 Entry points: `main.py` (GUI/watcher), `cli_main.py` (CLI console).
 
+## AI Transcription
+
+The `chapterforge/ai/` package implements optional AI transcription. The subsystem has three tiers (Basic, Strong, Premium) each backed by a different engine:
+
+- **`ai/discovery.py`** - Filesystem detector. `discover_models()` probes HuggingFace cache and PATH to find downloaded models. `is_ready(tier, model)` is the canonical "is this usable right now?" check. `_DOWNLOAD_SIZES` is the single source of truth for download size hints.
+- **`ai/hardware.py`** - Hardware probe: detects CUDA, AVX, Apple Silicon. Called once at dialog open.
+- **`ai/engine.py`** - Abstract `TranscriptionEngine` base class.
+- **`ai/faster_whisper_engine.py`** - Strong-tier engine (faster-whisper / HuggingFace).
+- **`ai/whisper_cpp.py`** - Basic-tier engine (whisper.cpp binary on PATH).
+- **`ai/parakeet.py`** - Premium-tier engine (ONNX Parakeet).
+
+The `AIModelUnifiedDialog` in `app.py` has two modes: **settings mode** (a model is already on disk - shows tier/model radios + Save) and **wizard mode** (nothing downloaded - three-step: intro, hardware check, download). Use `discovery.is_ready()` to decide which mode to show; do not cache the result, as the user may install or delete models between sessions.
+
+The chapter-list column headers use `_announce_list_cell` (defined in `app.py`) to announce cell content when the user navigates with left/right arrow keys. This is the correct mechanism for per-column accessibility - `wx.ListCtrl` does not support per-column `SetName`. Do not remove or bypass `_announce_list_cell` when adding new columns.
+
 ## Key Constraints
 
 - **Accessibility is a first-class requirement.** This is a binding contract. Every interactive control MUST have an accessible name and a visible label. How to supply the accessible name depends on the control type - `SetName()` is NOT the screen-reader name for all controls:

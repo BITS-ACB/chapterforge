@@ -127,3 +127,51 @@ Divides the chapter the player is currently inside into two chapters at the play
 ### Source folder field
 
 Shows the folder or file ChapterForge is currently working with. Read-only - use File > Open Folder or File > Open Existing Master to change it.
+
+## AI Model Dialog
+
+Open via **Transcription > AI Model...**. The dialog adapts to whether an AI model is already on disk.
+
+### Header card
+
+Shows the status of the currently active AI model ("Ready: Strong tier, small model (461 MB)" or "No AI model downloaded yet"). Read-only.
+
+### Tier radio buttons (Settings mode)
+
+Choose between Basic (whisper.cpp - no Python packages needed), Strong (faster-whisper), and Premium (Parakeet ONNX). Selecting a tier updates the model list below.
+
+### Model radio buttons (Settings mode)
+
+Choose the specific model size for the selected tier. Each radio shows the model name and its download size. The currently on-disk model is indicated.
+
+### Save button (Settings mode)
+
+Saves the selected tier and model as the active AI configuration. If the selected model is not yet downloaded, AI menus will be disabled until you run setup.
+
+### Run Setup Wizard button (Settings mode)
+
+Switches the dialog to wizard mode to download and install the selected model.
+
+### Close button (Settings mode)
+
+Closes the dialog without saving changes.
+
+### Back button (Wizard mode)
+
+Returns to the previous wizard step.
+
+### Next Step button (Wizard mode, steps 1-2)
+
+Advances to the next wizard step.
+
+### Setup AI Model button (Wizard mode, step 3)
+
+Installs the required Python package (if needed) and downloads the selected model. Shows a progress gauge and status label during the operation.
+
+### Status label
+
+Announces each phase of setup (installing package, downloading model, complete). Updated by the background worker; screen readers receive live announcements.
+
+### Progress gauge
+
+Shows download and installation progress from 0 to 100 percent. Hidden until setup starts.

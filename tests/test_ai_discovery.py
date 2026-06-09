@@ -39,7 +39,9 @@ def fake_home(monkeypatch, tmp_path):
     monkeypatch.delenv("HF_HOME", raising=False)
     monkeypatch.delenv("XDG_CACHE_HOME", raising=False)
     monkeypatch.setattr(Path, "home", classmethod(lambda cls: tmp_path))
-    return tmp_path
+    discovery._invalidate_discover_cache()
+    yield tmp_path
+    discovery._invalidate_discover_cache()
 
 
 def _make_repo(fake_home: Path, repo_id: str) -> Path:
@@ -119,6 +121,7 @@ def test_hf_home_env_overrides_home(monkeypatch, tmp_path):
 def test_basic_tier_needs_binary_and_model_file(monkeypatch, tmp_path):
     """whisper.cpp readiness needs both the binary on PATH and the model file."""
     # No binary: even if the .bin is on disk, the tier is not ready.
+    discovery._invalidate_discover_cache()
     monkeypatch.setattr(shutil, "which", lambda name: None)
     info = discovery.model_info("Basic", "small")
     assert info is not None
@@ -136,6 +139,7 @@ def test_basic_tier_needs_binary_and_model_file(monkeypatch, tmp_path):
     # Discovery's _basic_model_file uses Path.cwd() as a fallback; switch
     # into the directory containing the .bin for that branch to also work.
     monkeypatch.chdir(bin_dir)
+    discovery._invalidate_discover_cache()
     info = discovery.model_info("Basic", "small")
     assert info is not None
     assert info.available is True

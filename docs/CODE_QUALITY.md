@@ -166,6 +166,21 @@ Before submitting a pull request, ensure:
    pre-commit run --all-files
    ```
 
+### Testing the AI dialogs
+
+`tests/test_ai_unified_dialog.py` is the largest test file in the suite (~9 tests, 300+ lines). It covers the `AIModelUnifiedDialog` in `chapterforge/app.py`.
+
+**Why Windows-only:** The tests call `wx.App()` and construct real wxPython widgets. On Linux/macOS without a display, wxPython raises `SystemExit` at import, so the module carries `pytestmark = pytest.mark.skipif(os.name != "nt", ...)`.
+
+**How to add a test:**
+1. Add a `fake_home` fixture parameter so the HuggingFace cache is redirected to a temp dir.
+2. Use `_make_faster_whisper_repo(fake_home, model)` to fake an on-disk model.
+3. Construct `AIModelUnifiedDialog(frame, settings_dict)` directly - do not call `ShowModal`.
+4. Call `dlg.Destroy()` in a `finally` block.
+5. Assert on `dlg._hdr_step.GetLabel()`, `len(dlg._steps)`, footer button visibility, or settings dict keys after `_on_save()`.
+
+`tests/test_ai_discovery.py` covers `chapterforge/ai/discovery.py` and can be extended for any new discovery logic without needing wxPython.
+
 ### Updating Tools
 
 Keep quality assurance tools updated:

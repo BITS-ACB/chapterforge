@@ -14,6 +14,10 @@ from typing import Any, Dict
 
 APP_FOLDER_NAME = "ChapterForge"
 
+
+class SettingsSaveError(OSError):
+    """Raised when user settings cannot be written to disk."""
+
 DEFAULTS: Dict[str, Any] = {
     # Sticky tag defaults that usually stay the same between projects.
     "artist": "",
@@ -124,7 +128,12 @@ def load() -> Dict[str, Any]:
 
 
 def save(data: Dict[str, Any]) -> None:
-    """Persist *data* (best effort; failures are swallowed)."""
+    """Persist *data* to disk.
+
+    Raises :exc:`SettingsSaveError` (a subclass of ``OSError``) if the file
+    cannot be written - e.g. disk full or read-only path. Callers should catch
+    this and surface a message to the user.
+    """
     try:
         os.makedirs(config_dir(), exist_ok=True)
         merged = {key: data.get(key, DEFAULTS[key]) for key in DEFAULTS}
@@ -132,5 +141,5 @@ def save(data: Dict[str, Any]) -> None:
         with open(tmp, "w", encoding="utf-8") as fh:
             json.dump(merged, fh, indent=2)
         os.replace(tmp, config_path())
-    except OSError:
-        pass
+    except OSError as exc:
+        raise SettingsSaveError(str(exc)) from exc

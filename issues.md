@@ -132,52 +132,9 @@ workflow without sight. The following items undermine that contract.
   inherits the static-text label from its container." Don't leave
   the contract unbacked by code.
 
-### 2.14 No screen-reader-only summary in the AI dialog header
-- **File:** `chapterforge/app.py`, `AIModelUnifiedDialog._hdr_title`
-  (line 647) and `_hdr_step` (line 651).
-- **Symptom:** Both are visible StaticTexts. A screen-reader user
-  navigating by heading will hear "AI Model" / "Settings" or
-  "Step 1 of 3", but no extra context ("You're in the polished
-  settings view. Use Save to keep changes.").
-- **Fix:** Add an `a11y.announce(...)` in `_go_to` whenever the
-  step changes, with a sentence-form description ("Step 1 of 3:
-  Introduction. Press Next Step to continue."). The announce is
-  the only mechanism that delivers a sentence-form, not a label.
-
-### 2.15 No `SetName` on the chapter list header / column headers
-- **File:** `chapterforge/app.py`, lines 2072-2081.
-- **Symptom:** `self.list.SetName("Chapters list - up and down
-  arrows to move between chapters, left and right arrows to read
-  across columns")` is good. But the individual columns have no
-  name. NVDA reads the column number ("Column 2") which is not
-  helpful.
-- **Fix:** Add a parallel `wx.ListCtrl.SetColumn(i, ..., name=...)`
-  call - or, since `wx.ListCtrl` does not support per-column names
-  in all bindings, add a screen-reader-only summary string and
-  announce it when the user moves columns with left/right arrows.
-  This is already done via `_announce_list_cell` (line 2782-2788)
-  which is good. Document this in `CLAUDE.md` so future column
-  changes don't forget the announce hook.
-
 ---
 
 ## 3. Code quality / dead code (P1)
-
-### 3.1 `AIModelSettingsDialog` is no longer wired to any menu
-- **File:** `chapterforge/app.py`, lines 153-235.
-- **Symptom:** The dialog class is defined but the only
-  `AIModelSettingsDialog` instantiation was removed when the unified
-  dialog landed. `grep -n AIModelSettingsDialog` returns only the
-  class definition. ~85 lines of dead code.
-- **Fix:** Remove the class.
-
-### 3.2 `AIModelSetupDialog` is no longer wired to any menu
-- **File:** `chapterforge/app.py`, lines 238-559.
-- **Symptom:** Same as 3.1. ~320 lines of dead code. Notably it has
-  a subtle bug (line 557) - `self._content_sz.Replace(model_box, model_box)`
-  replaces the sizer with itself, which is a no-op. The legacy
-  setup dialog would have to be re-tested before we can rely on it.
-- **Fix:** Remove the class.
 
 ### 3.11 `SettingsDialog` has many fields without `use_accessible=True`
 - **File:** `chapterforge/app.py`, `SettingsDialog` (around line 6100).
@@ -203,67 +160,9 @@ workflow without sight. The following items undermine that contract.
   `chapterforge/app/audio_dialogs.py` (the player + trim/speed
   dialogs). This is a refactor, not a fix; rate as P2.
 
-### 3.17 No test for `AIModelUnifiedDialog._run_setup` end-to-end
-- **File:** `tests/test_ai_unified_dialog.py`.
-- **Symptom:** The unit tests cover `_on_save`, footer visibility
-  and mode-switching, but never exercise the actual pip-install /
-  model-download path. A real bug in the pulse-gauge arithmetic
-  (1.9) and the `_status_label.SetName` pattern (2.2) would slip
-  through.
-- **Fix:** Add a test that monkey-patches
-  `_tier_pip_package` / `_check_ai_package` /
-  `_download_model` and asserts the gauge ends at 100 on success
-  and at 0 with a failure message on a faked exception.
-
-### 3.18 No test that the unified dialog respects
-  `ai_setup_done = True` -> settings mode, `False` -> wizard mode
-- **File:** `tests/test_ai_unified_dialog.py`.
-- **Symptom:** Implicit in `test_settings_mode_opens_polished_view`
-  but not asserted. A future refactor that flips the order
-  (always show wizard) would pass the test.
-- **Fix:** Add an explicit `test_wizard_mode_for_fresh_install`
-  with `ai_setup_done = False` and assert the wizard step counter
-  shows "Step 1 of 3".
-
-### 3.19 `app._apply_appearance` is called from `__init__` but
-  `theme` is read by `_apply_appearance` which may load colours
-  before the menu bar is built
-- **File:** `chapterforge/app.py`, lines 1601-1602 vs
-  `_build_menu` 1579-1580.
-- **Symptom:** Subtle ordering - `_build_ui` is called twice (once
-  in `__init__`, once after settings load). The first call may
-  not have menu items yet. Not a bug today but fragile.
-- **Fix:** Refactor into a single explicit `_init_ui` and call
-  it from `__init__` after both menu and panel are built.
-
 ---
 
 ## 4. UX / polish (P1)
-
-### 4.2 Footer button order is inconsistent with Windows convention
-- **File:** `chapterforge/app.py`, lines 678-710.
-- **Symptom:** In settings mode the footer shows:
-  `[empty stretch]  Save   Run Setup Wizard...   Close`.
-  This puts the *primary* action (Save) before the *secondary*
-  (Run Setup Wizard) and the *tertiary* (Close), which is
-  correct. But in wizard mode the footer shows:
-  `[Back]  [stretch]  [Next Step]`. Back is left-most, which is
-  non-standard on Windows (which would expect `Back  Next`). The
-  stretch spacer pushes Next to the right, which feels more
-  macOS-ish. Either is defensible; just pick one and document it.
-- **Fix:** Move the stretch spacer to the left of Back so the
-  order is `Back  [stretch]  Next`. Or move the stretch to the
-  right of Back so the order is `[stretch]  Back  Next`. Pick
-  one; this is a P3 polish.
-
-### 4.3 The wizard's "Setup AI Model" button has no progress hint
-- **File:** `chapterforge/app.py`, lines 1099-1123.
-- **Symptom:** The completion step shows a paragraph and the
-  status label / gauge, but the user has no preview of how long
-  it will take. Add a one-line "Estimated time: 2-5 minutes" hint
-  based on the model size from `_DOWNLOAD_SIZES`.
-- **Fix:** Show the size from `discovery._DOWNLOAD_SIZES` next
-  to the model name in the paragraph.
 
 ### 4.4 The settings card "Current AI model" header is invisible
   on high-contrast themes
@@ -297,73 +196,9 @@ workflow without sight. The following items undermine that contract.
   intercept `EVT_CLOSE` / `EndModal(CANCEL)` to ask
   "Discard your AI model changes?".
 
-### 4.9 `is_ready` returns False for the currently selected model
-  if the user manually deletes the model from the cache
-- **File:** `chapterforge/app.py` `AIModelUnifiedDialog.__init__`
-  line 636-639.
-- **Symptom:** The dialog opens in wizard mode on the next
-  launch. The user has just deleted the model. The user is not
-  warned that the previous "AI ready" state was lost; they just
-  see the wizard again.
-- **Fix:** When `ai_setup_done = True` but `is_ready(...)` is
-  False, show a one-time info dialog: "Your previously
-  downloaded model is missing. Run the setup wizard to
-  download it again."
-
 ---
 
 ## 5. Documentation gaps (P1/P2)
-
-### 5.1 No mention of the AI Model dialog in the User Guide
-- **File:** `docs/USER_GUIDE.md`.
-- **Symptom:** A user reading the guide does not learn about
-  the `Transcription > AI Model...` menu. Section 2 mentions
-  Auphonic (line 674) but not the new in-app AI Model setup.
-  The "Smart Chapter Detection AI" section on line 734 is
-  misleading - it describes a feature that does not exist
-  ("AI Analyze Selection", "AI Recommendations Panel").
-- **Fix:** Replace the fictional "Smart Chapter Detection AI"
-  section with a real "AI Transcription" section that explains:
-  * `Transcription > AI Model...` opens the unified setup
-    dialog.
-  * The dialog auto-detects which models are already
-    downloaded.
-  * Settings mode vs. wizard mode.
-  * `Transcribe Audio...` and `Suggest AI Chapters...`
-    become available after setup.
-
-### 5.3 `CLAUDE.md` does not mention the AI Model dialog
-- **File:** `CLAUDE.md`.
-- **Symptom:** The project-level Claude instructions describe
-  the architecture but never mention the AI dialogs or the
-  `chapterforge/ai/` package layout. A future Claude session
-  will not know about `discovery.is_ready` and will re-invent
-  detection.
-- **Fix:** Add a "AI" section to `CLAUDE.md` describing the
-  `ai/discovery.py`, `ai/engine.py`, `ai/whisper_cpp.py`,
-  `ai/faster_whisper_engine.py`, `ai/parakeet.py` modules and
-  the unified dialog's two modes.
-
-### 5.7 No mention of `tests/test_ai_unified_dialog.py` in the
-  developer docs
-- **File:** `docs/CODE_QUALITY.md` (or similar).
-- **Symptom:** The new test file is the largest in the
-  test suite (9 tests, 250+ lines) and exercises the AI
-  dialog. A new contributor who runs `pytest -q` should know
-  why the AI dialog is Windows-only and how to add a new
-  test.
-- **Fix:** Add a "Testing the AI dialogs" section to
-  `CODE_QUALITY.md` or a new `docs/AI_TESTING.md`.
-
-### 5.8 `docs/CONTROL_REFERENCE.md` does not list the AI Model
-  dialog
-- **File:** `docs/CONTROL_REFERENCE.md` (need to verify).
-- **Symptom:** If the doc lists every control, the AI Model
-  dialog should be in it. Verify.
-- **Fix:** Add a `## AI Model Dialog` section with the
-  controls: header, tier radios, model radios, status label,
-  gauge, Save, Run Setup Wizard, Close, Back, Next Step,
-  Setup AI Model.
 
 ---
 
@@ -371,12 +206,6 @@ workflow without sight. The following items undermine that contract.
 
 The repo has 19 test files and 29 tests, which is thin for a
 7,000-line app.
-
-### 6.1 No end-to-end test for the build pipeline
-- **File:** `tests/test_core.py` - read separately; likely
-  covered. Verify.
-- **Symptom:** Cannot test the full build without FFmpeg;
-  the test fixture probably mocks `_run`. Verify.
 
 ### 6.2 No test that `core.write_pod2_chapters` produces a
   spec-compliant file
@@ -403,15 +232,6 @@ The repo has 19 test files and 29 tests, which is thin for a
 - **Fix:** Add a focused test file with 4-5 tests: start,
   update, finish, cancel, listener-notification.
 
-### 6.5 No test that `a11y.announce` is thread-safe
-- **File:** (no test for a11y).
-- **Symptom:** `announce` is called from worker threads. A
-  race would crash the worker and leave the status bar
-  silent.
-- **Fix:** Add a test that spawns 10 threads, each calling
-  `announce("x")` 100 times, and asserts no exception
-  escapes.
-
 ### 6.6 No test that the AI menu enable state is correct
 - **File:** `tests/test_ai_unified_dialog.py`.
 - **Symptom:** The `_update_ai_menu_state` enable/disable
@@ -430,26 +250,6 @@ The repo has 19 test files and 29 tests, which is thin for a
 ---
 
 ## 7. Performance / polish (P2)
-
-### 7.1 `discover_models()` runs synchronously on dialog open
-- **File:** `chapterforge/ai/discovery.py` lines 174-196.
-- **Symptom:** The function does 11 filesystem probes. On a
-  cold cache, each `pathlib.exists()` is a stat() call. With
-  network-mounted home dirs, this could take 100+ ms.
-  The dialog opens synchronously so the user sees a pause.
-- **Fix:** Cache the result for 1-2 seconds via
-  `functools.lru_cache(maxsize=1, typed=False)` and a tiny
-  TTL wrapper.
-
-### 7.2 `_run_setup` uses a polling sleep of 0.3 s on the
-  pulse thread
-- **File:** `chapterforge/app.py`, line 1218:
-  `stop_pulse.wait(0.3)`.
-- **Symptom:** Wakes up 3.3 times per second. Cheap, but
-  probably overkill. Use `wx.Gauge.Pulse()` which has its
-  own timer.
-- **Fix:** Drop the manual pulse thread and use the
-  documented indeterminate mode.
 
 ---
 
@@ -495,30 +295,9 @@ The repo has 19 test files and 29 tests, which is thin for a
   feature with a "Removed in vX.Y" message rather than
   silently dropping it.
 
-### 8.6 `auphonic_menu._auphonic_menu_index = 4` is a magic
-  number
-- **File:** `chapterforge/app.py`, line 1826.
-- **Symptom:** The menu index is computed manually. If
-  someone adds a menu between File/Edit/View/Tools and
-  Auphonic, the index drifts.
-- **Fix:** Use the same dynamic approach as
-  `_publish_menu_index` (line 1841). Delete the magic
-  number.
-
 ---
 
 ## 9. Security / privacy (P1)
-
-### 9.2 `settings.save` swallows all `OSError`
-- **File:** `chapterforge/settings.py`, lines 126-136.
-- **Symptom:** If the disk is full or the file is
-  read-only, the user has no idea that their settings
-  were not saved. The next launch will use the old
-  settings.
-- **Fix:** Catch `OSError` and re-raise as a custom
-  `SettingsSaveError`. The caller can `try/except` and
-  show a modal "Could not save settings; check your disk
-  space." Announce via `a11y.announce`.
 
 ---
 
@@ -527,17 +306,15 @@ The repo has 19 test files and 29 tests, which is thin for a
 | Severity | Count |
 |----------|------:|
 | P0       |     7 |
-| P1       |    25 |
-| P2       |     8 |
-| P3       |     1 |
-| **Total**| **41** |
+| P1       |     9 |
+| P2       |     5 |
+| P3       |     0 |
+| **Total**| **21** |
 
 **Top 5 issues to fix next** (in order):
 
-1. **3.1 / 3.2** - Remove the two dead dialog classes
-   (`AIModelSettingsDialog`, `AIModelSetupDialog`). ~400
-   lines of code we no longer test or maintain.
-2. **2.14** - Add `a11y.announce` in `_go_to` for step changes.
-3. **9.2** - `settings.save` swallows all OSError.
-4. **5.3** - Add AI section to CLAUDE.md.
-5. **8.6** - Fix `_auphonic_menu_index` magic number.
+1. **1.1** - `_on_save` silently disables AI when new selection is not on disk.
+2. **1.7** - Inconsistent tier catalogue (Canary vs Premium).
+3. **1.14** - `wizard_seen` set on cancel.
+4. **4.5** - No Cancel button during download.
+5. **4.6** - No unsaved-changes warning.

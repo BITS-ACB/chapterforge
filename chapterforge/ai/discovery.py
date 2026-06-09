@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import os
 import shutil
+import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
@@ -170,11 +171,29 @@ def _size_hint(tier: str, model: str) -> str:
     return _DOWNLOAD_SIZES.get(model, "?")
 
 
+_DISCOVER_CACHE: Optional[Dict[str, ModelInfo]] = None
+_DISCOVER_CACHE_AT: float = 0.0
+_DISCOVER_CACHE_TTL: float = 2.0
+
+
+def _invalidate_discover_cache() -> None:
+    """Clear the discover_models cache. Intended for tests and post-install hooks."""
+    global _DISCOVER_CACHE, _DISCOVER_CACHE_AT
+    _DISCOVER_CACHE = None
+    _DISCOVER_CACHE_AT = 0.0
+
+
 def discover_models() -> Dict[str, ModelInfo]:
     """Return a dict keyed by ``"<tier>::<model>"`` for every known model.
 
     The dialog iterates this dict to populate its radio button groups.
+    Results are cached for 2 seconds so rapid open/close cycles do not
+    hammer the filesystem with 11 stat() calls each time.
     """
+    global _DISCOVER_CACHE, _DISCOVER_CACHE_AT
+    now = time.monotonic()
+    if _DISCOVER_CACHE is not None and (now - _DISCOVER_CACHE_AT) < _DISCOVER_CACHE_TTL:
+        return _DISCOVER_CACHE
     out: Dict[str, ModelInfo] = {}
     for tier, model, repo_id in _KNOWN_MODELS:
         key = f"{tier}::{model}"
@@ -192,6 +211,8 @@ def discover_models() -> Dict[str, ModelInfo]:
             available=available,
             size_hint=_size_hint(tier, model),
         )
+    _DISCOVER_CACHE = out
+    _DISCOVER_CACHE_AT = now
     return out
 
 
