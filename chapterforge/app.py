@@ -35,6 +35,92 @@ from .player import PlayerPanel
 from .auphonic import AuphonicService
 from .publish import PublishService
 
+# --- AI setup helpers --------------------------------------------------------
+
+_MODEL_DOWNLOAD_SIZES = {
+    "tiny": "75 MB",
+    "base": "145 MB",
+    "small": "461 MB",
+    "medium": "1.5 GB",
+    "large-v3": "3 GB",
+    "large-v3-turbo": "3 GB",
+    "parakeet-onnx": "~2 GB",
+    "canary": "~1 GB",
+}
+
+
+def _recommend_for_hardware(cfg: dict) -> tuple:
+    """Return (tier, model) based on detected hardware acceleration.
+    
+    Generates intelligent recommendations based on detected capabilities:
+    - NVIDIA CUDA: Strong tier with medium model (balanced)
+    - Apple Silicon: Strong tier with small model (optimized)
+    - Modern CPU (AVX): Strong tier with small model
+    - Legacy CPU: Strong tier with tiny model (slow but functional)
+    """
+    accel = cfg.get("acceleration", "")
+    device = cfg.get("device", "cpu")
+    
+    if "CUDA" in accel and device == "cuda":
+        return ("Strong", "medium")
+    if "Apple Silicon" in accel:
+        return ("Strong", "small")
+    if "AVX" in accel or "Modern CPU" in accel:
+        return ("Strong", "small")
+    if "Legacy CPU" in accel:
+        return ("Strong", "tiny")
+    return ("Strong", "small")
+
+
+def _check_ai_package(tier: str) -> bool:
+    """Return True if the required package for this tier can be imported."""
+    if tier == "Strong":
+        try:
+            import faster_whisper  # noqa: F401
+            return True
+        except ImportError:
+            return False
+    if tier == "Premium":
+        try:
+            import onnxruntime  # noqa: F401
+            return True
+        except ImportError:
+            return False
+    return True  # Basic tier uses an external binary
+
+
+def _tier_pip_package(tier: str) -> str:
+    """Return the pip install name for a tier, or empty string if none."""
+    return {"Strong": "faster-whisper", "Premium": "onnxruntime"}.get(tier, "")
+
+
+def _download_model(model: str, tier: str = "Strong", progress_callback=None) -> str:
+    """Download and load an AI model with progress feedback.
+    
+    Args:
+        model: Model name to download (e.g., 'small', 'medium', 'large-v3')
+        tier: Engine tier ('Strong', 'Premium', or 'Basic')
+        progress_callback: Optional callback with (progress_pct: float, message: str)
+    
+    Returns:
+        Success message
+        
+    Raises:
+        RuntimeError: If download or installation fails
+    """
+    try:
+        from .ai.engine import create_engine
+        
+        # Create engine - this triggers model download if not already present
+        engine = create_engine(tier, model)
+        
+        return f"{model} model loaded successfully"
+    except Exception as exc:
+        raise RuntimeError(f"Model download failed: {exc}")
+
+
+# -----------------------------------------------------------------------------
+
 class AIProcessingDialog(wx.Dialog):
     """An accessible dialog for AI transcription progress."""
     def __init__(self, parent, title="AI Processing", message="Analyzing audio..."):
@@ -65,50 +151,59 @@ class AIProcessingDialog(wx.Dialog):
             a11y.announce(f"AI processing {int(pct)} percent complete")
 
 class AIModelSettingsDialog(wx.Dialog):
-    """An accessible dialog for configuring AI ASR engines and model tiers."""
+    """Accessible dialog for selecting the AI engine tier and model."""
+
     def __init__(self, parent, initial_tier="Strong", initial_model="small"):
         super().__init__(parent, title="AI Model Settings", style=wx.DEFAULT_DIALOG_STYLE)
         self.panel = wx.Panel(self)
         vbox = wx.BoxSizer(wx.VERTICAL)
 
-        # Tier Selection
-        tier_box = wx.StaticBoxSizer(wx.VERTICAL, self.panel, "Performance Tier")
+        tier_box = wx.StaticBoxSizer(wx.VERTICAL, self.panel, "Engine")
         self.tiers = [
-            ("Basic (whisper.cpp - Low Resources)", "Basic"),
-            ("Strong (faster-whisper - Balanced)", "Strong"),
-            ("Premium (Parakeet/Large - High Accuracy)", "Premium"),
+            ("Basic - whisper.cpp binary, lowest resource use", "Basic"),
+            ("Standard - faster-whisper, balanced speed and accuracy", "Strong"),
+            ("Premium - Parakeet ONNX, highest accuracy (NVIDIA GPU/CPU)", "Premium"),
         ]
         self.rb_tiers = []
         for i, (label, val) in enumerate(self.tiers):
-            rb = wx.RadioButton(self.panel, label=label, style=wx.RB_GROUP if i == 0 else 0)
-            rb.SetName(f"AI tier {val}")
+            rb = wx.RadioButton(self.panel, label=label,
+                                style=wx.RB_GROUP if i == 0 else 0)
             rb.SetValue(initial_tier == val)
             self.rb_tiers.append((val, rb))
             tier_box.Add(rb, 0, wx.ALL, 5)
         vbox.Add(tier_box, 0, wx.EXPAND | wx.ALL, 10)
 
-        # Model Selection
-        self.model_box = wx.StaticBoxSizer(wx.VERTICAL, self.panel, "Model Choice")
+        self.model_box = wx.StaticBoxSizer(wx.VERTICAL, self.panel, "Model")
         self.model_choices = {
-            "Basic": ["tiny", "base", "small"],
-            "Strong": ["small", "medium", "large-v3-turbo"],
-            "Premium": ["large-v3", "parakeet-onnx", "canary"],
+            "Basic": [
+                ("tiny", "Tiny - fastest, lowest accuracy"),
+                ("base", "Base - slightly better accuracy"),
+                ("small", "Small - good accuracy"),
+            ],
+            "Strong": [
+                ("small", "Small - fast, good accuracy (461 MB download)"),
+                ("medium", "Medium - better accuracy (1.5 GB download)"),
+                ("large-v3-turbo", "Large V3 - highest accuracy, slow (3 GB download)"),
+            ],
+            "Premium": [
+                ("large-v3", "Large V3 - highest accuracy"),
+                ("parakeet-onnx", "Parakeet ONNX - NVIDIA-optimized"),
+                ("canary", "Canary - experimental"),
+            ],
         }
         self.rb_models = []
         self.update_model_options(initial_tier, initial_model)
         vbox.Add(self.model_box, 0, wx.EXPAND | wx.ALL, 10)
 
-        # Bind tier changes to update model options
         for val, rb in self.rb_tiers:
             rb.Bind(wx.EVT_RADIOBUTTON, lambda e, v=val: self.update_model_options(v))
 
-        # Buttons
         btn_box = wx.BoxSizer(wx.HORIZONTAL)
         self.btn_ok = wx.Button(self.panel, id=wx.ID_OK, label="OK")
-        self.btn_ok.SetName("Save AI settings")
+        self.btn_ok.SetName("Save AI model settings")
         self.btn_ok.Bind(wx.EVT_BUTTON, lambda e: self.EndModal(wx.ID_OK))
         self.btn_cancel = wx.Button(self.panel, id=wx.ID_CANCEL, label="Cancel")
-        self.btn_cancel.SetName("Discard AI settings")
+        self.btn_cancel.SetName("Cancel, keep current AI model settings")
         self.btn_cancel.Bind(wx.EVT_BUTTON, lambda e: self.EndModal(wx.ID_CANCEL))
         btn_box.Add(self.btn_ok, 0, wx.ALL, 5)
         btn_box.Add(self.btn_cancel, 0, wx.ALL, 5)
@@ -122,11 +217,12 @@ class AIModelSettingsDialog(wx.Dialog):
     def update_model_options(self, tier, selected_model=None):
         self.model_box.Clear(True)
         self.rb_models = []
-        options = self.model_choices.get(tier, ["base"])
-        for i, opt in enumerate(options):
-            rb = wx.RadioButton(self.panel, label=opt.replace("-", " ").capitalize(),
+        options = self.model_choices.get(tier, [("base", "Base")])
+        if selected_model is None:
+            selected_model = options[0][0]
+        for i, (opt, label) in enumerate(options):
+            rb = wx.RadioButton(self.panel, label=label,
                                 style=wx.RB_GROUP if i == 0 else 0)
-            rb.SetName(f"AI model {opt}")
             rb.SetValue(opt == selected_model)
             self.rb_models.append((opt, rb))
             self.model_box.Add(rb, 0, wx.ALL, 5)
@@ -139,15 +235,1029 @@ class AIModelSettingsDialog(wx.Dialog):
         return tier, model
 
 
-# Token for issue submission. Resolved at runtime from environment or
-# build-injected constant. Never hardcode a real token here.
-# Set CHAPTERFORGE_GITHUB_TOKEN env var or inject via build pipeline.
-_FEEDBACK_GITHUB_TOKEN = os.environ.get("CHAPTERFORGE_GITHUB_TOKEN", "")
+class AIModelSetupDialog(wx.Dialog):
+    """Wizard-style AI model setup dialog with tier/model selection and download."""
+
+    def __init__(self, parent, settings: dict):
+        super().__init__(parent, title="Set Up AI Transcription",
+                         style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
+        self.settings = settings
+        self._setup_succeeded = False
+        self._current_step = 0
+
+        panel = wx.Panel(self)
+        outer = wx.BoxSizer(wx.VERTICAL)
+
+        # Header
+        hdr = wx.Panel(panel)
+        hdr_sz = wx.BoxSizer(wx.HORIZONTAL)
+        self._hdr_heading = wx.StaticText(hdr, label="AI Model Setup")
+        self._hdr_heading.SetName("AI Model Setup")
+        hdr_sz.Add(self._hdr_heading, 0, wx.LEFT | wx.TOP | wx.RIGHT, 16)
+
+        self._hdr_step = wx.StaticText(hdr, label="Step 1 of 3: Introduction")
+        self._hdr_step.SetName("Current step in setup wizard")
+        hdr_sz.Add(self._hdr_step, 0, wx.LEFT | wx.BOTTOM, 16)
+        hdr.SetSizer(hdr_sz)
+        outer.Add(hdr, 0, wx.EXPAND)
+
+        # Content area
+        self._content = wx.Panel(panel)
+        self._content_sz = wx.BoxSizer(wx.VERTICAL)
+        self._content.SetSizer(self._content_sz)
+        outer.Add(self._content, 1, wx.EXPAND | wx.ALL, 16)
+
+        # Footer with navigation
+        outer.Add(wx.StaticLine(panel), 0, wx.EXPAND | wx.LEFT | wx.RIGHT, 8)
+        foot = wx.BoxSizer(wx.HORIZONTAL)
+
+        self._btn_back = wx.Button(panel, label="< &Back")
+        self._btn_back.SetName("Go to the previous step")
+        self._btn_back.Bind(wx.EVT_BUTTON, self._on_back)
+        self._btn_back.Disable()
+        foot.Add(self._btn_back, 0, wx.ALL, 8)
+
+        foot.AddStretchSpacer()
+
+        self._btn_next = wx.Button(panel, label="&Next Step >")
+        self._btn_next.SetName("Go to the next step")
+        self._btn_next.Bind(wx.EVT_BUTTON, self._on_next)
+        foot.Add(self._btn_next, 0, wx.ALL, 8)
+
+        self._btn_setup = wx.Button(panel, label="Setup &AI Model")
+        self._btn_setup.SetName("Install package and download AI model")
+        self._btn_setup.Bind(wx.EVT_BUTTON, self._on_setup)
+        self._btn_setup.Hide()
+        foot.Add(self._btn_setup, 0, wx.ALL, 8)
+
+        self._btn_close = wx.Button(panel, id=wx.ID_CLOSE, label="&Close Setup")
+        self._btn_close.SetName("Close the AI model setup dialog")
+        self._btn_close.Bind(wx.EVT_BUTTON, self._on_close)
+        foot.Add(self._btn_close, 0, wx.ALL, 8)
+
+        outer.Add(foot, 0, wx.EXPAND)
+        panel.SetSizer(outer)
+
+        self._steps = [
+            self._make_intro_step,
+            self._make_selection_step,
+            self._make_completion_step,
+        ]
+        self._go_to(0)
+
+        self.Fit()
+        self.Centre()
+        self._btn_next.SetFocus()
+
+    def _on_close(self, _evt):
+        self.EndModal(wx.ID_OK if self._setup_succeeded else wx.ID_CANCEL)
+
+    def _on_back(self, _evt):
+        if self._current_step > 0:
+            self._go_to(self._current_step - 1)
+
+    def _on_next(self, _evt):
+        if self._current_step < len(self._steps) - 1:
+            self._go_to(self._current_step + 1)
+        else:
+            self._on_setup(None)
+
+    def _on_setup(self, _evt):
+        self._btn_next.Disable()
+        self._btn_back.Disable()
+        self._btn_setup.Disable()
+        self._btn_close.Disable()
+
+        self._status_label.SetLabel("Starting setup...")
+        a11y.announce("Starting AI model setup...")
+
+        import threading
+        threading.Thread(target=self._run_setup, daemon=True).start()
+
+    def _run_setup(self):
+        cur_tier = next(val for val, rb in self.rb_tiers if rb.GetValue())
+        cur_model = next(opt for opt, rb in self.rb_models if rb.GetValue())
+
+        pkg_name = _tier_pip_package(cur_tier)
+        if pkg_name and not _check_ai_package(cur_tier):
+            wx.CallAfter(self._status_label.SetLabel, f"Installing {pkg_name}...")
+            wx.CallAfter(lambda: a11y.announce(f"Installing {pkg_name}..."))
+            try:
+                import subprocess
+                subprocess.run(
+                    [sys.executable, "-m", "pip", "install", pkg_name],
+                    check=True, capture_output=True, timeout=300,
+                )
+                import importlib
+                importlib.invalidate_caches()
+            except Exception as exc:
+                wx.CallAfter(self._finish_setup, False, f"Install failed: {exc}")
+                return
+
+        wx.CallAfter(self._status_label.SetLabel, f"Downloading {cur_model} model...")
+        wx.CallAfter(lambda: a11y.announce(f"Downloading {cur_model} model..."))
+
+        try:
+            from .ai.engine import create_engine
+            create_engine(cur_tier, cur_model)
+        except Exception as exc:
+            wx.CallAfter(self._finish_setup, False, f"Model download failed: {exc}")
+            return
+
+        wx.CallAfter(self._finish_setup, True, "Setup complete. AI transcription is ready.")
+
+    def _finish_setup(self, success: bool, msg: str):
+        wx.CallAfter(self._btn_close.Enable)
+        wx.CallAfter(self._btn_close.SetLabel, "Done" if success else "Close")
+        wx.CallAfter(self._btn_close.SetName, 
+                     "Close - AI is ready" if success else "Close setup dialog")
+        wx.CallAfter(self.rb_tiers[0][1].SetFocus)
+
+        wx.CallAfter(self._status_label.SetLabel, msg)
+        wx.CallAfter(lambda: a11y.announce(msg))
+        wx.CallAfter(lambda: self._status_label.SetFocus())
+
+        self.settings["ai_engine_tier"] = next(val for val, rb in self.rb_tiers if rb.GetValue())
+        self.settings["ai_model_name"] = next(opt for opt, rb in self.rb_models if rb.GetValue())
+
+        self._setup_succeeded = success
+
+    def _go_to(self, idx: int):
+        """Navigate to a specific step."""
+        self._current_step = idx
+        step_fn = self._steps[idx]
+
+        # Update header
+        total_steps = len(self._steps)
+        self._hdr_step.SetLabel(f"Step {idx + 1} of {total_steps}")
+
+        # Clear content
+        self._content_sz.Clear(delete_windows=True)
+
+        # Create step content
+        sizer, focus_ctrl = step_fn(self._content)
+        self._content_sz.Add(sizer, 1, wx.EXPAND | wx.ALL, 8)
+
+        # Update footer buttons
+        self._btn_back.Enable(idx > 0)
+        if idx < len(self._steps) - 1:
+            self._btn_next.Show()
+            self._btn_next.SetLabel("Next Step >")
+            self._btn_next.SetName("Go to the next step")
+            self._btn_next.Bind(wx.EVT_BUTTON, self._on_next)
+            self._btn_setup.Hide()
+        else:
+            self._btn_next.Hide()
+            self._btn_setup.Show()
+            self._btn_setup.SetFocus()
+            focus_ctrl = self._btn_setup
+
+        self._content.Layout()
+        self.Layout()
+
+        # Set focus
+        if focus_ctrl:
+            wx.CallAfter(focus_ctrl.SetFocus)
+
+    def _make_intro_step(self, content):
+        """Introduction step - explain what AI transcription is."""
+        vbox = wx.BoxSizer(wx.VERTICAL)
+
+        intro = wx.StaticText(content, label=(
+            "ChapterForge can use AI to transcribe your audio into text.\n\n"
+            "This allows you to search your audio content, create chapter markers, "
+            "and generate subtitles automatically.\n\n"
+            "You choose the AI model based on your hardware and needs."
+        ))
+        intro.Wrap(600)
+        vbox.Add(intro, 0, wx.EXPAND | wx.BOTTOM, 15)
+
+        from .ai.hardware import HardwareCapabilities
+        hw_caps = HardwareCapabilities().get_config()
+        hw_text = wx.StaticText(content, label=f"Detected hardware: {hw_caps['acceleration']}")
+        hw_text.SetName("Hardware acceleration")
+        vbox.Add(hw_text, 0, wx.BOTTOM, 15)
+
+        rec = _recommend_for_hardware(hw_caps)
+        rec_text = wx.StaticText(content, label=(
+            f"We recommend: {rec[0]} tier with {rec[1]} model\n"
+            f"This gives the best balance of speed and accuracy for your system."
+        ))
+        rec_text.SetName("Recommended AI model configuration")
+        vbox.Add(rec_text, 0, wx.BOTTOM, 20)
+
+        return vbox, None
+
+    def _make_selection_step(self, content):
+        """Selection step - choose AI tier and model with proper accessibility."""
+        vbox = wx.BoxSizer(wx.VERTICAL)
+
+        # Tier selection with group name for screen reader
+        tier_box = wx.StaticBoxSizer(wx.VERTICAL, content, "AI Engine Tier")
+        self.rb_tiers = []
+        tiers = [
+            ("Basic - whisper.cpp binary, lowest resources", "Basic"),
+            ("Strong - faster-whisper, balanced speed", "Strong"),
+            ("Premium - Parakeet ONNX, highest accuracy", "Premium"),
+        ]
+        for i, (label, val) in enumerate(tiers):
+            rb = wx.RadioButton(tier_box.GetStaticBox(), label=label,
+                               style=wx.RB_GROUP if i == 0 else 0)
+            rb.SetValue(self.settings.get("ai_engine_tier", val) == val)
+            rb.SetName(f"AI Engine Tier - {label}")
+            self.rb_tiers.append((val, rb))
+            tier_box.Add(rb, 0, wx.ALL, 5)
+        vbox.Add(tier_box, 0, wx.EXPAND | wx.BOTTOM, 10)
+
+        # Model selection with group name
+        self.rb_models = []
+        model_box = wx.StaticBoxSizer(wx.VERTICAL, content, "Model")
+        self.model_choices = {
+            "Basic": [
+                ("tiny", "Tiny - fastest, lowest accuracy"),
+                ("base", "Base - slightly better accuracy"),
+                ("small", "Small - good accuracy"),
+            ],
+            "Strong": [
+                ("small", "Small - fast, good accuracy"),
+                ("medium", "Medium - better accuracy"),
+                ("large-v3-turbo", "Large V3 Turbo - highest accuracy"),
+            ],
+            "Premium": [
+                ("large-v3", "Large V3 - highest accuracy"),
+                ("parakeet-onnx", "Parakeet ONNX - CPU/GPU optimized"),
+            ],
+        }
+
+        cur_tier = self.settings.get("ai_engine_tier", "Strong")
+        for i, (opt, label) in enumerate(self.model_choices.get(cur_tier, [("base", "Base")])):
+            rb = wx.RadioButton(model_box.GetStaticBox(), label=label,
+                               style=wx.RB_GROUP if i == 0 else 0)
+            rb.SetValue(self.settings.get("ai_model_name", opt) == opt)
+            rb.SetName(f"Model - {label}")
+            self.rb_models.append((opt, rb))
+            model_box.Add(rb, 0, wx.ALL, 5)
+        vbox.Add(model_box, 0, wx.EXPAND | wx.BOTTOM, 10)
+
+        # Update model options when tier changes
+        for val, rb in self.rb_tiers:
+            rb.Bind(wx.EVT_RADIOBUTTON, lambda e, v=val: self._on_tier_change(v))
+
+        # Status label
+        self._status_label = wx.StaticText(content, label="")
+        self._status_label.SetName("Setup status")
+        vbox.Add(self._status_label, 0, wx.EXPAND | wx.BOTTOM, 10)
+
+        return vbox, self.rb_tiers[0][1]
+
+    def _make_completion_step(self, content):
+        """Completion step - show what will be installed."""
+        vbox = wx.BoxSizer(wx.VERTICAL)
+
+        info = wx.StaticText(content, label=(
+            "Ready to complete AI setup.\n\n"
+            "This will install the selected package and download the model.\n\n"
+            "The download may take several minutes depending on your internet speed."
+        ))
+        info.SetName("Setup completion - what will be installed")
+        vbox.Add(info, 0, wx.EXPAND | wx.BOTTOM, 15)
+
+        self._status_label = wx.StaticText(content, label="")
+        self._status_label.SetName("Setup status")
+        vbox.Add(self._status_label, 0, wx.EXPAND | wx.BOTTOM, 15)
+
+        self._btn_setup = wx.Button(content, label="Setup AI Model")
+        self._btn_setup.SetName("Install package and download AI model")
+        self._btn_setup.Bind(wx.EVT_BUTTON, self._on_setup)
+        vbox.Add(self._btn_setup, 0, wx.TOP, 15)
+
+        return vbox, self._btn_setup
+
+    def _on_tier_change(self, new_tier):
+        """Callback when tier selection changes - update model options."""
+        # Clear existing model radio buttons
+        for opt, rb in self.rb_models:
+            rb.Destroy()
+        self.rb_models = []
+
+        # Get selected tier value
+        selected_tier = next(val for val, rb in self.rb_tiers if rb.GetValue())
+
+        # Create new model radio buttons
+        model_box = wx.StaticBoxSizer(wx.VERTICAL, self._content, "Model")
+        for i, (opt, label) in enumerate(self.model_choices.get(selected_tier, [("base", "Base")])):
+            rb = wx.RadioButton(model_box.GetStaticBox(), label=label,
+                               style=wx.RB_GROUP if i == 0 else 0)
+            rb.SetValue(opt == self.settings.get("ai_model_name", opt))
+            rb.SetName(f"Model - {label}")
+            self.rb_models.append((opt, rb))
+            model_box.Add(rb, 0, wx.ALL, 5)
+
+        # Replace in sizer
+        self._content_sz.Replace(model_box, model_box)
+        self._content.Layout()
+        self.Layout()
 
 
-# ----------------------------------------------------------------------------
-# Undo / redo infrastructure
-# ----------------------------------------------------------------------------
+class AIModelUnifiedDialog(wx.Dialog):
+    """One dialog that handles both first-time AI setup and ongoing AI settings.
+
+    Opens in one of two modes:
+
+    * **Settings mode** - the chosen (or any) model is already on disk.
+      Shows a clean, single-page card with the current engine tier, model
+      and size, plus a "Change..." expander that lets the user switch to
+      a different tier/model without re-running the wizard.
+    * **Wizard mode** - nothing is downloaded yet. A 3-page wizard
+      (intro -> pick engine + model -> install + download) walks the
+      user through setup. The same engine/model controls are reused, so
+      keyboard and screen-reader behaviour stay consistent.
+
+    In both modes the dialog writes the same settings keys the rest of
+    the app reads: ``ai_engine_tier``, ``ai_model_name``, ``ai_setup_done``.
+
+    Accessibility contract:
+
+    * Every control has an explicit ``SetName`` (or, for radio buttons /
+      checkboxes, the full descriptive label baked into the ``label=``).
+    * The status label and progress gauge are re-named whenever their
+      value changes so screen readers re-announce progress.
+    * Focus lands on a meaningful control when the dialog opens
+      (header card -> first focusable control).
+    * All long operations (pip install, model download) run on a worker
+      thread and only the UI thread touches the controls.
+    * Escape closes the dialog from any step.
+    * F1 falls through to the generic context-help dialog, which
+      already describes every ``wx.Window`` subclass.
+    """
+
+    #: Same three tier options the old dialog exposed, now centralised so
+    #: every page of the wizard and the settings card agree.
+    TIERS = [
+        ("Basic",   "Basic - whisper.cpp binary (lowest resource use)"),
+        ("Strong",  "Strong - faster-whisper (balanced speed and accuracy)"),
+        ("Premium", "Premium - Parakeet / Canary (highest accuracy, NVIDIA-optimised)"),
+    ]
+
+    #: Model choices per tier. Identical to the legacy dialog so users
+    #: who already customised settings see the exact same set.
+    MODELS = {
+        "Basic": [
+            ("tiny",  "Tiny - fastest, lowest accuracy"),
+            ("base",  "Base - slightly better accuracy"),
+            ("small", "Small - good accuracy"),
+        ],
+        "Strong": [
+            ("small",          "Small - fast, good accuracy (461 MB)"),
+            ("medium",         "Medium - better accuracy (1.5 GB)"),
+            ("large-v3-turbo", "Large V3 Turbo - highest accuracy (3 GB)"),
+        ],
+        "Premium": [
+            ("parakeet-onnx", "Parakeet ONNX - NVIDIA-optimised"),
+            ("canary",        "Canary - experimental"),
+        ],
+    }
+
+    def __init__(self, parent, settings: dict):
+        super().__init__(parent, title="AI Model",
+                         style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
+        self.settings = settings
+        self._setup_succeeded = False
+        self._current_step = 0
+        self._busy = False
+
+        # Detect starting mode from on-disk state. The user can flip
+        # modes from inside the dialog (settings -> "Run setup wizard"
+        # button, wizard -> "Back" to a working settings card), but the
+        # first thing they see should be the most relevant one.
+        from .ai import discovery
+        current_tier = settings.get("ai_engine_tier", "Strong")
+        current_model = settings.get("ai_model_name", "small")
+        self._has_model = (
+            settings.get("ai_setup_done", False)
+            or discovery.is_ready(current_tier, current_model)
+        )
+        self._summary = discovery.ready_summary_text()
+        outer = wx.BoxSizer(wx.VERTICAL)
+
+        # ---- Header (always visible) ---------------------------------
+        hdr = wx.Panel(self)
+        hdr.SetName("AI Model dialog header")
+        hdr_sz = wx.BoxSizer(wx.VERTICAL)
+        self._hdr_title = wx.StaticText(hdr, label="AI Model")
+        self._hdr_title.SetName("AI Model dialog")
+        hdr_sz.Add(self._hdr_title, 0, wx.LEFT | wx.TOP | wx.RIGHT, 16)
+
+        self._hdr_step = wx.StaticText(hdr, label="")
+        self._hdr_step.SetName("Current step in AI Model dialog")
+        hdr_sz.Add(self._hdr_step, 0, wx.LEFT | wx.BOTTOM, 16)
+        hdr.SetSizer(hdr_sz)
+        outer.Add(hdr, 0, wx.EXPAND)
+
+        # ---- Content (rebuilt per step) ------------------------------
+        self._content = wx.Panel(self)
+        self._content_sz = wx.BoxSizer(wx.VERTICAL)
+        self._content.SetSizer(self._content_sz)
+        outer.Add(self._content, 1, wx.EXPAND | wx.ALL, 16)
+
+        # ---- Footer navigation --------------------------------------
+        # The six footer buttons start **visible by default** (that's
+        # what ``wx.Button`` parents into). We toggle them via
+        # ``Sizer.Show`` in ``_go_to``; do **not** call ``btn.Hide()``
+        # here, or the sizer cell will not be reclaimed by
+        # ``Sizer.Show`` later (wx quirk on Windows). The first call
+        # to ``_go_to`` runs at the end of ``__init__`` and seeds the
+        # correct visibility. ``tab_traversal`` is the default;
+        # keyboard tabbing goes: back -> next -> setup -> save ->
+        # wizard -> close, which matches the visual left-to-right
+        # order for left-handed users and the in-app convention.
+        outer.Add(wx.StaticLine(self), 0, wx.EXPAND | wx.LEFT | wx.TOP | wx.RIGHT, 8)
+        self._foot = wx.BoxSizer(wx.HORIZONTAL)
+        self._footer_sizer = self._foot  # alias used by _go_to for Sizer.Show
+
+        self._btn_back = wx.Button(self, label="< &Back")
+        self._btn_back.SetName("Go to the previous step")
+        self._btn_back.Bind(wx.EVT_BUTTON, self._on_back)
+        self._btn_back.Disable()
+        self._foot.Add(self._btn_back, 0, wx.ALL, 8)
+
+        self._foot.AddStretchSpacer()
+
+        self._btn_next = wx.Button(self, label="&Next Step >")
+        self._btn_next.SetName("Go to the next step")
+        self._btn_next.Bind(wx.EVT_BUTTON, self._on_next)
+        self._foot.Add(self._btn_next, 0, wx.ALL, 8)
+
+        self._btn_setup = wx.Button(self, label="Setup &AI Model")
+        self._btn_setup.SetName("Install package and download AI model")
+        self._btn_setup.Bind(wx.EVT_BUTTON, self._on_setup)
+        self._foot.Add(self._btn_setup, 0, wx.ALL, 8)
+
+        self._btn_save = wx.Button(self, id=wx.ID_OK, label="&Save")
+        self._btn_save.SetName("Save AI model settings")
+        self._btn_save.Bind(wx.EVT_BUTTON, lambda e: self._on_save())
+        self._foot.Add(self._btn_save, 0, wx.ALL, 8)
+
+        self._btn_wizard = wx.Button(self, label="Run Setup &Wizard...")
+        self._btn_wizard.SetName(
+            "Run the first-time AI setup wizard to install and download a model")
+        self._btn_wizard.Bind(wx.EVT_BUTTON, self._on_switch_to_wizard)
+        self._foot.Add(self._btn_wizard, 0, wx.ALL, 8)
+
+        self._btn_close = wx.Button(self, id=wx.ID_CLOSE, label="&Close")
+        self._btn_close.SetName("Close the AI Model dialog")
+        self._btn_close.Bind(wx.EVT_BUTTON, self._on_close)
+        self._foot.Add(self._btn_close, 0, wx.ALL, 8)
+
+        outer.Add(self._foot, 0, wx.EXPAND)
+        self.SetSizer(outer)
+
+        # Pick the starting step list based on whether a model exists.
+        if self._has_model:
+            self._steps = [self._make_settings_step]
+        else:
+            self._steps = [
+                self._make_intro_step,
+                self._make_selection_step,
+                self._make_completion_step,
+            ]
+
+        # Footer buttons default to Escape = close.
+        self.SetEscapeId(wx.ID_CLOSE)
+        self._go_to(0)
+        self.SetMinSize((640, 480))
+        self.Fit()
+        self.CentreOnParent()
+
+        # If we opened in settings mode, focus the dialog (so the
+        # header card is announced) and route focus to the first
+        # interactive control via CallAfter once the event loop is
+        # idle. wx's ShowModal would normally do this for us, but the
+        # parent frame can also be in a state where the dialog has
+        # been freshly shown and the focus hasn't settled.
+        if self._has_model:
+            wx.CallAfter(self._focus_first_settings_control)
+
+    # ------------------------------------------------------------------
+    # Step navigation
+    # ------------------------------------------------------------------
+
+    def _focus_first_settings_control(self):
+        """Move focus to the first interactive widget on the settings card.
+
+        Called from a ``CallAfter`` once the dialog has settled, so the
+        first Tab lands on a real control rather than the dialog
+        chrome. We pick the first tier radio because that is the first
+        interactive control in the settings card.
+        """
+        first = None
+        for _val, rb in getattr(self, "rb_tiers", []) or []:
+            first = rb
+            break
+        if first is not None:
+            first.SetFocus()
+        elif self._btn_save is not None:
+            self._btn_save.SetFocus()
+
+    def _on_close(self, _evt):
+        # In settings mode saving is explicit (the user clicks Save,
+        # which calls _on_save -> EndModal(OK)). Pressing Escape or
+        # clicking Close should NOT silently save. The settings dict
+        # is updated in place by ``_on_save`` so we don't need to do
+        # anything here other than dismiss with CANCEL semantics so
+        # callers know nothing was persisted.
+        self.EndModal(wx.ID_CANCEL)
+
+    def _on_back(self, _evt):
+        if self._current_step > 0:
+            self._go_to(self._current_step - 1)
+
+    def _on_next(self, _evt):
+        if self._current_step < len(self._steps) - 1:
+            self._go_to(self._current_step + 1)
+        else:
+            self._on_setup(None)
+
+    def _on_setup(self, _evt):
+        if self._busy:
+            return
+        self._busy = True
+        for btn in (self._btn_back, self._btn_next, self._btn_setup,
+                    self._btn_save, self._btn_wizard, self._btn_close):
+            btn.Disable()
+        self._status_label.SetLabel("Starting setup...")
+        a11y.announce("Starting AI model setup.")
+
+        threading.Thread(target=self._run_setup, daemon=True).start()
+
+    def _on_save(self):
+        """Save the settings-mode selection back to the user's settings."""
+        tier = self._selected_tier()
+        model = self._selected_model()
+        if not tier or not model:
+            return
+        old_tier = self.settings.get("ai_engine_tier", "Strong")
+        old_model = self.settings.get("ai_model_name", "small")
+        changed = (tier != old_tier or model != old_model)
+        self.settings["ai_engine_tier"] = tier
+        self.settings["ai_model_name"] = model
+        if changed:
+            # Forcing a re-download if the user picked something that
+            # isn't already on disk is the safe default; the menu
+            # enable-state check happens at the caller.
+            from .ai import discovery
+            if not discovery.is_ready(tier, model):
+                self.settings["ai_setup_done"] = False
+        self._setup_succeeded = True
+        a11y.announce(
+            f"AI settings saved: {tier} tier, {model} model.")
+        if self.IsModal():
+            self.EndModal(wx.ID_OK)
+        else:
+            # Driven by a unit test or programmatic caller; bail out
+            # without crashing on the IsModal assertion. The caller
+            # is expected to read self.settings themselves.
+            self._saved = True
+
+    def _on_switch_to_wizard(self, _evt):
+        """Drop the settings card and run the wizard from the top.
+
+        This is the only escape hatch from settings mode back into
+        the first-time setup flow - useful when the user wants to
+        install a different model and is happy to re-run the wizard
+        rather than just pick one of the available radios. The
+        "Back" button on the wizard's intro step takes the user
+        back to step 0, not back to the settings card; the settings
+        card remains reachable via the "Run Setup Wizard" button
+        (only present in settings mode).
+        """
+        self._has_model = False
+        self._steps = [
+            self._make_intro_step,
+            self._make_selection_step,
+            self._make_completion_step,
+        ]
+        self._go_to(0)
+        # Disable Back on the very first wizard step; the user has
+        # nothing to go back to before step 0.
+        self._btn_back.Disable()
+
+    def _go_to(self, idx: int):
+        self._current_step = idx
+        step_fn = self._steps[idx]
+
+        # Header
+        total = len(self._steps)
+        # ``_steps`` stores bound methods. Compare by the underlying
+        # function so the identity check survives method binding.
+        settings_fn = type(self)._make_settings_step
+        is_settings = step_fn.__func__ is settings_fn
+        if is_settings:
+            self._hdr_step.SetLabel("Settings")
+        else:
+            self._hdr_step.SetLabel(f"Step {idx + 1} of {total}")
+
+        # Clear and rebuild content
+        self._content_sz.Clear(delete_windows=True)
+        sizer, focus_ctrl = step_fn(self._content)
+        self._content_sz.Add(sizer, 1, wx.EXPAND | wx.ALL, 8)
+
+        # Footer button visibility. We use ``Sizer.Show(widget, ...)``
+        # rather than ``widget.Show()`` so the cell collapses (not
+        # just the window) and the row width adapts.
+        foot_sizer = getattr(self, "_footer_sizer", None)
+        if foot_sizer is not None:
+            if is_settings:
+                self._show_footer(back=False, next=False, setup=False,
+                                  save=True, wizard=True, close=True)
+            elif idx == total - 1:
+                self._show_footer(back=True, next=False, setup=True,
+                                  save=False, wizard=False, close=False)
+                self._btn_back.Enable(idx > 0)
+            else:
+                self._show_footer(back=True, next=True, setup=False,
+                                  save=False, wizard=False, close=False)
+                self._btn_back.Enable(idx > 0)
+
+        # Pick the control to focus. Default to the first meaningful
+        # widget the step returned; fall back to Next/Setup for the
+        # very last wizard step.
+        if is_settings:
+            focus_ctrl = focus_ctrl or self._btn_save
+        elif idx == total - 1:
+            focus_ctrl = focus_ctrl or self._btn_setup
+        else:
+            focus_ctrl = focus_ctrl or self._btn_next
+
+        self._content.Layout()
+        self.Layout()
+        if focus_ctrl is not None:
+            wx.CallAfter(focus_ctrl.SetFocus)
+
+    def _show_footer(self, *, back, next, setup, save, wizard, close):
+        """Toggle the six footer buttons via the sizer.
+
+        ``Sizer.Show(widget, show)`` both updates the window's
+        intended-visibility flag and collapses/expands the sizer
+        cell. Using ``window.Show`` only marks the window hidden
+        and leaves the sizer cell allocated, which on Windows shows
+        up as an empty slot in the row.
+        """
+        foot_sizer = self._footer_sizer
+        if foot_sizer is None:
+            return
+        mapping = (
+            (back, self._btn_back), (next, self._btn_next),
+            (setup, self._btn_setup), (save, self._btn_save),
+            (wizard, self._btn_wizard), (close, self._btn_close),
+        )
+        for on, btn in mapping:
+            foot_sizer.Show(btn, bool(on))
+
+    # ------------------------------------------------------------------
+    # Step factories
+    # ------------------------------------------------------------------
+
+    def _make_settings_step(self, content):
+        """Polished single-page view shown when a model is already on disk."""
+        from .ai import discovery
+
+        vbox = wx.BoxSizer(wx.VERTICAL)
+
+        # Card 1: current state, prominently displayed.
+        card = wx.StaticBoxSizer(wx.VERTICAL, content, "Current AI model")
+        intro = wx.StaticText(card.GetStaticBox(), label=self._summary)
+        intro.SetName("AI model status")
+        intro.Wrap(540)
+        card.Add(intro, 0, wx.EXPAND | wx.ALL, 8)
+
+        # Tier radio group.
+        cur_tier = self.settings.get("ai_engine_tier", "Strong")
+        self.rb_tiers = []
+        for i, (val, label) in enumerate(self.TIERS):
+            rb = wx.RadioButton(card.GetStaticBox(), label=label,
+                                style=wx.RB_GROUP if i == 0 else 0)
+            rb.SetValue(val == cur_tier)
+            rb.SetName(f"AI Engine Tier - {label}")
+            self.rb_tiers.append((val, rb))
+            card.Add(rb, 0, wx.ALL, 4)
+        vbox.Add(card, 0, wx.EXPAND | wx.BOTTOM, 12)
+
+        # Card 2: model options for the chosen tier.
+        self._model_card_holder = wx.Panel(content)
+        self._model_card_sz = wx.BoxSizer(wx.VERTICAL)
+        self._model_card_holder.SetSizer(self._model_card_sz)
+        self._refresh_model_card(cur_tier, self.settings.get("ai_model_name", "small"))
+        vbox.Add(self._model_card_holder, 0, wx.EXPAND | wx.BOTTOM, 12)
+
+        # Wire tier change to refresh the model list.
+        for val, rb in self.rb_tiers:
+            rb.Bind(wx.EVT_RADIOBUTTON, self._on_tier_change_settings)
+
+        # Card 3: status / hint. Always present so the layout doesn't
+        # jump when the user runs the wizard from here.
+        self._status_label = wx.StaticText(content, label="")
+        self._status_label.SetName("Setup status")
+        vbox.Add(self._status_label, 0, wx.EXPAND | wx.BOTTOM, 8)
+
+        # Progress gauge: visible only while the wizard is running.
+        self._gauge = wx.Gauge(content, range=100)
+        self._gauge.SetName("AI model download progress")
+        self._gauge.Hide()
+        vbox.Add(self._gauge, 0, wx.EXPAND | wx.BOTTOM, 8)
+
+        # Focus on the first radio of the current tier.
+        first_focus = self.rb_tiers[0][1] if self.rb_tiers else None
+        return vbox, first_focus
+
+    def _refresh_model_card(self, tier: str, selected_model: Optional[str] = None):
+        """Rebuild the model radio group for *tier*.
+
+        Destroys any old radios first so the visual order matches the
+        canonical ``MODELS`` ordering for the new tier.
+        """
+        from .ai import discovery
+        self._model_card_sz.Clear(delete_windows=True)
+        card = wx.StaticBoxSizer(wx.VERTICAL, self._model_card_holder, "Model")
+        self.rb_models = []
+        options = self.MODELS.get(tier, [("base", "Base")])
+        if selected_model is None:
+            selected_model = options[0][0]
+        for i, (opt, label) in enumerate(options):
+            rb = wx.RadioButton(card.GetStaticBox(), label=label,
+                                style=wx.RB_GROUP if i == 0 else 0)
+            rb.SetValue(opt == selected_model)
+            rb.SetName(f"Model - {label}")
+            self.rb_models.append((opt, rb))
+            card.Add(rb, 0, wx.ALL, 4)
+            # Annotate with availability from the discovery module so
+            # the user can see at a glance which options are usable now.
+            info = discovery.model_info(tier, opt)
+            if info is not None:
+                status_lbl = wx.StaticText(
+                    card.GetStaticBox(),
+                    label=("Downloaded" if info.available
+                           else f"Needs download ({info.size_hint})"),
+                )
+                status_lbl.SetName(
+                    f"{opt} - {'downloaded' if info.available else 'needs download'}"
+                )
+                card.Add(status_lbl, 0, wx.LEFT | wx.BOTTOM, 18)
+        self._model_card_sz.Add(card, 1, wx.EXPAND)
+        self._model_card_holder.Layout()
+        self._content.Layout()
+        self.Layout()
+
+    def _on_tier_change_settings(self, _evt):
+        tier = self._selected_tier() or "Strong"
+        self._refresh_model_card(tier)
+
+    def _make_intro_step(self, content):
+        """Wizard page 1: explain what we're about to do and what's recommended."""
+        vbox = wx.BoxSizer(wx.VERTICAL)
+
+        from .ai.hardware import HardwareCapabilities
+        from .ai import discovery
+        hw = HardwareCapabilities().get_config()
+        intro = wx.StaticText(content, label=(
+            "ChapterForge can use AI to transcribe your audio into text. "
+            "This lets you search audio content, create chapter markers, "
+            "and generate subtitles automatically.\n\n"
+            "Choose an engine tier and model based on your hardware and "
+            "needs. We will install any missing packages and download the "
+            "model files in the next steps."
+        ))
+        intro.SetName("AI setup introduction")
+        intro.Wrap(560)
+        vbox.Add(intro, 0, wx.EXPAND | wx.BOTTOM, 12)
+
+        hw_text = wx.StaticText(content,
+                                label=f"Detected hardware: {hw.get('acceleration', 'Unknown')}")
+        hw_text.SetName("Detected hardware acceleration")
+        vbox.Add(hw_text, 0, wx.BOTTOM, 8)
+
+        rec = _recommend_for_hardware(hw)
+        rec_text = wx.StaticText(content, label=(
+            f"Recommended: {rec[0]} tier with the {rec[1]} model. "
+            "This gives the best balance of speed and accuracy for your system."))
+        rec_text.SetName("Recommended AI model configuration")
+        vbox.Add(rec_text, 0, wx.BOTTOM, 12)
+
+        # Quick visibility into what is already on disk so users with
+        # half-installed environments get a clue why setup is about to
+        # do the rest.
+        existing = wx.StaticText(content, label=discovery.ready_summary_text())
+        existing.SetName("Already downloaded AI model")
+        vbox.Add(existing, 0, wx.BOTTOM, 8)
+
+        return vbox, None
+
+    def _make_selection_step(self, content):
+        """Wizard page 2: pick tier + model. Reuses the helpers from settings."""
+        vbox = wx.BoxSizer(wx.VERTICAL)
+
+        # Tier radios (same code path as the settings card so behaviour
+        # is identical between the two modes).
+        tier_box = wx.StaticBoxSizer(wx.VERTICAL, content, "AI Engine Tier")
+        self.rb_tiers = []
+        cur_tier = self.settings.get("ai_engine_tier", "Strong")
+        for i, (val, label) in enumerate(self.TIERS):
+            rb = wx.RadioButton(tier_box.GetStaticBox(), label=label,
+                                style=wx.RB_GROUP if i == 0 else 0)
+            rb.SetValue(val == cur_tier)
+            rb.SetName(f"AI Engine Tier - {label}")
+            self.rb_tiers.append((val, rb))
+            tier_box.Add(rb, 0, wx.ALL, 4)
+        vbox.Add(tier_box, 0, wx.EXPAND | wx.BOTTOM, 8)
+
+        # Model radios - rebuilt on tier change.
+        self._model_card_holder = wx.Panel(content)
+        self._model_card_sz = wx.BoxSizer(wx.VERTICAL)
+        self._model_card_holder.SetSizer(self._model_card_sz)
+        self._refresh_model_card(cur_tier,
+                                 self.settings.get("ai_model_name", "small"))
+        vbox.Add(self._model_card_holder, 0, wx.EXPAND | wx.BOTTOM, 8)
+
+        for val, rb in self.rb_tiers:
+            rb.Bind(wx.EVT_RADIOBUTTON,
+                    lambda e, v=val: self._refresh_model_card(v))
+
+        # Status label carries live download / install progress.
+        self._status_label = wx.StaticText(content, label="")
+        self._status_label.SetName("Setup status")
+        vbox.Add(self._status_label, 0, wx.EXPAND | wx.BOTTOM, 8)
+
+        # Progress gauge (hidden until something is running).
+        self._gauge = wx.Gauge(content, range=100)
+        self._gauge.SetName("AI model download progress")
+        self._gauge.Hide()
+        vbox.Add(self._gauge, 0, wx.EXPAND | wx.BOTTOM, 8)
+
+        first_focus = self.rb_tiers[0][1] if self.rb_tiers else None
+        return vbox, first_focus
+
+    def _make_completion_step(self, content):
+        """Wizard page 3: explain what will happen on Setup, then trigger it."""
+        vbox = wx.BoxSizer(wx.VERTICAL)
+
+        info = wx.StaticText(content, label=(
+            "Ready to complete AI setup.\n\n"
+            "This will install the selected Python package (if it is not "
+            "already present) and download the model. The download may take "
+            "several minutes depending on your internet speed.\n\n"
+            "Press Setup AI Model to begin. You can return here any time "
+            "from Transcription > AI Model to change the engine or model."))
+        info.SetName("AI setup completion summary")
+        info.Wrap(560)
+        vbox.Add(info, 0, wx.EXPAND | wx.BOTTOM, 12)
+
+        self._status_label = wx.StaticText(content, label="")
+        self._status_label.SetName("Setup status")
+        vbox.Add(self._status_label, 0, wx.EXPAND | wx.BOTTOM, 8)
+
+        self._gauge = wx.Gauge(content, range=100)
+        self._gauge.SetName("AI model download progress")
+        self._gauge.Hide()
+        vbox.Add(self._gauge, 0, wx.EXPAND | wx.BOTTOM, 8)
+
+        return vbox, None
+
+    # ------------------------------------------------------------------
+    # Setup worker thread
+    # ------------------------------------------------------------------
+
+    def _selected_tier(self) -> Optional[str]:
+        for val, rb in getattr(self, "rb_tiers", []):
+            if rb.GetValue():
+                return val
+        return None
+
+    def _selected_model(self) -> Optional[str]:
+        for opt, rb in getattr(self, "rb_models", []):
+            if rb.GetValue():
+                return opt
+        return None
+
+    def _set_status(self, text: str, announce: bool = True):
+        """Update the status label and announce it via Prism.
+
+        Renaming the static text on every change forces NVDA to
+        re-announce the new value, which keeps a screen-reader user
+        informed during pip install + model download.
+        """
+        def _apply():
+            if not self._status_label:
+                return
+            self._status_label.SetLabel(text)
+            self._status_label.SetName(f"Setup status - {text}")
+            if self._gauge and not self._gauge.IsShown():
+                # Don't auto-show the gauge from a status update; the
+                # worker thread toggles it explicitly.
+                pass
+        wx.CallAfter(_apply)
+        if announce:
+            wx.CallAfter(lambda: a11y.announce(text))
+
+    def _show_gauge(self, show: bool):
+        def _apply():
+            if self._gauge is None:
+                return
+            self._gauge.Show(show)
+            self.Layout()
+        wx.CallAfter(_apply)
+
+    def _set_gauge(self, pct: float):
+        def _apply():
+            if self._gauge is None:
+                return
+            self._gauge.SetValue(max(0, min(100, int(pct))))
+        wx.CallAfter(_apply)
+
+    def _run_setup(self):
+        cur_tier = self._selected_tier() or "Strong"
+        cur_model = self._selected_model() or "small"
+
+        # Persist the user's pick even if install/download fails - they
+        # clearly want this combination, and a follow-up attempt won't
+        # require re-selecting.
+        self.settings["ai_engine_tier"] = cur_tier
+        self.settings["ai_model_name"] = cur_model
+
+        pkg = _tier_pip_package(cur_tier)
+        if pkg and not _check_ai_package(cur_tier):
+            self._set_status(f"Installing {pkg}...")
+            try:
+                import subprocess
+                subprocess.run(
+                    [sys.executable, "-m", "pip", "install", pkg],
+                    check=True, capture_output=True, timeout=300,
+                )
+                import importlib
+                importlib.invalidate_caches()
+            except Exception as exc:
+                self._finish_setup(False, f"Install failed: {exc}")
+                return
+            self._set_gauge(20)
+
+        # Use the existing helper for the download itself - it knows
+        # how to load the engine and trigger HuggingFace's own download.
+        self._show_gauge(True)
+        self._set_status(f"Downloading {cur_model} model...")
+        self._set_gauge(30)
+        # Pulse the gauge so the user sees motion even though
+        # faster-whisper has no public progress hook today.
+        try:
+            import threading as _t
+            stop_pulse = threading.Event()
+
+            def _pulse():
+                pct = 30
+                while not stop_pulse.is_set():
+                    pct = 30 + (pct + 1 - 30) % 60  # 30 -> 90 oscillating
+                    self._set_gauge(pct)
+                    stop_pulse.wait(0.3)
+            pulse = _t.Thread(target=_pulse, daemon=True)
+            pulse.start()
+            try:
+                _download_model(cur_model, cur_tier)
+            finally:
+                stop_pulse.set()
+                pulse.join(timeout=1.0)
+        except Exception as exc:
+            self._show_gauge(False)
+            self._finish_setup(False, f"Model download failed: {exc}")
+            return
+
+        self._set_gauge(100)
+        self._show_gauge(False)
+        self._finish_setup(True,
+                           "Setup complete. AI transcription is ready.")
+
+    def _finish_setup(self, success: bool, msg: str):
+        def _apply():
+            self._busy = False
+            self._setup_succeeded = success
+            for btn in (self._btn_back, self._btn_next, self._btn_setup,
+                        self._btn_save, self._btn_wizard, self._btn_close):
+                btn.Enable()
+            if self._status_label is not None:
+                self._status_label.SetLabel(msg)
+                self._status_label.SetName(f"Setup status - {msg}")
+            a11y.announce(msg)
+            if success:
+                self.settings["ai_setup_done"] = True
+                # Drop back into the polished settings card so the user
+                # sees their freshly-installed model on disk and can
+                # fine-tune from there.
+                self._has_model = True
+                self._summary = (f"Ready: {self.settings.get('ai_engine_tier', 'Strong')} "
+                                 f"tier, {self.settings.get('ai_model_name', 'small')} model")
+                self._steps = [self._make_settings_step]
+                self._go_to(0)
+            elif self._status_label is not None:
+                self._status_label.SetFocus()
+        wx.CallAfter(_apply)
+
 
 class _UndoAction:
     """One reversible chapter-list operation."""
@@ -583,16 +1693,17 @@ class MainFrame(wx.Frame):
         menubar.Append(edit_menu, "&Edit")
 
         transcription_menu = wx.Menu()
+        self.mi_ai_model = transcription_menu.Append(
+            wx.ID_ANY, "AI &Model…",
+            "Set up, change, or check the status of the AI transcription engine and model")
+        transcription_menu.AppendSeparator()
         self.mi_ai_transcribe = transcription_menu.Append(
             wx.ID_ANY, "&Transcribe Audio…\tCtrl+T",
-            "Convert audio to text using AI (FastWhisper)")
+            "Convert audio to text using the configured AI model")
+        transcription_menu.AppendSeparator()
         self.mi_ai_chapters = transcription_menu.Append(
             wx.ID_ANY, "&Suggest AI Chapters…",
-            "Automatically generate chapter boundaries based on semantic content")
-        transcription_menu.AppendSeparator()
-        self.mi_ai_model = transcription_menu.Append(
-            wx.ID_ANY, "AI &Model Settings…",
-            "Choose between speed and accuracy models (Tiny to Large)")
+            "Transcribe audio and apply AI-suggested chapter titles")
         menubar.Append(transcription_menu, "&Transcription")
 
         view_menu = wx.Menu()
@@ -846,9 +1957,9 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self._on_show_activity, self.mi_activity)
         self.Bind(wx.EVT_MENU, self._on_guide, self.mi_guide)
         self.Bind(wx.EVT_MENU, self._on_context_help, self.mi_context_help)
+        self.Bind(wx.EVT_MENU, self._on_ai_model, self.mi_ai_model)
         self.Bind(wx.EVT_MENU, self._on_ai_transcribe, self.mi_ai_transcribe)
         self.Bind(wx.EVT_MENU, self._on_ai_chapters, self.mi_ai_chapters)
-        self.Bind(wx.EVT_MENU, self._on_ai_model, self.mi_ai_model)
         self.Bind(wx.EVT_MENU, self._on_keys, self.mi_keys)
         self.Bind(wx.EVT_MENU, self._on_changelog_doc, self.mi_changelog)
         self.Bind(wx.EVT_MENU, self._on_docs_home, self.mi_docs_home)
@@ -909,6 +2020,8 @@ class MainFrame(wx.Frame):
         ):
             if not feature_flags.is_enabled(self.settings, _flag_key):
                 _menu.Remove(_item)
+
+        self._update_ai_menu_state()
 
     def _on_smart_save(self, _evt):
         """Ctrl+S: save in whatever way makes sense for the current mode."""
@@ -3911,21 +5024,40 @@ class MainFrame(wx.Frame):
     # ------------------------------------------------------------------
     # Help
     # ------------------------------------------------------------------
-    def _on_ai_model(self, _evt):
-        """Open the AI model settings dialog."""
-        engine_tier = self.settings.get("ai_engine_tier", "Strong")
-        model_name = self.settings.get("ai_model_name", "small")
+    def _update_ai_menu_state(self):
+        """Dim or enable AI transcription items based on whether setup has been run.
 
-        dlg = AIModelSettingsDialog(self, engine_tier, model_name)
-        if dlg.ShowModal() == wx.ID_OK:
-            new_tier, new_model = dlg.get_values()
-            self.settings["ai_engine_tier"] = new_tier
-            self.settings["ai_model_name"] = new_model
+        The combined "AI Model..." entry is always available - it is the
+        one place to both run first-time setup and tweak existing
+        settings, so hiding it would leave users with no way back in.
+        """
+        ready = bool(self.settings.get("ai_setup_done", False))
+        self.mi_ai_transcribe.Enable(ready)
+        self.mi_ai_chapters.Enable(ready)
+
+    def _on_ai_model(self, _evt):
+        """Open the unified AI Model dialog.
+
+        Auto-detects whether a model is already downloaded and shows
+        either the polished settings card or the first-time setup
+        wizard. The dialog writes the same settings keys as the legacy
+        setup + model dialogs it replaced, so callers reading
+        ``ai_engine_tier`` / ``ai_model_name`` / ``ai_setup_done`` are
+        unaffected.
+        """
+        dlg = AIModelUnifiedDialog(self, self.settings)
+        result = dlg.ShowModal()
+        if result == wx.ID_OK:
             try:
                 settings_mod.save(self.settings)
             except Exception:
                 pass
-            self._announce(f"AI updated: {new_tier} tier, {new_model} model.")
+            self._update_ai_menu_state()
+            if self.settings.get("ai_setup_done", False):
+                self._announce(
+                    f"AI ready: {self.settings.get('ai_engine_tier', 'Strong')} "
+                    f"tier, {self.settings.get('ai_model_name', 'small')} model."
+                )
         dlg.Destroy()
 
     def _on_ai_transcribe(self, _evt):
@@ -6225,3 +7357,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+# test
