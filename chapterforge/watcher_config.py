@@ -47,6 +47,7 @@ class Process:
     series_index: str = ""
     preset: str = ""   # named build preset from settings; overrides bitrate/normalize/format if set
     publish_destinations: str = ""  # "" (don't publish), "default", or comma-separated destination ids
+    run_transcription: bool = False  # run AI whisper transcription after a successful build
 
     def to_dict(self) -> Dict:
         return asdict(self)

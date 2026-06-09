@@ -69,6 +69,34 @@ def test_main_module_import():
         pytest.fail(f"Failed to import main module: {e}")
 
 
+def test_write_pod2_chapters_spec_compliant(tmp_path):
+    """write_pod2_chapters must produce a spec-compliant Podcasting 2.0 JSON."""
+    import json
+    from chapterforge import core
+
+    output = str(tmp_path / "master.mp3")
+    chapters = [
+        core.Chapter(index=0, title="Intro", start_ms=0, end_ms=30000),
+        core.Chapter(index=1, title="Chapter Two", start_ms=30000, end_ms=90000),
+    ]
+    sidecar = core.write_pod2_chapters(output, chapters)
+
+    data = json.loads(open(sidecar, encoding="utf-8").read())
+
+    assert "version" in data
+    assert "chapters" in data
+    assert isinstance(data["chapters"], list)
+    assert len(data["chapters"]) == 2
+
+    for ch in data["chapters"]:
+        assert "startTime" in ch, "every chapter must have startTime"
+        assert isinstance(ch["startTime"], (int, float)), "startTime must be a number"
+        assert "title" in ch, "every chapter must have title"
+
+    assert data["chapters"][0]["startTime"] == 0.0
+    assert data["chapters"][1]["startTime"] == 30.0
+
+
 if __name__ == "__main__":
     test_settings_module()
     test_core_module_import()

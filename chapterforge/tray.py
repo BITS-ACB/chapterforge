@@ -20,8 +20,13 @@ from .notify import Notifier
 from .watcher import FolderWatcher, WatchEvent
 
 
+_ICON_CACHE: dict = {}
+
+
 def make_app_icon(size: int = 32) -> wx.Icon:
     """Draw a simple, dependency-free app icon (a play triangle on a disc)."""
+    if size in _ICON_CACHE:
+        return _ICON_CACHE[size]
     bmp = wx.Bitmap(size, size)
     dc = wx.MemoryDC(bmp)
     dc.SetBackground(wx.Brush(wx.Colour(28, 32, 48)))
@@ -36,6 +41,7 @@ def make_app_icon(size: int = 32) -> wx.Icon:
     dc.SelectObject(wx.NullBitmap)
     icon = wx.Icon()
     icon.CopyFromBitmap(bmp)
+    _ICON_CACHE[size] = icon
     return icon
 
 

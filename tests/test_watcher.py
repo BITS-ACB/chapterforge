@@ -4,6 +4,7 @@ import os
 import shutil
 import subprocess
 import sys
+import time
 
 import pytest
 
@@ -215,3 +216,19 @@ def test_is_cloud_placeholder_false_for_normal_file(tmp_path):
     f.write_bytes(b"not really mp3 data")
     assert watcher_mod.is_cloud_placeholder(str(f)) is False
     assert watcher_mod.is_cloud_placeholder(str(tmp_path / "missing.mp3")) is False
+
+
+def test_stale_lock_is_stolen(tmp_path):
+    """A lock file older than STALE_LOCK_SECONDS must be removed (stolen)."""
+    lock_path = tmp_path / watcher_mod.LOCK_MARKER
+    lock_path.write_text(str(0))
+    # Back-date the lock file so it appears stale.
+    stale_mtime = time.time() - watcher_mod.STALE_LOCK_SECONDS - 10
+    os.utime(str(lock_path), (stale_mtime, stale_mtime))
+
+    from chapterforge.watcher import FolderWatcher
+    w = FolderWatcher(processes=[], settle_seconds=0)
+    result = w._acquire_lock(str(tmp_path))
+    assert result is not None, "Stale lock should have been stolen"
+    assert os.path.isfile(result), "New lock file should exist after stealing"
+    os.remove(result)

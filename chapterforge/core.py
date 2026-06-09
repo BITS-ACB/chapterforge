@@ -1969,8 +1969,10 @@ def write_pod2_chapters(output_path: str, chapters: Sequence[Chapter],
         entries.append(entry)
     data = {"version": "1.2.0", "chapters": entries}
     path = pod2_sidecar_path(output_path)
-    with open(path, "w", encoding="utf-8", newline="\n") as fh:
+    tmp = path + ".tmp"
+    with open(tmp, "w", encoding="utf-8", newline="\n") as fh:
         json.dump(data, fh, indent=2, ensure_ascii=False)
+    os.replace(tmp, path)
     return path
 
 

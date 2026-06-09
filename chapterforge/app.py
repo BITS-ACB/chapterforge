@@ -92,7 +92,7 @@ def _check_ai_package(tier: str) -> bool:
             return False
     if tier == "Basic":
         return True  # uses an external binary; no pip package needed
-    return False  # unknown / unsupported tier (e.g. Canary)
+    return False  # unknown / unsupported tier
 
 
 def _tier_pip_package(tier: str) -> str:
@@ -232,6 +232,8 @@ class AIModelUnifiedDialog(wx.Dialog):
         self._setup_succeeded = False
         self._current_step = 0
         self._busy = False
+        self._dirty = False
+        self._cancel_download = threading.Event()
 
         # Detect starting mode from on-disk state. The user can flip
         # modes from inside the dialog (settings -> "Run setup wizard"
@@ -361,12 +363,20 @@ class AIModelUnifiedDialog(wx.Dialog):
             self._btn_save.SetFocus()
 
     def _on_close(self, _evt):
+        if self._busy:
+            # Re-purposed as Cancel during model download.
+            self._cancel_download.set()
+            return
+        if self._dirty and self._has_model:
+            result = wx.MessageBox(
+                "You have unsaved AI model changes. Discard them?",
+                "Unsaved Changes",
+                wx.YES_NO | wx.ICON_QUESTION, self)
+            if result != wx.YES:
+                return
         # In settings mode saving is explicit (the user clicks Save,
         # which calls _on_save -> EndModal(OK)). Pressing Escape or
-        # clicking Close should NOT silently save. The settings dict
-        # is updated in place by ``_on_save`` so we don't need to do
-        # anything here other than dismiss with CANCEL semantics so
-        # callers know nothing was persisted.
+        # clicking Close should NOT silently save.
         self.EndModal(wx.ID_CANCEL)
 
     def _on_back(self, _evt):
@@ -383,9 +393,13 @@ class AIModelUnifiedDialog(wx.Dialog):
         if self._busy:
             return
         self._busy = True
+        self._cancel_download.clear()
         for btn in (self._btn_back, self._btn_next, self._btn_setup,
-                    self._btn_save, self._btn_wizard, self._btn_close):
+                    self._btn_save, self._btn_wizard):
             btn.Disable()
+        # Re-purpose Close as Cancel so the user can abort the download.
+        self._btn_close.SetLabel("&Cancel")
+        self._btn_close.SetName("Cancel the AI model download")
         self._status_label.SetLabel("Starting setup...")
         a11y.announce("Starting AI model setup.")
 
@@ -400,18 +414,34 @@ class AIModelUnifiedDialog(wx.Dialog):
         old_tier = self.settings.get("ai_engine_tier", "Strong")
         old_model = self.settings.get("ai_model_name", "small")
         changed = (tier != old_tier or model != old_model)
-        self.settings["ai_engine_tier"] = tier
-        self.settings["ai_model_name"] = model
+
         if changed:
-            # Forcing a re-download if the user picked something that
-            # isn't already on disk is the safe default; the menu
-            # enable-state check happens at the caller.
             from .ai import discovery
             if not discovery.is_ready(tier, model):
+                result = wx.MessageBox(
+                    f"The selected model ({tier} tier, {model}) is not "
+                    "downloaded yet.\n\nRun the setup wizard to download it now?",
+                    "Model Not Downloaded",
+                    wx.YES_NO | wx.ICON_QUESTION, self)
+                if result == wx.YES:
+                    self._on_switch_to_wizard(None)
+                    return
+                self.settings["ai_engine_tier"] = tier
+                self.settings["ai_model_name"] = model
                 self.settings["ai_setup_done"] = False
+                self._setup_succeeded = True
+                a11y.announce(
+                    f"AI settings saved: {tier} tier, {model} model. "
+                    "The model is not downloaded yet - AI menus will be disabled.")
+                if self.IsModal():
+                    self.EndModal(wx.ID_OK)
+                return
+
+        self.settings["ai_engine_tier"] = tier
+        self.settings["ai_model_name"] = model
+        self._dirty = False
         self._setup_succeeded = True
-        a11y.announce(
-            f"AI settings saved: {tier} tier, {model} model.")
+        a11y.announce(f"AI settings saved: {tier} tier, {model} model.")
         if self.IsModal():
             self.EndModal(wx.ID_OK)
 
@@ -453,6 +483,7 @@ class AIModelUnifiedDialog(wx.Dialog):
 
     def _go_to(self, idx: int):
         self._current_step = idx
+        self._dirty = False
         step_fn = self._steps[idx]
 
         # Header
@@ -551,6 +582,7 @@ class AIModelUnifiedDialog(wx.Dialog):
                                 style=wx.RB_GROUP if i == 0 else 0)
             rb.SetValue(val == cur_tier)
             rb.SetName(f"AI Engine Tier - {label}")
+            rb.Bind(wx.EVT_RADIOBUTTON, lambda e: setattr(self, "_dirty", True))
             self.rb_tiers.append((val, rb))
             card.Add(rb, 0, wx.ALL, 4)
         vbox.Add(card, 0, wx.EXPAND | wx.BOTTOM, 12)
@@ -607,6 +639,7 @@ class AIModelUnifiedDialog(wx.Dialog):
                                 style=wx.RB_GROUP if i == 0 else 0)
             rb.SetValue(opt == selected_model)
             rb.SetName(f"Model - {label}")
+            rb.Bind(wx.EVT_RADIOBUTTON, lambda e: setattr(self, "_dirty", True))
             self.rb_models.append((opt, rb))
             card.Add(rb, 0, wx.ALL, 4)
             # Annotate with availability from the discovery module so
@@ -772,14 +805,10 @@ class AIModelUnifiedDialog(wx.Dialog):
         informed during pip install + model download.
         """
         def _apply():
-            if not self._status_label:
+            if not self._status_label or wx.IsDestroyed(self._status_label):
                 return
             self._status_label.SetLabel(text)
             self._status_label.SetName(f"Setup status - {text}")
-            if self._gauge and not self._gauge.IsShown():
-                # Don't auto-show the gauge from a status update; the
-                # worker thread toggles it explicitly.
-                pass
         wx.CallAfter(_apply)
         if announce:
             wx.CallAfter(lambda: a11y.announce(text))
@@ -794,7 +823,7 @@ class AIModelUnifiedDialog(wx.Dialog):
 
     def _set_gauge(self, pct: float):
         def _apply():
-            if self._gauge is None:
+            if self._gauge is None or wx.IsDestroyed(self._gauge):
                 return
             v = max(0, min(100, int(pct)))
             self._gauge.SetValue(v)
@@ -827,7 +856,14 @@ class AIModelUnifiedDialog(wx.Dialog):
             except Exception as exc:
                 self._finish_setup(False, f"Install failed: {exc}")
                 return
+            if self._cancel_download.is_set():
+                self._finish_setup(False, "Setup cancelled.")
+                return
             self._set_gauge(20)
+
+        if self._cancel_download.is_set():
+            self._finish_setup(False, "Setup cancelled.")
+            return
 
         # Use the existing helper for the download itself - it knows
         # how to load the engine and trigger HuggingFace's own download.
@@ -879,6 +915,9 @@ class AIModelUnifiedDialog(wx.Dialog):
             for btn in (self._btn_back, self._btn_next, self._btn_setup,
                         self._btn_save, self._btn_wizard, self._btn_close):
                 btn.Enable()
+            # Restore Close button (was re-labelled Cancel during download).
+            self._btn_close.SetLabel("&Close")
+            self._btn_close.SetName("Close the AI Model dialog")
             if self._status_label is not None:
                 self._status_label.SetLabel(msg)
                 self._status_label.SetName(f"Setup status - {msg}")
@@ -2298,6 +2337,14 @@ class MainFrame(wx.Frame):
                 win.SetFont(font)
                 win.SetForegroundColour(fg)
                 win.SetBackgroundColour(bg)
+                # In high-contrast mode the Win32 StaticBox label may not
+                # update its text colour from SetForegroundColour alone;
+                # forcing a Refresh ensures the label repaints with the
+                # correct system button-text colour.
+                if isinstance(win, wx.StaticBox) and theme == "high_contrast":
+                    win.SetForegroundColour(
+                        wx.SystemSettings.GetColour(wx.SYS_COLOUR_BTNTEXT))
+                    win.Refresh()
             except Exception:
                 pass
             for child in win.GetChildren():
@@ -4984,12 +5031,13 @@ class MainFrame(wx.Frame):
 
     def _on_wizard(self, _evt=None):
         from . import wizard
-        wizard.show_wizard(
+        completed = wizard.show_wizard(
             self, self.settings,
             on_open_folder=lambda: self._on_open(None),
             on_setup_watch=lambda: self._on_watch_folders(None))
-        self.settings["wizard_seen"] = True
-        self._save_settings()
+        if completed:
+            self.settings["wizard_seen"] = True
+            self._save_settings()
 
     def _on_child_focus(self, evt):
         """Remember the last real control to hold focus (not a menu), so
@@ -5148,7 +5196,13 @@ class MainFrame(wx.Frame):
         if dlg.ShowModal() == wx.ID_OK:
             overrides = dlg.get_overrides()
             channel = dlg.get_channel()
-            was_beta_enabled = feature_flags.any_beta_enabled(self.settings)
+            # Snapshot the set of non-general features that are currently
+            # enabled, so we can detect when new ones are added.
+            _was_enabled = {
+                k for k, f in feature_flags.REGISTRY.items()
+                if feature_flags.is_enabled(self.settings, k)
+                and f.channel != "general"
+            }
             changed = (overrides != self.settings.get("feature_flags", {})
                        or channel != feature_flags.get_channel(self.settings))
             if changed:
@@ -5158,8 +5212,14 @@ class MainFrame(wx.Frame):
                 self._announce(
                     "Feature flags updated. Restart ChapterForge for the "
                     "change to take effect.")
-            if (not was_beta_enabled
-                    and feature_flags.any_beta_enabled(self.settings)
+            # Re-trigger the beta warning whenever new non-general features
+            # are enabled, even if the user previously dismissed it.
+            _now_enabled = {
+                k for k, f in feature_flags.REGISTRY.items()
+                if feature_flags.is_enabled(self.settings, k)
+                and f.channel != "general"
+            }
+            if (_now_enabled - _was_enabled
                     and not self.settings.get("beta_warning_dismissed", False)):
                 self._show_beta_warning()
         dlg.Destroy()
@@ -5485,6 +5545,8 @@ class SettingsDialog(wx.Dialog):
         super().__init__(parent, title="ChapterForge Settings",
                          style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
         self.settings = settings
+        self._key_dlg = None  # tracks any open _KeyCaptureDialog
+        self.Bind(wx.EVT_CLOSE, self._on_settings_close)
         outer = wx.BoxSizer(wx.VERTICAL)
         nb = wx.Notebook(self)
         nb.SetName("Settings categories")
@@ -6009,6 +6071,13 @@ class SettingsDialog(wx.Dialog):
         """Return the current presets dict from settings."""
         return dict(self.settings.get("presets", {}))
 
+    def _on_settings_close(self, evt):
+        """Destroy any open sub-dialogs before closing."""
+        if self._key_dlg and not wx.IsDestroyed(self._key_dlg):
+            self._key_dlg.Destroy()
+            self._key_dlg = None
+        evt.Skip()
+
     def _on_sc_change(self, _evt):
         """Open key-capture dialog for selected shortcut (Feature 13)."""
         sel = self._shortcut_list.GetFirstSelected()
@@ -6016,10 +6085,12 @@ class SettingsDialog(wx.Dialog):
             return
         cmd_name, _default = self._KNOWN_SHORTCUTS[sel]
         dlg = _KeyCaptureDialog(self, cmd_name)
+        self._key_dlg = dlg
         if dlg.ShowModal() == wx.ID_OK and dlg.captured_key:
             self._key_overrides[cmd_name] = dlg.captured_key
             self._shortcut_list.SetItem(sel, 1, dlg.captured_key)
         dlg.Destroy()
+        self._key_dlg = None
 
     def _on_sc_reset(self, _evt):
         """Reset selected shortcut to its default (Feature 13)."""
@@ -6868,6 +6939,20 @@ class CommandPaletteDialog:
         self.dialog.Destroy()
 
 
+class _FFmpegCheckDialog(wx.Dialog):
+    """Shown briefly while the app probes PATH for FFmpeg at startup."""
+
+    def __init__(self):
+        super().__init__(None, title="ChapterForge",
+                         style=wx.DEFAULT_DIALOG_STYLE)
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        label = wx.StaticText(self, label="Checking for FFmpeg...")
+        label.SetName("Startup status - checking for FFmpeg")
+        sizer.Add(label, 0, wx.ALL, 20)
+        self.SetSizerAndFit(sizer)
+        self.CentreOnScreen()
+
+
 class FFmpegSetupDialog(wx.Dialog):
     """Progress dialog shown while FFmpeg is downloading."""
 
@@ -6914,6 +6999,8 @@ class FFmpegSetupDialog(wx.Dialog):
 
     def _do_update(self, message: str):
         """Run on main thread."""
+        if wx.IsDestroyed(self.status):
+            return
         self.status.SetLabel(message)
         self.gauge.Pulse()
         self.Layout()
@@ -6924,6 +7011,8 @@ class FFmpegSetupDialog(wx.Dialog):
 
     def _show_completion(self, success: bool, message: str):
         """Run on main thread."""
+        if wx.IsDestroyed(self.status):
+            return
         self.success = success
         self.status.SetLabel(message)
         self.gauge.SetValue(100)
@@ -6933,12 +7022,37 @@ class FFmpegSetupDialog(wx.Dialog):
 
 class ChapterForgeApp(wx.App):
     def OnInit(self):
-        try:
-            core._find_tool("ffmpeg")
-            core._find_tool("ffprobe")
-            ffmpeg_ready = True
-        except core.FFmpegNotFoundError:
-            ffmpeg_ready = False
+        # Probe PATH on a background thread so a slow or network-backed
+        # PATH entry does not block the UI thread during startup.
+        _probe_result = [None]
+        _probe_done = threading.Event()
+
+        def _probe():
+            try:
+                core._find_tool("ffmpeg")
+                core._find_tool("ffprobe")
+                _probe_result[0] = True
+            except core.FFmpegNotFoundError:
+                _probe_result[0] = False
+            _probe_done.set()
+            wx.CallAfter(lambda: None)  # wake the event loop if sleeping
+
+        threading.Thread(target=_probe, daemon=True).start()
+        if not _probe_done.wait(0.3):
+            # Probe is taking longer than usual - show a brief status dialog.
+            _check_dlg = _FFmpegCheckDialog()
+            self.SetTopWindow(_check_dlg)
+
+            def _close_check(dlg):
+                _probe_done.wait()
+                wx.CallAfter(dlg.EndModal, wx.ID_OK)
+
+            threading.Thread(target=_close_check, args=(_check_dlg,),
+                             daemon=True).start()
+            _check_dlg.ShowModal()
+            _check_dlg.Destroy()
+
+        ffmpeg_ready = bool(_probe_result[0])
 
         if not ffmpeg_ready:
             result = wx.MessageBox(

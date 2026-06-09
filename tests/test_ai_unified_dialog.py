@@ -54,12 +54,15 @@ def frame(wx_app):
 @pytest.fixture()
 def fake_home(monkeypatch, tmp_path):
     """Point both ``Path.home`` and the HF env vars at *tmp_path*."""
+    from chapterforge.ai import discovery
+    discovery._invalidate_discover_cache()
     monkeypatch.setenv("HOME", str(tmp_path))
     monkeypatch.setenv("USERPROFILE", str(tmp_path))
     monkeypatch.delenv("HF_HOME", raising=False)
     monkeypatch.delenv("XDG_CACHE_HOME", raising=False)
     monkeypatch.setattr(Path, "home", classmethod(lambda cls: tmp_path))
-    return tmp_path
+    yield tmp_path
+    discovery._invalidate_discover_cache()
 
 
 def _make_faster_whisper_repo(home: Path, model: str = "small") -> Path:
@@ -278,29 +281,29 @@ def test_on_save_preserves_matching_picks(fake_home, frame):
 
 
 def test_on_save_clears_done_when_pick_missing(fake_home, frame):
-    """If the user picks a model that is not on disk, ai_setup_done flips False."""
+    """If the user picks a model that is not on disk, ai_setup_done flips False.
+
+    _on_save now shows a MessageBox asking whether to run the wizard.
+    Patching it to return NO means "save anyway with disabled state".
+    """
     _make_faster_whisper_repo(fake_home, "small")
     from chapterforge.app import AIModelUnifiedDialog
+    from unittest.mock import patch
+    import wx
 
     s = {"ai_engine_tier": "Strong", "ai_model_name": "small",
          "ai_setup_done": True}
     dlg = AIModelUnifiedDialog(frame, s)
     try:
-        # Force a tier change to a model that is NOT on disk.
-        for val, rb in dlg.rb_tiers:
-            if val == "Strong":
-                rb.SetValue(True)
-                rb.ProcessEvent(
-                    type(rb.GetEventObject())  # placeholder, real path below
-                ) if False else None
-                break
         # Pick "medium" (no repo on disk for it).
         rb_models = getattr(dlg, "rb_models", [])
         for opt, rb in rb_models:
             if opt == "medium":
                 rb.SetValue(True)
                 break
-        dlg._on_save()
+        # Patch MessageBox to return NO (save anyway, don't switch to wizard).
+        with patch("wx.MessageBox", return_value=wx.NO):
+            dlg._on_save()
         assert s["ai_engine_tier"] == "Strong"
         assert s["ai_model_name"] == "medium"
         # The medium model is not in tmp_path -> ai_setup_done must be False.
@@ -325,7 +328,8 @@ def test_run_setup_success_path(fake_home, frame):
     dlg._go_to(2)  # completion step
 
     finish_calls = []
-    with patch.object(dlg, "_finish_setup", side_effect=finish_calls.append):
+    with patch.object(dlg, "_finish_setup",
+                      side_effect=lambda *a: finish_calls.append(a)):
         with patch("chapterforge.app._check_ai_package", return_value=True):
             with patch("chapterforge.app._download_model"):
                 dlg._run_setup()
@@ -348,7 +352,8 @@ def test_run_setup_failure_path(fake_home, frame):
     dlg._go_to(2)
 
     finish_calls = []
-    with patch.object(dlg, "_finish_setup", side_effect=finish_calls.append):
+    with patch.object(dlg, "_finish_setup",
+                      side_effect=lambda *a: finish_calls.append(a)):
         with patch("chapterforge.app._check_ai_package", return_value=True):
             with patch("chapterforge.app._download_model",
                        side_effect=RuntimeError("network error")):
@@ -359,6 +364,44 @@ def test_run_setup_failure_path(fake_home, frame):
     assert success is False
     assert "fail" in msg.lower() or "error" in msg.lower()
     dlg.Destroy()
+
+
+# ---------------------------------------------------------------------------
+# _update_ai_menu_state (binding contract)
+# ---------------------------------------------------------------------------
+
+
+def test_ai_menu_enable_state(frame):
+    """_update_ai_menu_state enables AI menus iff ai_setup_done is True."""
+    from chapterforge.app import MainFrame
+    from unittest.mock import MagicMock
+
+    mi_transcribe = MagicMock()
+    mi_chapters = MagicMock()
+
+    class Stub:
+        settings = {}
+        mi_ai_transcribe = mi_transcribe
+        mi_ai_chapters = mi_chapters
+
+    obj = Stub()
+
+    # Missing key -> treated as False -> menus disabled
+    MainFrame._update_ai_menu_state(obj)
+    mi_transcribe.Enable.assert_called_with(False)
+    mi_chapters.Enable.assert_called_with(False)
+
+    # Explicit True -> menus enabled
+    obj.settings = {"ai_setup_done": True}
+    MainFrame._update_ai_menu_state(obj)
+    mi_transcribe.Enable.assert_called_with(True)
+    mi_chapters.Enable.assert_called_with(True)
+
+    # Explicit False -> menus disabled again
+    obj.settings = {"ai_setup_done": False}
+    MainFrame._update_ai_menu_state(obj)
+    mi_transcribe.Enable.assert_called_with(False)
+    mi_chapters.Enable.assert_called_with(False)
 
 
 # ---------------------------------------------------------------------------

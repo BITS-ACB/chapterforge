@@ -70,7 +70,7 @@ def test_discover_returns_all_canonical_models(fake_home):
     """Every (tier, model) the dialog knows about must show up in the dict."""
     out = discovery.discover_models()
     for key in ("Strong::small", "Strong::medium", "Premium::parakeet-onnx",
-                "Basic::tiny", "Canary::canary"):
+                "Basic::tiny", "Premium::canary"):
         assert key in out, f"missing {key!r} from discover_models() output"
 
 

@@ -373,10 +373,13 @@ class FolderWatcher:
                 "signature": list(sig),
             })
             self._emit(WatchEvent(
-                "done", process.name, subfolder,
-                f"Built “{folder_name}”: {len(result.chapters)} chapters, "
-                f"{core.format_timestamp(result.total_ms)}.",
+                “done”, process.name, subfolder,
+                f”Built “{folder_name}”: {len(result.chapters)} chapters, “
+                f”{core.format_timestamp(result.total_ms)}.”,
                 output_path=result.output_path))
+            if process.run_transcription:
+                self._transcribe_output(result.output_path, folder_name,
+                                        process.name)
         except core.BuildCancelled:
             self._cleanup_partial(output_path)
         except Exception as exc:
@@ -520,6 +523,39 @@ class FolderWatcher:
             "rss_media_url": gs.get("rss_media_url", ""),
         }
         return items, tags, opts
+
+    def _transcribe_output(self, audio_path: str, folder_name: str,
+                           process_name: str) -> None:
+        """Run AI transcription on *audio_path* and write a sidecar .txt file.
+
+        Best-effort: any exception is swallowed so transcription failure
+        never affects the build result or the done marker.
+        """
+        gs = settings_mod.load()
+        tier = gs.get("ai_engine_tier", "Strong")
+        model = gs.get("ai_model_name", "small")
+        try:
+            from .ai import discovery, engine as engine_mod
+            if not discovery.is_ready(tier, model):
+                self._emit(WatchEvent(
+                    "error", process_name, os.path.dirname(audio_path),
+                    f"Transcription skipped for “{folder_name}”: "
+                    f"AI model ({tier}/{model}) is not downloaded."))
+                return
+            eng = engine_mod.create_engine(tier, model)
+            segments = eng.transcribe(audio_path)
+            transcript_path = os.path.splitext(audio_path)[0] + ".txt"
+            with open(transcript_path, "w", encoding="utf-8", newline="\n") as fh:
+                for seg in segments:
+                    fh.write(f"[{seg.start:.1f}s] {seg.text.strip()}\n")
+            self._emit(WatchEvent(
+                "done", process_name, os.path.dirname(audio_path),
+                f"Transcribed “{folder_name}” to {os.path.basename(transcript_path)}.",
+                output_path=transcript_path))
+        except Exception as exc:
+            self._emit(WatchEvent(
+                "error", process_name, os.path.dirname(audio_path),
+                f"Transcription failed for “{folder_name}”: {exc}"))
 
     # -- helpers --------------------------------------------------------
     def _cleanup_partial(self, output_path: str) -> None:

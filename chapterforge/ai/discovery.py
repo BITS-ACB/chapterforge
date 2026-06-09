@@ -60,7 +60,7 @@ class ModelInfo:
     view or the wizard.
     """
 
-    tier: str            # "Basic" | "Strong" | "Premium" | "Canary"
+    tier: str            # "Basic" | "Strong" | "Premium"
     model: str           # e.g. "small", "medium", "parakeet-onnx"
     path: Optional[str]  # absolute path on disk, or None
     available: bool
@@ -81,7 +81,7 @@ _KNOWN_MODELS: List[tuple] = [
     ("Strong",  "large-v3",        "Systran/faster-whisper-large-v3"),
     ("Strong",  "large-v3-turbo",  "Systran/faster-whisper-large-v3"),
     ("Premium", "parakeet-onnx",   "nvidia/parakeet-tdt-0.6b-v3"),
-    ("Canary",  "canary",          "nvidia/canary-1b-v2"),
+    ("Premium", "canary",          "nvidia/canary-1b-v2"),
 ]
 
 #: Single source of truth for model download sizes.
@@ -247,7 +247,7 @@ def ready_summary() -> Optional[ModelInfo]:
         ("Basic", "base"),
         ("Basic", "tiny"),
         ("Premium", "parakeet-onnx"),
-        ("Canary", "canary"),
+        ("Premium", "canary"),
     ]
     all_info = discover_models()
     for tier, model in preferred:

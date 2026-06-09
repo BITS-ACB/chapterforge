@@ -43,6 +43,10 @@ CHANNELS: List[Tuple[str, str, str]] = [
     ("beta", "Beta",
      "Everything in General, plus newer features that are still being "
      "refined and may have occasional rough edges."),
+    ("deprecated", "Deprecated",
+     "Features marked for removal. Enabling this channel keeps them visible "
+     "with a 'Deprecated - will be removed in a future version' notice. "
+     "Use this only to migrate away from a feature at your own pace."),
 ]
 _CHANNEL_RANK: Dict[str, int] = {key: rank for rank, (key, _, _) in enumerate(CHANNELS)}
 _CHANNEL_DESCRIPTIONS: Dict[str, str] = {key: desc for key, _, desc in CHANNELS}
