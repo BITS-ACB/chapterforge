@@ -488,7 +488,7 @@ The following are known gaps or areas for future consideration. They are not req
 5. **Webhooks** - the polling fallback is implemented; a proper webhook receiver for faster status updates is not (desktop apps are not well-suited to this; polling is the right default).
 6. **macOS / Linux** - the codebase is cross-platform Python but the installer, DPAPI encryption, and system-tray integration are Windows-only. See Section 17 for the macOS port plan.
 7. **Waveform visualization** - referenced in some documentation but not implemented in 1.0.0.
-8. **AI chapter detection** - not implemented; referenced in early documentation drafts only.
+8. **AI chapter detection** - implemented as `Transcription > Suggest AI Chapters...`; uses the faster-whisper / Parakeet backends configured via `Transcription > AI Model...`.
 
 ---
 

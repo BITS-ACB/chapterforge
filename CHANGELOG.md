@@ -66,6 +66,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   in plain language, that Move Up/Down swap chapter titles (without moving
   the audio) and that Remove becomes Merge Up in this mode - the two button
   pairs most likely to surprise someone moving between modes.
+- **Unified AI Model setup dialog** - `Transcription > AI Model...` opens a
+  single dialog that adapts to your situation: if a model is already
+  downloaded it shows a polished settings view (tier and model radios, Save
+  button); if nothing is downloaded it opens a three-step wizard that
+  installs the Python package, downloads the model, and confirms success.
+  Hardware detection recommends the right tier for your CPU/GPU, and the
+  dialog respects the screen-reader contract throughout (accessible names,
+  focus management, a11y announcements). Tests in
+  `tests/test_ai_unified_dialog.py`.
 
 ## [1.0.0] - 2026-06-06
 

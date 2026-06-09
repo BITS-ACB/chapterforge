@@ -831,7 +831,6 @@ ChapterForge 1.0.0 is designed from the ground up for full keyboard accessibilit
 | `Delete` | Remove selected chapter |
 | `Ctrl+Up/Down` | Move chapter up/down in list |
 | `Ctrl+A` | Select all chapters |
-| `Ctrl+Shift+A` | AI Analyze Selection |
 | `Ctrl+E` | Edit chapter title |
 | `Ctrl+D` | Duplicate selected chapter |
 | `Ctrl+Shift+D` | Download chapter metadata |

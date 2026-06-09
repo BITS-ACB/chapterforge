@@ -132,15 +132,6 @@ workflow without sight. The following items undermine that contract.
   inherits the static-text label from its container." Don't leave
   the contract unbacked by code.
 
-### 2.11 `BetaWarningDialog` (referenced in `feature_flags.py` docstring)
-  - verify accessible
-- **File:** Likely `chapterforge/feature_flags_dialog.py` (read separately).
-- **Symptom:** Cannot verify without seeing the file; the docstring on
-  the dialog class should be reviewed. If the dialog has a single
-  message and OK / Cancel buttons, the names are usually
-  self-announcing.
-- **Fix:** Read the file and verify.
-
 ### 2.14 No screen-reader-only summary in the AI dialog header
 - **File:** `chapterforge/app.py`, `AIModelUnifiedDialog._hdr_title`
   (line 647) and `_hdr_step` (line 651).
@@ -341,14 +332,6 @@ workflow without sight. The following items undermine that contract.
   * `Transcribe Audio...` and `Suggest AI Chapters...`
     become available after setup.
 
-### 5.2 The Keyboard Shortcuts table references `Ctrl+Shift+A`
-  for "AI Analyze Selection" - that command does not exist
-- **File:** `docs/USER_GUIDE.md`, line 834.
-- **Symptom:** The shortcut is wrong. The actual binding is
-  `Ctrl+Shift+A` = `Save As...` (see `app.py` line 1635).
-- **Fix:** Remove the row, or rename the action to "Save As..."
-  and move it to the File group.
-
 ### 5.3 `CLAUDE.md` does not mention the AI Model dialog
 - **File:** `CLAUDE.md`.
 - **Symptom:** The project-level Claude instructions describe
@@ -360,24 +343,6 @@ workflow without sight. The following items undermine that contract.
   `ai/discovery.py`, `ai/engine.py`, `ai/whisper_cpp.py`,
   `ai/faster_whisper_engine.py`, `ai/parakeet.py` modules and
   the unified dialog's two modes.
-
-### 5.4 `PRD.md` says "AI chapter detection - not implemented"
-  in section 16.8
-- **File:** `docs/PRD.md`, line 491.
-- **Symptom:** The PRD contradicts the code: the `Suggest AI
-  Chapters...` menu (line 1704 of `app.py`) is implemented and
-  works. The note is stale.
-- **Fix:** Replace with a note that points to the
-  `Transcription > Suggest AI Chapters...` command and the
-  underlying faster-whisper / Parakeet backends.
-
-### 5.5 `CHANGELOG.md` is not updated for the unified dialog
-- **File:** `CHANGELOG.md` (read separately).
-- **Symptom:** The new "AI Model..." combined dialog and the
-  two new `tests/test_ai_*.py` files should appear in the
-  Unreleased / next-version section. Verify and add.
-- **Fix:** Run `git diff 6e27678~1 6e27678 -- CHANGELOG.md` and
-  ensure the entry exists.
 
 ### 5.7 No mention of `tests/test_ai_unified_dialog.py` in the
   developer docs
@@ -555,36 +520,24 @@ The repo has 19 test files and 29 tests, which is thin for a
   show a modal "Could not save settings; check your disk
   space." Announce via `a11y.announce`.
 
-### 9.3 `a11y.announce` echoes arbitrary strings through the
-  screen reader
-- **File:** `chapterforge/a11y.py`, lines 205-224.
-- **Symptom:** An attacker who can control a filename in
-  a folder the user opens could craft a name with
-  control characters that the screen reader would read
-  aloud. We do not sanitise `announce(text)` input.
-- **Fix:** Strip control characters from the message
-  before speaking. (Low priority; the only vectors are
-  user-opened folders, which are user-controlled.)
-
 ---
 
 ## 10. Summary
 
 | Severity | Count |
 |----------|------:|
-| P0       |     6 |
-| P1       |     5 |
-| P2       |     4 |
-| P3       |     0 |
-| **Total**| **15** |
+| P0       |     7 |
+| P1       |    25 |
+| P2       |     8 |
+| P3       |     1 |
+| **Total**| **41** |
 
 **Top 5 issues to fix next** (in order):
 
-1. **1.1** - `_on_save` silently disables AI when the new
-   selection is not on disk.
-2. **1.7** - Inconsistent tier catalogue (Canary vs Premium).
-3. **3.1 / 3.2** - Remove the two dead dialog classes
+1. **3.1 / 3.2** - Remove the two dead dialog classes
    (`AIModelSettingsDialog`, `AIModelSetupDialog`). ~400
    lines of code we no longer test or maintain.
-4. **2.1** - Implement `_NamedAccessible` for SpinCtrl controls.
-5. **9.2** - `settings.save` swallows all OSError.
+2. **2.14** - Add `a11y.announce` in `_go_to` for step changes.
+3. **9.2** - `settings.save` swallows all OSError.
+4. **5.3** - Add AI section to CLAUDE.md.
+5. **8.6** - Fix `_auphonic_menu_index` magic number.
