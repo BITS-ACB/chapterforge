@@ -132,33 +132,6 @@ workflow without sight. The following items undermine that contract.
   inherits the static-text label from its container." Don't leave
   the contract unbacked by code.
 
-### 2.4 `AIModelUnifiedDialog` setup status label has no `SetFocus` on success
-- **File:** `chapterforge/app.py`, `_finish_setup` (line 1257-1258):
-  `self._status_label.SetFocus()` is only called on the failure branch.
-- **Symptom:** After a successful setup, the dialog drops back into the
-  settings card via `_go_to(0)`. Focus moves to the Save button
-  (because `is_settings` -> `focus_ctrl = focus_ctrl or self._btn_save`).
-  The success message is announced but a screen-reader user does not
-  hear the new "Ready: X tier, Y model" header card. They land on
-  Save with no announcement of what just happened.
-- **Fix:** After the `a11y.announce(msg)` on success, also call
-  `self._hdr_step.SetFocus()` and then re-focus the first tier radio
-  (or focus the new "AI model status" label briefly to surface the
-  "Ready:" line).
-
-### 2.6 No `SetName` on the wizard "Setup AI Model" status / gauge during pip install
-- **File:** `chapterforge/app.py`, `_run_setup` (lines 1176-1234).
-- **Symptom:** `_set_status` is called with the install message; this
-  is fine. But there is no `_set_gauge` call between
-  `_set_status("Installing ...")` and the start of the download - so
-  the gauge shows 0 (it was set to 0 by construction) while pip
-  actually runs. The gauge appears to be at 0 then jumps to 30.
-- **Fix:** Set the gauge to 10 immediately on entering the install
-  phase, 20 after install finishes, then 30 before the model
-  download starts. This is also what the comment on line 1200
-  implies (`self._set_gauge(20)`) - but the call is after the
-  `subprocess.run`, so during install the gauge is at 0.
-
 ### 2.11 `BetaWarningDialog` (referenced in `feature_flags.py` docstring)
   - verify accessible
 - **File:** Likely `chapterforge/feature_flags_dialog.py` (read separately).
@@ -238,28 +211,6 @@ workflow without sight. The following items undermine that contract.
   `chapterforge/app/ai_dialogs.py` (the AI dialogs), and
   `chapterforge/app/audio_dialogs.py` (the player + trim/speed
   dialogs). This is a refactor, not a fix; rate as P2.
-
-### 3.13 `app._MODEL_DOWNLOAD_SIZES` and
-  `discovery._DOWNLOAD_SIZES` are duplicated
-- **Files:** `chapterforge/app.py` lines 40-49, `chapterforge/ai/discovery.py`
-  lines 90-99.
-- **Symptom:** The two dicts are meant to mirror each other; any
-  new model must be added in both places. Easy to forget.
-- **Fix:** Have `app.py` import the dict from `chapterforge.ai.discovery`
-  and re-export it as `_MODEL_DOWNLOAD_SIZES` for any back-compat
-  callers. The discovery module is already the "single source of
-  truth" for what models exist.
-
-### 3.16 `_recommend_for_hardware` does not consider tier-default model size on disk
-- **File:** `chapterforge/app.py`, lines 52-72.
-- **Symptom:** The recommendation is fixed by hardware. It does not
-  ask "is the recommended model already on disk?" - so it can
-  recommend "Strong / medium" on a system that already has Strong /
-  small downloaded. The dialog would then go through a fresh
-  download rather than the 0-second "ready" path.
-- **Fix:** Call `discovery.is_ready(tier, model)` first; if True,
-  return the on-disk combo before falling through to the hardware
-  default.
 
 ### 3.17 No test for `AIModelUnifiedDialog._run_setup` end-to-end
 - **File:** `tests/test_ai_unified_dialog.py`.
@@ -355,15 +306,6 @@ workflow without sight. The following items undermine that contract.
   intercept `EVT_CLOSE` / `EndModal(CANCEL)` to ask
   "Discard your AI model changes?".
 
-### 4.7 The settings card does not say "Save to apply" anywhere
-- **File:** `chapterforge/app.py`, `AIModelUnifiedDialog`.
-- **Symptom:** The card has radios, model options and a Save
-  button. A first-time user does not know they need to click
-  Save. The header card says "Ready: ..." but does not hint at
-  "select a different model then click Save to switch".
-- **Fix:** Add a hint line under the card: "Choose a different
-  tier or model then click Save to apply."
-
 ### 4.9 `is_ready` returns False for the currently selected model
   if the user manually deletes the model from the cache
 - **File:** `chapterforge/app.py` `AIModelUnifiedDialog.__init__`
@@ -376,17 +318,6 @@ workflow without sight. The following items undermine that contract.
   False, show a one-time info dialog: "Your previously
   downloaded model is missing. Run the setup wizard to
   download it again."
-
-### 4.10 `mi_update.Enable(False)` is never re-enabled on
-  exceptions
-- **File:** `chapterforge/app.py`, lines 5543-5554.
-- **Symptom:** `_on_check_updates` disables the menu item, but
-  if the worker thread raises an unhandled exception
-  (e.g. `socket.gaierror` not caught), `mi_update` stays
-  disabled forever. The user has to restart the app to check
-  for updates again.
-- **Fix:** Wrap the worker in a `try/except BaseException` and
-  always call `wx.CallAfter(self._update_check_done, None, str(exc))`.
 
 ---
 
@@ -447,22 +378,6 @@ workflow without sight. The following items undermine that contract.
   Unreleased / next-version section. Verify and add.
 - **Fix:** Run `git diff 6e27678~1 6e27678 -- CHANGELOG.md` and
   ensure the entry exists.
-
-### 5.6 `requirements.txt` does not list `onnxruntime`,
-  `huggingface_hub` or `scipy` referenced in code
-- **File:** `requirements.txt` (read separately).
-- **Symptom:** `chapterforge/ai/parakeet.py` imports
-  `onnxruntime`; `chapterforge/ai/faster_whisper_engine.py`
-  pulls `huggingface_hub` transitively. None are pinned in
-  `requirements.txt`. A fresh `pip install -r requirements.txt`
-  will succeed but `Transcribe Audio...` will fail at
-  runtime with an ImportError that surfaces in the modal
-  error dialog. The user has no clue that the import was
-  missing.
-- **Fix:** Add `faster-whisper` to `requirements.txt`. Leave
-  `onnxruntime` as an optional extra documented in
-  `docs/USER_GUIDE.md` ("for the Premium tier, also
-  `pip install onnxruntime`").
 
 ### 5.7 No mention of `tests/test_ai_unified_dialog.py` in the
   developer docs
@@ -658,10 +573,10 @@ The repo has 19 test files and 29 tests, which is thin for a
 | Severity | Count |
 |----------|------:|
 | P0       |     6 |
-| P1       |    10 |
+| P1       |     5 |
 | P2       |     4 |
 | P3       |     0 |
-| **Total**| **20** |
+| **Total**| **15** |
 
 **Top 5 issues to fix next** (in order):
 
@@ -671,7 +586,5 @@ The repo has 19 test files and 29 tests, which is thin for a
 3. **3.1 / 3.2** - Remove the two dead dialog classes
    (`AIModelSettingsDialog`, `AIModelSetupDialog`). ~400
    lines of code we no longer test or maintain.
-4. **3.7 / 3.8** - Delete dead `ai_transcribe_file` /
-   `generate_ai_chapters` and the hard `openai-whisper` import.
-5. **5.1 / 5.4** - Update the user guide to describe the AI
-   Model dialog and remove the fictional sections.
+4. **2.1** - Implement `_NamedAccessible` for SpinCtrl controls.
+5. **9.2** - `settings.save` swallows all OSError.

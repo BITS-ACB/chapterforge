@@ -83,9 +83,8 @@ _KNOWN_MODELS: List[tuple] = [
     ("Canary",  "canary",          "nvidia/canary-1b-v2"),
 ]
 
-#: Mirror of ``app._MODEL_DOWNLOAD_SIZES``. Kept here so this module
-#: has no dependency on the GUI module (which imports everything in
-#: ``chapterforge.ai`` at startup). If a value is missing the dialog
+#: Single source of truth for model download sizes.
+#: ``app._MODEL_DOWNLOAD_SIZES`` is a re-export alias pointing here. If a value is missing the dialog
 #: simply shows "?" instead of a size.
 _DOWNLOAD_SIZES: Dict[str, str] = {
     "tiny": "75 MB",

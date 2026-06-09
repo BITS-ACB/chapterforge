@@ -43,16 +43,8 @@ def _safe_launch_browser(url: str) -> None:
 
 # --- AI setup helpers --------------------------------------------------------
 
-_MODEL_DOWNLOAD_SIZES = {
-    "tiny": "75 MB",
-    "base": "145 MB",
-    "small": "461 MB",
-    "medium": "1.5 GB",
-    "large-v3": "3 GB",
-    "large-v3-turbo": "3 GB",
-    "parakeet-onnx": "~2 GB",
-    "canary": "~1 GB",
-}
+# Single source of truth lives in ai/discovery.py; re-export for back-compat.
+from .ai.discovery import _DOWNLOAD_SIZES as _MODEL_DOWNLOAD_SIZES  # noqa: E402
 
 
 def _recommend_for_hardware(cfg: dict) -> tuple:
@@ -966,6 +958,13 @@ class AIModelUnifiedDialog(wx.Dialog):
         for val, rb in self.rb_tiers:
             rb.Bind(wx.EVT_RADIOBUTTON, self._on_tier_change_settings)
 
+        # Hint for first-time users.
+        hint = wx.StaticText(
+            content,
+            label="Choose a different tier or model, then click Save to apply.")
+        hint.SetName("Settings hint - choose tier and model then click Save to apply")
+        vbox.Add(hint, 0, wx.EXPAND | wx.BOTTOM, 8)
+
         # Card 3: status / hint. Always present so the layout doesn't
         # jump when the user runs the wizard from here.
         self._status_label = wx.StaticText(content, label="")
@@ -1272,6 +1271,10 @@ class AIModelUnifiedDialog(wx.Dialog):
                                  f"tier, {self.settings.get('ai_model_name', 'small')} model")
                 self._steps = [self._make_settings_step]
                 self._go_to(0)
+                # Announce the Ready state so screen-reader users hear what
+                # changed, then focus the header step label briefly.
+                a11y.announce(self._summary)
+                wx.CallAfter(self._hdr_step.SetFocus)
             elif self._status_label is not None:
                 self._status_label.SetFocus()
         wx.CallAfter(_apply)
@@ -5561,6 +5564,8 @@ class MainFrame(wx.Frame):
                 release = updates.check_for_update()
                 wx.CallAfter(self._update_check_done, release, None)
             except updates.UpdateCheckError as exc:
+                wx.CallAfter(self._update_check_done, None, str(exc))
+            except Exception as exc:
                 wx.CallAfter(self._update_check_done, None, str(exc))
 
         threading.Thread(target=work, daemon=True).start()

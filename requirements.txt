@@ -5,6 +5,11 @@ feedback-hub>=1.0
 python-mpv>=1.0
 paramiko>=3.4
 
+# AI transcription (required for Transcription > AI Model - Strong tier).
+# For the Premium tier, also install: onnxruntime
+# See docs/USER_GUIDE.md for details.
+faster-whisper>=1.0
+
 # Optional: richer screen-reader output on Windows (graceful fallback if absent).
 # The accessibility bridge is adapted from the QUILL project (see THIRD_PARTY.md).
 prismatoid>=0.16.5; sys_platform == "win32"
