@@ -26,6 +26,7 @@ dependencies = [
     "mutagen>=1.47",
     "feedback-hub>=1.0",
     "python-mpv>=1.0",
+    "paramiko>=3.4",
 ]
 
 [project.optional-dependencies]

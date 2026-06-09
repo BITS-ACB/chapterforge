@@ -107,7 +107,7 @@ class PlayerPanel(wx.Panel):
         # --- transport buttons -------------------------------------------
         row = wx.BoxSizer(wx.HORIZONTAL)
         self.btn_play = self._button(row, "&Play", self._on_play_pause,
-                                     "Play or pause (Space)")
+                                     "Play or pause")
         self.btn_stop = self._button(row, "S&top", self._on_stop,
                                      "Stop playback and return to the beginning")
         self.btn_prev = self._button(row, "P&revious Chapter",

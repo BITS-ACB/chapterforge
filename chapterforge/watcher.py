@@ -26,12 +26,14 @@ from __future__ import annotations
 
 import json
 import os
+import sys
 import threading
 import time
 from dataclasses import dataclass
 from typing import Callable, Dict, List, Optional, Tuple
 
 from . import core, manifest as manifest_mod, settings as settings_mod
+from .publish import PublishService
 from .watcher_config import (
     OUTPUT_SUBDIR,
     Process,
@@ -48,11 +50,40 @@ STALE_LOCK_SECONDS = 3600
 
 @dataclass
 class WatchEvent:
-    kind: str           # 'started' | 'done' | 'failed' | 'error'
+    kind: str           # 'started' | 'done' | 'failed' | 'error' | 'waiting' | 'published'
     process_name: str
     folder: str
     message: str = ""
     output_path: str = ""
+
+
+# Windows file-attribute bits that OneDrive, Dropbox and Google Drive set on
+# "online-only" placeholder files: the folder listing shows believable size
+# and modified-time metadata before the bytes are actually downloaded, so the
+# stability check below would otherwise consider the folder ready while it is
+# still missing audio data.
+_FILE_ATTRIBUTE_OFFLINE = 0x00001000
+_FILE_ATTRIBUTE_RECALL_ON_OPEN = 0x00040000
+_FILE_ATTRIBUTE_RECALL_ON_DATA_ACCESS = 0x00400000
+_CLOUD_PLACEHOLDER_MASK = (_FILE_ATTRIBUTE_OFFLINE
+                           | _FILE_ATTRIBUTE_RECALL_ON_OPEN
+                           | _FILE_ATTRIBUTE_RECALL_ON_DATA_ACCESS)
+
+
+def is_cloud_placeholder(path: str) -> bool:
+    """True if *path* is a cloud-sync placeholder not yet downloaded locally.
+
+    Lets a watch folder live inside a OneDrive, Dropbox or Google Drive sync
+    folder without the watcher mistaking "listed but not downloaded yet" for
+    "ready to build".
+    """
+    if sys.platform != "win32":
+        return False
+    try:
+        attrs = os.stat(path).st_file_attributes
+    except (OSError, AttributeError):
+        return False
+    return bool(attrs & _CLOUD_PLACEHOLDER_MASK)
 
 
 Signature = Tuple[int, int, float]
@@ -124,8 +155,12 @@ class FolderWatcher:
         self._thread: Optional[threading.Thread] = None
         self._stop = threading.Event()
         self._canceller: Optional[core.Canceller] = None
+        self._publish = PublishService()
         # folder -> (signature, last_change_monotonic)
         self._pending: Dict[str, Tuple[Signature, float]] = {}
+        # Folders currently waiting on cloud-sync downloads - tracked so the
+        # "waiting" notice fires once per wait, not on every poll.
+        self._cloud_waiting: set = set()
 
     # -- lifecycle ------------------------------------------------------
     def start(self) -> None:
@@ -187,6 +222,7 @@ class FolderWatcher:
         sources = _source_mp3s(subfolder, output_path)
         if not sources:
             self._pending.pop(subfolder, None)
+            self._cloud_waiting.discard(subfolder)
             return
 
         sig = _signature(sources)
@@ -212,6 +248,25 @@ class FolderWatcher:
         # Also require that nothing was touched within the settle window.
         if time.time() - sig[2] < self.settle_seconds:
             return
+
+        # Cloud-sync clients (OneDrive, Dropbox, Google Drive) can list
+        # "online-only" files with their final size and date before the bytes
+        # are downloaded - which would otherwise look perfectly stable. Wait
+        # for every source to be hydrated; hydration doesn't change the
+        # signature, so the moment the last placeholder resolves this method
+        # falls straight through to building on the very next poll.
+        folder_name = os.path.basename(os.path.normpath(subfolder))
+        pending_cloud = [p for p in sources if is_cloud_placeholder(p)]
+        if pending_cloud:
+            if subfolder not in self._cloud_waiting:
+                self._cloud_waiting.add(subfolder)
+                self._emit(WatchEvent(
+                    "waiting", process.name, subfolder,
+                    f"“{folder_name}” has {len(pending_cloud)} file(s) still "
+                    "downloading from cloud storage - it will build "
+                    "automatically once they finish."))
+            return
+        self._cloud_waiting.discard(subfolder)
 
         self._process(process, subfolder, sources, output_path, sig)
 
@@ -306,6 +361,8 @@ class FolderWatcher:
                                       series_index=tags.series_index)
                 except Exception:
                     pass
+            if process.publish_destinations:
+                self._publish_built(process, folder_name, subfolder, result.output_path)
             self._clear_marker(os.path.join(subfolder, FAIL_MARKER))
             self._clear_failed_note(process, folder_name)
             _write_marker(os.path.join(subfolder, DONE_MARKER), {
@@ -339,6 +396,37 @@ class FolderWatcher:
                 import shutil as _shutil
                 _shutil.rmtree(self._trim_dir, ignore_errors=True)
             self._trim_dir = None
+
+    def _publish_built(self, process: Process, folder_name: str,
+                       subfolder: str, output_path: str) -> None:
+        """Upload a freshly-built master per the process's publish setting.
+
+        Runs synchronously in the worker thread alongside pod2/RSS writing -
+        failures are reported (via a "published" WatchEvent the tray notifier
+        announces) but never fail the build itself. Connections are bounded by
+        sftp.upload's own connect timeout, so one slow/unreachable server can't
+        stall the watcher loop indefinitely.
+        """
+        try:
+            targets = [d for d in self._publish.resolve_destinations(process.publish_destinations)
+                       if d.enabled]
+            if not targets:
+                return
+            results = self._publish.publish(output_path, targets, canceller=self._canceller)
+            ok = sum(1 for r in results if r.success)
+            failed = [r for r in results if not r.success]
+            if not results:
+                return
+            if not failed:
+                message = f"Published “{folder_name}” to {ok} of {ok} destination(s)."
+            else:
+                message = (f"Published “{folder_name}” to {ok} of {len(results)} "
+                           f"destination(s); {len(failed)} failed: "
+                           + "; ".join(r.message for r in failed))
+            self._emit(WatchEvent("published", process.name, subfolder, message,
+                                  output_path=output_path))
+        except core.BuildCancelled:
+            pass
 
     def _failed_note_path(self, process: Process, folder_name: str) -> str:
         return os.path.join(process.watch_folder, OUTPUT_SUBDIR, "Failed",

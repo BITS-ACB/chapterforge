@@ -42,6 +42,7 @@ _TAG_KEYS = {
     "genre", "year", "comment", "cover", "output", "bitrate", "normalize",
     "title_source", "titlesource",
     "narrator", "series", "series_title", "series_index", "series_part",
+    "publish_destinations",
 }
 
 _BOOL_TRUE = {"1", "true", "yes", "on"}
@@ -69,6 +70,11 @@ class Manifest:
     @property
     def bitrate(self) -> str:
         return self.options.get("bitrate", "") or "192k"
+
+    @property
+    def publish_destinations(self) -> str:
+        """Stored spec: "" (don't publish), "default", or comma-separated ids."""
+        return self.options.get("publish_destinations", "")
 
 
 def parse_bool(value: str) -> bool:

@@ -33,6 +33,111 @@ from . import settings as settings_mod
 from .notify import Notifier
 from .player import PlayerPanel
 from .auphonic import AuphonicService
+from .publish import PublishService
+
+class AIProcessingDialog(wx.Dialog):
+    """An accessible dialog for AI transcription progress."""
+    def __init__(self, parent, title="AI Processing", message="Analyzing audio..."):
+        super().__init__(parent, title=title, style=wx.DEFAULT_DIALOG_STYLE)
+        self.panel = wx.Panel(self)
+        vbox = wx.BoxSizer(wx.VERTICAL)
+        self.lbl = wx.StaticText(self.panel, label=message)
+        self.lbl.SetName("AI Progress Label")
+        vbox.Add(self.lbl, 0, wx.ALL | wx.CENTER, 15)
+        self.gauge = wx.Gauge(self.panel, range=100, size=(300, 25))
+        self.gauge.SetName("AI Progress Bar")
+        vbox.Add(self.gauge, 0, wx.ALL | wx.CENTER, 15)
+        self.btn_cancel = wx.Button(self.panel, label="Cancel")
+        self.btn_cancel.SetName("Cancel AI Processing")
+        vbox.Add(self.btn_cancel, 0, wx.ALL | wx.CENTER, 15)
+        self.panel.SetSizer(vbox)
+        self.Fit()
+        self.Centre()
+
+    def update_progress(self, pct, text=None):
+        wx.CallAfter(self._update_ui, pct, text)
+
+    def _update_ui(self, pct, text):
+        self.gauge.SetValue(int(pct))
+        if text:
+            self.lbl.SetLabel(text)
+        if int(pct) % 25 == 0:
+            a11y.announce(f"AI processing {int(pct)} percent complete")
+
+class AIModelSettingsDialog(wx.Dialog):
+    """An accessible dialog for configuring AI ASR engines and model tiers."""
+    def __init__(self, parent, initial_tier="Strong", initial_model="small"):
+        super().__init__(parent, title="AI Model Settings", style=wx.DEFAULT_DIALOG_STYLE)
+        self.panel = wx.Panel(self)
+        vbox = wx.BoxSizer(wx.VERTICAL)
+
+        # Tier Selection
+        tier_box = wx.StaticBoxSizer(wx.VERTICAL, self.panel, "Performance Tier")
+        self.tiers = [
+            ("Basic (whisper.cpp - Low Resources)", "Basic"),
+            ("Strong (faster-whisper - Balanced)", "Strong"),
+            ("Premium (Parakeet/Large - High Accuracy)", "Premium"),
+        ]
+        self.rb_tiers = []
+        for i, (label, val) in enumerate(self.tiers):
+            rb = wx.RadioButton(self.panel, label=label, style=wx.RB_GROUP if i == 0 else 0)
+            rb.SetName(f"AI tier {val}")
+            rb.SetValue(initial_tier == val)
+            self.rb_tiers.append((val, rb))
+            tier_box.Add(rb, 0, wx.ALL, 5)
+        vbox.Add(tier_box, 0, wx.EXPAND | wx.ALL, 10)
+
+        # Model Selection
+        self.model_box = wx.StaticBoxSizer(wx.VERTICAL, self.panel, "Model Choice")
+        self.model_choices = {
+            "Basic": ["tiny", "base", "small"],
+            "Strong": ["small", "medium", "large-v3-turbo"],
+            "Premium": ["large-v3", "parakeet-onnx", "canary"],
+        }
+        self.rb_models = []
+        self.update_model_options(initial_tier, initial_model)
+        vbox.Add(self.model_box, 0, wx.EXPAND | wx.ALL, 10)
+
+        # Bind tier changes to update model options
+        for val, rb in self.rb_tiers:
+            rb.Bind(wx.EVT_RADIOBUTTON, lambda e, v=val: self.update_model_options(v))
+
+        # Buttons
+        btn_box = wx.BoxSizer(wx.HORIZONTAL)
+        self.btn_ok = wx.Button(self.panel, id=wx.ID_OK, label="OK")
+        self.btn_ok.SetName("Save AI settings")
+        self.btn_ok.Bind(wx.EVT_BUTTON, lambda e: self.EndModal(wx.ID_OK))
+        self.btn_cancel = wx.Button(self.panel, id=wx.ID_CANCEL, label="Cancel")
+        self.btn_cancel.SetName("Discard AI settings")
+        self.btn_cancel.Bind(wx.EVT_BUTTON, lambda e: self.EndModal(wx.ID_CANCEL))
+        btn_box.Add(self.btn_ok, 0, wx.ALL, 5)
+        btn_box.Add(self.btn_cancel, 0, wx.ALL, 5)
+        vbox.Add(btn_box, 0, wx.ALIGN_CENTER | wx.ALL, 10)
+
+        self.panel.SetSizer(vbox)
+        self.Fit()
+        self.Centre()
+        self.btn_ok.SetFocus()
+
+    def update_model_options(self, tier, selected_model=None):
+        self.model_box.Clear(True)
+        self.rb_models = []
+        options = self.model_choices.get(tier, ["base"])
+        for i, opt in enumerate(options):
+            rb = wx.RadioButton(self.panel, label=opt.replace("-", " ").capitalize(),
+                                style=wx.RB_GROUP if i == 0 else 0)
+            rb.SetName(f"AI model {opt}")
+            rb.SetValue(opt == selected_model)
+            self.rb_models.append((opt, rb))
+            self.model_box.Add(rb, 0, wx.ALL, 5)
+        self.panel.Layout()
+        self.Fit()
+
+    def get_values(self):
+        tier = next(val for val, rb in self.rb_tiers if rb.GetValue())
+        model = next(opt for opt, rb in self.rb_models if rb.GetValue())
+        return tier, model
+
 
 # Token for issue submission. Resolved at runtime from environment or
 # build-injected constant. Never hardcode a real token here.
@@ -107,6 +212,7 @@ class _UndoStack:
         self._pos = -1
 
 
+
 # ----------------------------------------------------------------------------
 # Custom events posted from the worker thread
 # ----------------------------------------------------------------------------
@@ -121,6 +227,169 @@ class _ThreadEvent(wx.PyEvent):
         super().__init__()
         self.SetEventType(etype)
         self.payload = payload
+
+
+# ----------------------------------------------------------------------------
+# Status window - live view of all background activities
+# ----------------------------------------------------------------------------
+
+class StatusWindow(wx.Frame):
+    """Non-modal frame showing all running background activities.
+
+    Accessible from Help > Background Activity... and the system tray.
+    Can cancel or pause individual tasks.  Stays in sync via the
+    ActivityManager listener mechanism.
+    """
+
+    _COLS = ["Task", "Status", "Progress", "Actions"]
+
+    def __init__(self, parent):
+        super().__init__(
+            parent, title="Background Activity",
+            style=wx.DEFAULT_FRAME_STYLE & ~wx.MAXIMIZE_BOX,
+        )
+        self.SetName("Background Activity window")
+        self._build_ui()
+        self.SetSize((640, 360))
+        self.SetMinSize((480, 240))
+        if parent:
+            self.CentreOnParent()
+        from .activity import ActivityManager
+        self._mgr = ActivityManager.get()
+        self._mgr.add_listener(self._on_activity_change)
+        self.Bind(wx.EVT_CLOSE, self._on_close)
+        wx.CallAfter(self._full_refresh)
+
+    # ------------------------------------------------------------------
+    # UI construction
+    # ------------------------------------------------------------------
+
+    def _build_ui(self):
+        panel = wx.Panel(self)
+        panel.SetName("Activity list panel")
+        vbox = wx.BoxSizer(wx.VERTICAL)
+
+        self._list = wx.ListCtrl(
+            panel,
+            style=wx.LC_REPORT | wx.LC_SINGLE_SEL | wx.BORDER_THEME,
+        )
+        self._list.SetName("Background activities list")
+        self._list.InsertColumn(0, "Task", width=220)
+        self._list.InsertColumn(1, "Status", width=160)
+        self._list.InsertColumn(2, "Progress", width=80)
+        vbox.Add(self._list, 1, wx.EXPAND | wx.ALL, 10)
+
+        btn_row = wx.BoxSizer(wx.HORIZONTAL)
+        self._btn_cancel = wx.Button(panel, label="&Cancel Task")
+        self._btn_cancel.SetName("Cancel selected task")
+        self._btn_cancel.Enable(False)
+        self._btn_cancel.Bind(wx.EVT_BUTTON, self._on_cancel)
+        btn_row.Add(self._btn_cancel, 0, wx.RIGHT, 8)
+
+        self._btn_pause = wx.Button(panel, label="&Pause / Resume Task")
+        self._btn_pause.SetName("Pause or resume selected task")
+        self._btn_pause.Enable(False)
+        self._btn_pause.Bind(wx.EVT_BUTTON, self._on_pause)
+        btn_row.Add(self._btn_pause, 0, wx.RIGHT, 8)
+
+        btn_row.AddStretchSpacer()
+        close_btn = wx.Button(panel, id=wx.ID_CLOSE, label="&Close")
+        close_btn.SetName("Close status window")
+        close_btn.Bind(wx.EVT_BUTTON, lambda e: self.Hide())
+        btn_row.Add(close_btn, 0)
+
+        vbox.Add(btn_row, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 10)
+
+        self._lbl_empty = wx.StaticText(panel, label="No background tasks are running.")
+        self._lbl_empty.SetName("No tasks label")
+        vbox.Add(self._lbl_empty, 0, wx.ALL | wx.CENTRE, 12)
+
+        panel.SetSizer(vbox)
+        self._list.Bind(wx.EVT_LIST_ITEM_SELECTED, self._on_select)
+        self._list.Bind(wx.EVT_LIST_ITEM_DESELECTED, self._on_select)
+
+    # ------------------------------------------------------------------
+    # Data
+    # ------------------------------------------------------------------
+
+    def _full_refresh(self):
+        """Rebuild the list from the current activity snapshot."""
+        activities = self._mgr.all()
+        self._list.DeleteAllItems()
+        for act in activities:
+            self._append_row(act)
+        self._lbl_empty.Show(not activities)
+        self._list.Show(bool(activities))
+        self.Layout()
+        self._update_buttons()
+
+    def _append_row(self, act):
+        from .activity import ActivityState
+        idx = self._list.GetItemCount()
+        self._list.InsertItem(idx, act.label)
+        self._list.SetItem(idx, 1, act.status_text or act.state.value.capitalize())
+        pct_text = f"{int(act.progress)}%" if act.state in (
+            ActivityState.RUNNING, ActivityState.PAUSED
+        ) else ""
+        self._list.SetItem(idx, 2, pct_text)
+        self._list.SetItemData(idx, act.id)
+
+    def _on_activity_change(self, act):
+        """Called from any thread; marshal to main thread."""
+        wx.CallAfter(self._full_refresh)
+
+    def _find_selected_activity(self):
+        sel = self._list.GetFirstSelected()
+        if sel < 0:
+            return None
+        act_id = self._list.GetItemData(sel)
+        for act in self._mgr.all():
+            if act.id == act_id:
+                return act
+        return None
+
+    def _update_buttons(self):
+        act = self._find_selected_activity()
+        from .activity import ActivityState
+        is_active = act is not None and act.state in (
+            ActivityState.RUNNING, ActivityState.PAUSED
+        )
+        self._btn_cancel.Enable(is_active and (act.can_cancel if act else False))
+        self._btn_pause.Enable(is_active and (act.can_pause if act else False))
+        if act and act.state == ActivityState.PAUSED:
+            self._btn_pause.SetLabel("&Resume Task")
+        else:
+            self._btn_pause.SetLabel("&Pause Task")
+
+    # ------------------------------------------------------------------
+    # Actions
+    # ------------------------------------------------------------------
+
+    def _on_select(self, _evt):
+        self._update_buttons()
+
+    def _on_cancel(self, _evt):
+        act = self._find_selected_activity()
+        if act:
+            act.request_cancel()
+
+    def _on_pause(self, _evt):
+        act = self._find_selected_activity()
+        if act:
+            act.request_pause()
+            self._update_buttons()
+
+    def _on_close(self, evt):
+        self._mgr.remove_listener(self._on_activity_change)
+        self.Hide()
+        evt.Veto()
+
+    def show_and_raise(self):
+        self.Show()
+        self.Raise()
+        self.SetFocus()
+
+
 
 
 def _windows_high_contrast_active() -> bool:
@@ -153,6 +422,8 @@ def _windows_high_contrast_active() -> bool:
 class MainFrame(wx.Frame):
     _COL_WIDTHS = [44, 260, 80, 80, 200]
     _COL_NAMES_DISPLAY = ["#", "Title", "Start time", "Duration", "Source file"]
+    _LIST_COL_NAMES = [
+        "Chapter number", "Title", "Start time", "Duration", "Source file"]
 
     def __init__(self):
         self.settings = settings_mod.load()
@@ -178,14 +449,22 @@ class MainFrame(wx.Frame):
         self.notifier = Notifier(parent=self)
         self._tray = None
         self._watch_controller = None
+        self._status_window: Optional[StatusWindow] = None
+        self._ai_cancel = False
         self._auphonic = AuphonicService(
             client_id=os.environ.get("AUPHONIC_CLIENT_ID", ""),
             client_secret=os.environ.get("AUPHONIC_CLIENT_SECRET", ""),
         )
+        self._publish = PublishService()
         self._force_quit = False
         self._player_revealed = False  # show the player the first time media loads
         self._list_col = 0  # currently announced column for keyboard column navigation
         self._undo = _UndoStack()
+        # Last control to hold real keyboard focus (not a menu). Opening the
+        # menu bar moves focus away from whatever was focused, so F1's "Help
+        # on This Control" - reachable via the Help menu as well as the F1
+        # accelerator - needs this to still answer about the right control.
+        self._last_focused_ctrl: Optional[wx.Window] = None
 
         self._build_menu()
         self._build_ui()
@@ -199,6 +478,7 @@ class MainFrame(wx.Frame):
         self.Connect(-1, -1, EVT_DONE, self._on_evt_done)
         self.Connect(-1, -1, EVT_FAILED, self._on_evt_failed)
         self.Bind(wx.EVT_CLOSE, self._on_close)
+        self.Bind(wx.EVT_CHILD_FOCUS, self._on_child_focus)
 
         wx_x = int(self.settings.get("win_x", -1))
         wx_y = int(self.settings.get("win_y", -1))
@@ -301,6 +581,19 @@ class MainFrame(wx.Frame):
             wx.ID_ANY, "Sa&ve Chapter List…",
             "Save the current chapter list as labels, a CUE sheet or JSON")
         menubar.Append(edit_menu, "&Edit")
+
+        transcription_menu = wx.Menu()
+        self.mi_ai_transcribe = transcription_menu.Append(
+            wx.ID_ANY, "&Transcribe Audio…\tCtrl+T",
+            "Convert audio to text using AI (FastWhisper)")
+        self.mi_ai_chapters = transcription_menu.Append(
+            wx.ID_ANY, "&Suggest AI Chapters…",
+            "Automatically generate chapter boundaries based on semantic content")
+        transcription_menu.AppendSeparator()
+        self.mi_ai_model = transcription_menu.Append(
+            wx.ID_ANY, "AI &Model Settings…",
+            "Choose between speed and accuracy models (Tiny to Large)")
+        menubar.Append(transcription_menu, "&Transcription")
 
         view_menu = wx.Menu()
         theme_sub = wx.Menu()
@@ -416,14 +709,34 @@ class MainFrame(wx.Frame):
         self.mi_auphonic_history = auphonic_menu.Append(
             wx.ID_ANY, "&Job History…",
             "View submitted Auphonic jobs and download results")
-        # Only append Auphonic menu if beta features are enabled
-        if self.settings.get("beta_features", False):
+        # Only append the Auphonic menu if that beta feature is enabled
+        if feature_flags.is_enabled(self.settings, "auphonic"):
             menubar.Append(auphonic_menu, "&Auphonic")
             self._auphonic_menu_index = 4  # Store index for later enabling
         else:
             self._auphonic_menu_index = None
 
+        publish_menu = wx.Menu()
+        self.mi_publish = publish_menu.Append(
+            wx.ID_ANY, "&Publish…\tCtrl+Shift+U",
+            "Upload the most recently built master to a saved destination")
+        self.mi_publish_destinations = publish_menu.Append(
+            wx.ID_ANY, "Publishing &Destinations…",
+            "Manage saved SFTP destinations for direct publishing")
+        # Only append the Publish menu if that beta feature is enabled. Index
+        # is computed dynamically (rather than hardcoded like Auphonic's)
+        # because Auphonic's own presence shifts where this menu lands.
+        if feature_flags.is_enabled(self.settings, "publishing"):
+            self._publish_menu_index = menubar.GetMenuCount()
+            menubar.Append(publish_menu, "Pu&blish")
+        else:
+            self._publish_menu_index = None
+
         help_menu = wx.Menu()
+        self.mi_activity = help_menu.Append(
+            wx.ID_ANY, "&Background Activity…",
+            "Show running background tasks - transcription, builds, and more")
+        help_menu.AppendSeparator()
         self.mi_wizard = help_menu.Append(
             wx.ID_ANY, "Setup &Wizard…",
             "Walk through the guided setup wizard to configure ChapterForge")
@@ -470,8 +783,15 @@ class MainFrame(wx.Frame):
         
         # Enable Auphonic menu after menu bar is attached to frame
         if hasattr(self, '_auphonic_menu_index') and self._auphonic_menu_index is not None:
-            self.GetMenuBar().EnableTop(self._auphonic_menu_index, 
-                                        bool(self.settings.get("beta_features", False)))
+            self.GetMenuBar().EnableTop(
+                self._auphonic_menu_index,
+                feature_flags.is_enabled(self.settings, "auphonic"))
+
+        # Enable Publish menu after menu bar is attached to frame
+        if self._publish_menu_index is not None:
+            self.GetMenuBar().EnableTop(
+                self._publish_menu_index,
+                feature_flags.is_enabled(self.settings, "publishing"))
 
         self.Bind(wx.EVT_MENU, self._on_undo, self.mi_undo)
         self.Bind(wx.EVT_MENU, self._on_redo, self.mi_redo)
@@ -523,8 +843,12 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self._on_toggle_autostart, self.mi_autostart)
         self.Bind(wx.EVT_MENU, lambda e: self.Close(), id=wx.ID_EXIT)
         self.Bind(wx.EVT_MENU, self._on_wizard, self.mi_wizard)
+        self.Bind(wx.EVT_MENU, self._on_show_activity, self.mi_activity)
         self.Bind(wx.EVT_MENU, self._on_guide, self.mi_guide)
         self.Bind(wx.EVT_MENU, self._on_context_help, self.mi_context_help)
+        self.Bind(wx.EVT_MENU, self._on_ai_transcribe, self.mi_ai_transcribe)
+        self.Bind(wx.EVT_MENU, self._on_ai_chapters, self.mi_ai_chapters)
+        self.Bind(wx.EVT_MENU, self._on_ai_model, self.mi_ai_model)
         self.Bind(wx.EVT_MENU, self._on_keys, self.mi_keys)
         self.Bind(wx.EVT_MENU, self._on_changelog_doc, self.mi_changelog)
         self.Bind(wx.EVT_MENU, self._on_docs_home, self.mi_docs_home)
@@ -539,6 +863,9 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self._on_auphonic_connect, self.mi_auphonic_connect)
         self.Bind(wx.EVT_MENU, self._on_auphonic_new, self.mi_auphonic_new)
         self.Bind(wx.EVT_MENU, self._on_auphonic_history, self.mi_auphonic_history)
+
+        self.Bind(wx.EVT_MENU, self._on_publish, self.mi_publish)
+        self.Bind(wx.EVT_MENU, self._on_manage_destinations, self.mi_publish_destinations)
 
         # Ctrl+S = smart save: Build in build mode, Save Changes in edit mode.
         # (Ctrl+B = explicit Build.)
@@ -555,6 +882,7 @@ class MainFrame(wx.Frame):
         # so they vanish from the user's menus while self.mi_xxx stays a valid
         # MenuItem for any later .Bind()/.Enable()/.Check() calls elsewhere.
         for _menu, _item, _flag_key in (
+            (file_menu, self.mi_open_master, "mp3_editing"),
             (edit_menu, self.mi_play_chapter, "audio_player"),
             (edit_menu, self.mi_split_here, "audio_player"),
             (view_menu, self.mi_goto_time, "audio_player"),
@@ -568,6 +896,16 @@ class MainFrame(wx.Frame):
             (tools_menu, self.mi_watch, "auto_build_watcher"),
             (tools_menu, self.mi_start_watch, "auto_build_watcher"),
             (tools_menu, self.mi_autostart, "auto_build_watcher"),
+            (file_menu, self.mi_split_files, "chapter_file_splitting"),
+            (edit_menu, self.mi_batch_titles, "batch_title_editing"),
+            (edit_menu, self.mi_rename_files, "source_file_renaming"),
+            (edit_menu, self.mi_import_ch, "chapter_list_import_export"),
+            (edit_menu, self.mi_export_ch, "chapter_list_import_export"),
+            (file_menu, self.mi_load_job, "job_templates"),
+            (file_menu, self.mi_gen_job, "job_templates"),
+            (tools_menu, self.mi_build_log, "build_log"),
+            (help_menu, self.mi_wizard, "setup_wizard"),
+            (help_menu, self.mi_diagnostics, "diagnostics_report"),
         ):
             if not feature_flags.is_enabled(self.settings, _flag_key):
                 _menu.Remove(_item)
@@ -628,8 +966,8 @@ class MainFrame(wx.Frame):
         self.list.InsertColumn(2, "Start", width=80)
         self.list.InsertColumn(3, "Duration", width=80)
         self.list.InsertColumn(4, "Source file", width=200)
-        self.list.Bind(wx.EVT_LIST_ITEM_SELECTED, self._on_list_select)
-        self.list.Bind(wx.EVT_LIST_ITEM_DESELECTED, self._on_list_select)
+        self.list.Bind(wx.EVT_LIST_ITEM_SELECTED, lambda e: self._update_command_state())
+        self.list.Bind(wx.EVT_LIST_ITEM_DESELECTED, lambda e: self._update_command_state())
         self.list.Bind(wx.EVT_LIST_ITEM_FOCUSED, self._on_list_focused)
         self.list.Bind(wx.EVT_KEY_DOWN, self._on_list_key)
         self.list.Bind(wx.EVT_CONTEXT_MENU, self._on_list_context_menu)
@@ -676,18 +1014,6 @@ class MainFrame(wx.Frame):
             btn_row.Add(b, 0, wx.ALL, 4)
         ch_box.Add(btn_row, 0)
         p1.Add(ch_box, 1, wx.EXPAND | wx.ALL, 8)
-
-        # "Next" button - goes to the tags / build page
-        next_row = wx.BoxSizer(wx.HORIZONTAL)
-        next_row.AddStretchSpacer()
-        self.btn_next_page = wx.Button(self._page_ch, label="Set Tags && Build ->")
-        self.btn_next_page.SetName(
-            "Continue to step 2 - set title, artist, album and other tags, then build")
-        self.btn_next_page.SetToolTip(
-            "Move to the next step to set the master file's tags and build.")
-        self.btn_next_page.Bind(wx.EVT_BUTTON, self._on_next_page)
-        next_row.Add(self.btn_next_page, 0, wx.ALL, 8)
-        p1.Add(next_row, 0, wx.EXPAND)
 
         self._page_ch.SetSizer(p1)
         outer.Add(self._page_ch, 1, wx.EXPAND)
@@ -1090,7 +1416,7 @@ class MainFrame(wx.Frame):
 
         self.folder = folder
         self.items = good
-        self.player.release(recreate=True)
+        self.player.release()
         self._undo.clear()
         self._update_undo_menu()
         self._enter_build_mode()
@@ -1171,11 +1497,11 @@ class MainFrame(wx.Frame):
         scale = max(50, min(300, int(self.settings.get("text_scale", 100))))
         base = wx.SystemSettings.GetFont(wx.SYS_DEFAULT_GUI_FONT)
         font = wx.Font(base)
-        pt = max(6, int(round(base.GetPointSize() * scale / 100.0)))
+        pt = max(6, int(base.GetPointSize() * scale / 100))
         font.SetPointSize(pt)
 
         theme = self.settings.get("theme", "system")
-        # Backwards compat: old boolean high_contrast setting
+        # Backwards
         if theme == "system" and self.settings.get("high_contrast", False):
             theme = "high_contrast"
         # Auto-follow Windows high-contrast mode when theme is "system".
@@ -1276,8 +1602,11 @@ class MainFrame(wx.Frame):
         self._apply_column_visibility()
         # Feature 13: apply keyboard overrides
         self._apply_key_overrides()
-        # Gate the Auphonic menu on the beta_features setting.
-        self.GetMenuBar().EnableTop(4, bool(s.get("beta_features", False)))
+        # Gate the Auphonic menu on its feature flag (only if it was built).
+        if self._auphonic_menu_index is not None:
+            self.GetMenuBar().EnableTop(
+                self._auphonic_menu_index,
+                feature_flags.is_enabled(self.settings, "auphonic"))
 
     def _apply_column_visibility(self):
         """Show or hide list columns based on settings (Feature 10)."""
@@ -1330,45 +1659,12 @@ class MainFrame(wx.Frame):
         return self.items[sel].title if 0 <= sel < len(self.items) else ""
 
     def _on_list_focused(self, evt):
-        """Arrow-key navigation focuses without always selecting - force select so
-        GetFirstSelected() is reliable and the play button stays enabled."""
+        """Force selection of focused item so GetFirstSelected() always works."""
         idx = evt.GetIndex()
         if 0 <= idx < self._row_count():
-            self.list.Select(idx)
-            self._list_col = 0  # reset to row-summary mode on Up/Down navigation
+            if self.list.GetItemState(idx, wx.LIST_STATE_SELECTED) == 0:
+                self.list.Select(idx)
         evt.Skip()
-
-    def _on_list_select(self, _evt):
-        sel = self.list.GetFirstSelected()
-        if 0 <= sel < self._row_count():
-            self.title_ctrl.ChangeValue(self._selected_title(sel))
-            if self._list_col == 0:
-                a11y.announce(
-                    f"Chapter {sel + 1}: {self._selected_title(sel)}")
-            else:
-                # Column navigation mode - announce the tracked column value.
-                self._announce_list_cell(sel)
-        else:
-            self.title_ctrl.ChangeValue("")
-        self._update_command_state()
-
-    def _on_next_page(self, _evt=None):
-        self._page_ch.Hide()
-        self._page_tags.Show()
-        self.panel.Layout()
-        self.btn_back_page.SetFocus()
-        self._announce("Step 2 of 2 - set tags and build. "
-                       "Press Back to return to the chapter list.")
-
-    def _on_back_page(self, _evt=None):
-        self._page_tags.Hide()
-        self._page_ch.Show()
-        self.panel.Layout()
-        self.list.SetFocus()
-        self._announce("Step 1 of 2 - chapter list.")
-
-    _LIST_COL_NAMES = [
-        "Chapter number", "Title", "Start time", "Duration", "Source file"]
 
     def _announce_list_cell(self, row: int):
         """Speak the value of the currently tracked column for the given row."""
@@ -1398,9 +1694,7 @@ class MainFrame(wx.Frame):
             evt.Skip()
 
     def _build_play_controls_menu(self, building: bool) -> wx.Menu:
-        """A "Play Controls" menu - one item per transport command, enabled
-        and labelled to match the player's current state. Shared by the
-        chapter list's context menu and the player's own."""
+        """A "Play Controls" submenu shared by chapter list context menu and player."""
         p = self.player
         has_media = p.has_media()
         menu = wx.Menu()
@@ -1436,7 +1730,8 @@ class MainFrame(wx.Frame):
 
         return menu
 
-    def _on_list_context_menu(self, _evt):
+    def _on_list_context_menu(self, evt):
+        """Show the chapter list context menu."""
         sel = self.list.GetFirstSelected()
         if sel < 0:
             sel = self.list.GetNextItem(-1, wx.LIST_NEXT_ALL, wx.LIST_STATE_FOCUSED)
@@ -1499,6 +1794,7 @@ class MainFrame(wx.Frame):
             self.items[sel].title = new_title
             self.items[sel].edited = True
         self.list.SetItem(sel, 1, new_title)
+        self.title_ctrl.ChangeValue(new_title)
         self._announce(f"Renamed chapter {sel + 1} to “{new_title}”.")
 
         # Record undo
@@ -1691,7 +1987,7 @@ class MainFrame(wx.Frame):
 
         # The preview player may hold a handle on the file we are about to
         # overwrite; releasing it frees the OS lock on Windows.
-        self.player.release(recreate=True)
+        self.player.release()
 
         items = list(self.items)
         chapters = core.compute_chapters(items)
@@ -1899,6 +2195,7 @@ class MainFrame(wx.Frame):
         # Offer to preview the finished file in the in-app player.
         if _run_acx:
             wx.CallAfter(self._run_acx_check, result.output_path)
+        wx.CallAfter(self._run_publish_after_build, result.output_path)
 
         if wx.MessageBox(
                 f"{summary}{stats_block}\n\nSaved {kind} to:\n{result.output_path}\n\n"
@@ -2150,6 +2447,49 @@ class MainFrame(wx.Frame):
             "Loudness normalization to -23 LUFS enabled. Rebuilding now.")
         wx.CallAfter(self._on_build, None)
 
+    def _run_publish_after_build(self, output_path: str):
+        """Upload a freshly-built master automatically, per Settings.
+
+        Runs on a background thread and reports through the toast notifier
+        and a11y.announce() rather than a modal dialog - this happens without
+        the user asking, so it should never interrupt them.
+        """
+        if not feature_flags.is_enabled(self.settings, "publishing"):
+            return
+        if not self.settings.get("publish_after_build", False):
+            return
+        spec = str(self.settings.get("publish_after_build_destination", "default"))
+        targets = [d for d in self._publish.resolve_destinations(spec) if d.enabled]
+        if not targets:
+            return
+
+        name = os.path.basename(output_path)
+        a11y.announce(f"Publishing {name} to {len(targets)} destination(s).")
+
+        def _do_publish():
+            results = self._publish.publish(output_path, targets)
+            wx.CallAfter(self._after_publish_after_build, name, results)
+
+        threading.Thread(target=_do_publish, daemon=True).start()
+
+    def _after_publish_after_build(self, name: str, results):
+        ok = sum(1 for r in results if r.success)
+        failed = [r for r in results if not r.success]
+        if not results:
+            return
+        if not failed:
+            summary = f"Published {name} to {ok} of {ok} destination(s)."
+            level = "info"
+        else:
+            summary = (f"Published {name} to {ok} of {len(results)} "
+                       f"destination(s); {len(failed)} failed.")
+            level = "warning"
+        a11y.announce(summary)
+        detail = summary
+        if failed:
+            detail += "\n" + "\n".join(r.message for r in failed)
+        self.notifier.notify("ChapterForge - publish", detail, level, speak=False)
+
     def _on_acx_check_menu(self, _evt):
         """Run ACX check from the Tools menu."""
         path = self.output_path or (self.edit_path if self.mode == "edit" else "")
@@ -2334,6 +2674,20 @@ class MainFrame(wx.Frame):
         settings_mod.save(self.settings)
         self._apply_appearance()
         self._announce("Text size reset to default.")
+
+    def _on_back_page(self, _evt=None):
+        if self._page_tags.IsShown():
+            self._page_tags.Hide()
+            self._page_ch.Show()
+            self.panel.Layout()
+            self._announce("Step 1 - Chapter list.")
+
+    def _on_next_page(self, _evt=None):
+        if not self._page_tags.IsShown():
+            self._page_ch.Hide()
+            self._page_tags.Show()
+            self.panel.Layout()
+            self._announce("Step 2 - Tags and Build.")
 
     def _on_view_player(self, _evt=None):
         visible = not self.player.IsShown()
@@ -2777,6 +3131,25 @@ class MainFrame(wx.Frame):
         dlg = JobHistoryDialog(self, self._auphonic)
         dlg.ShowModal()
 
+    # ------------------------------------------------------------------
+    # Direct publishing
+    # ------------------------------------------------------------------
+    def _on_publish(self, _evt):
+        if not self.output_path or not os.path.isfile(self.output_path):
+            wx.MessageBox(
+                "Build or open a master first, then publish it.",
+                "Nothing to Publish",
+                wx.OK | wx.ICON_INFORMATION,
+                self,
+            )
+            return
+        from .publish_dialogs import publish_master
+        publish_master(self, self.output_path)
+
+    def _on_manage_destinations(self, _evt):
+        from .publish_dialogs import manage_destinations
+        manage_destinations(self)
+
     # Diagnostics
     # ------------------------------------------------------------------
     def _on_report_issue(self, _evt):
@@ -2959,7 +3332,7 @@ class MainFrame(wx.Frame):
         self._push_recent(path)
 
     def _enter_edit_mode(self, path, tags, chapters, total_ms):
-        self.player.release(recreate=True)
+        self.player.release()
         self.mode = "edit"
         # Always land on the chapter list page when opening a file.
         if self._page_tags.IsShown():
@@ -3042,7 +3415,7 @@ class MainFrame(wx.Frame):
                 return
         tags = self._collect_tags()
         # The player holds the file open; release before re-tagging.
-        self.player.release(recreate=True)
+        self.player.release()
         try:
             core.save_tags_chapters_inplace(
                 self.edit_path, self.edit_chapters, tags)
@@ -3444,7 +3817,7 @@ class MainFrame(wx.Frame):
             return
         self.items = items
         self.folder = folder
-        self.player.release(recreate=True)
+        self.player.release()
         self._enter_build_mode()
         self.folder_ctrl.ChangeValue(folder)
         self._apply_manifest_options(manifest, folder)
@@ -3506,7 +3879,8 @@ class MainFrame(wx.Frame):
             on_open=self._restore_from_tray,
             on_manage=lambda: self._on_watch_folders(None),
             on_quit=self._quit_from_tray,
-            get_player=lambda: self.player)
+            get_player=lambda: self.player,
+            get_status_window=self._get_status_window)
         self._watch_controller.start()
         self.notifier.notify(
             __app_name__, "Background watcher started. ChapterForge is in the "
@@ -3537,6 +3911,290 @@ class MainFrame(wx.Frame):
     # ------------------------------------------------------------------
     # Help
     # ------------------------------------------------------------------
+    def _on_ai_model(self, _evt):
+        """Open the AI model settings dialog."""
+        engine_tier = self.settings.get("ai_engine_tier", "Strong")
+        model_name = self.settings.get("ai_model_name", "small")
+
+        dlg = AIModelSettingsDialog(self, engine_tier, model_name)
+        if dlg.ShowModal() == wx.ID_OK:
+            new_tier, new_model = dlg.get_values()
+            self.settings["ai_engine_tier"] = new_tier
+            self.settings["ai_model_name"] = new_model
+            try:
+                settings_mod.save(self.settings)
+            except Exception:
+                pass
+            self._announce(f"AI updated: {new_tier} tier, {new_model} model.")
+        dlg.Destroy()
+
+    def _on_ai_transcribe(self, _evt):
+        """Transcribe current audio using the configured AI engine."""
+        import threading
+        from .activity import ActivityManager
+        audio_path = self._get_transcription_source()
+        if not audio_path:
+            return
+        tier = self.settings.get("ai_engine_tier", "Strong")
+        model = self.settings.get("ai_model_name", "small")
+
+        cancelled = threading.Event()
+        act = ActivityManager.get().start(
+            f"Transcribing ({model})",
+            can_cancel=True,
+            on_cancel=lambda: cancelled.set(),
+        )
+
+        prog_dlg = AIProcessingDialog(
+            self, title="Transcribing Audio",
+            message=f"Loading {tier} model ({model})...",
+        )
+        prog_dlg.btn_cancel.Bind(
+            wx.EVT_BUTTON, lambda e: (cancelled.set(), None)
+        )
+        result: dict = {"segments": None, "error": None}
+
+        def _run():
+            try:
+                from .ai.engine import create_engine
+                engine = create_engine(tier, model)
+
+                def on_progress(pct):
+                    if cancelled.is_set():
+                        raise RuntimeError("Cancelled by user")
+                    txt = f"Transcribing... {int(pct)}%"
+                    act.update(pct, txt)
+                    ActivityManager.get().notify_update(act)
+                    prog_dlg.update_progress(pct, txt)
+
+                result["segments"] = engine.transcribe(audio_path, on_progress)
+                act.finish("Transcription complete.")
+            except Exception as exc:
+                if cancelled.is_set():
+                    act.cancel()
+                else:
+                    act.fail(str(exc))
+                result["error"] = str(exc)
+            finally:
+                ActivityManager.get().remove(act)
+                wx.CallAfter(prog_dlg.EndModal, wx.ID_OK)
+
+        threading.Thread(target=_run, daemon=True).start()
+        prog_dlg.ShowModal()
+        prog_dlg.Destroy()
+
+        if result["error"]:
+            if "Cancelled" not in result["error"]:
+                wx.MessageBox(
+                    f"Transcription failed:\n{result['error']}",
+                    "AI Error", wx.OK | wx.ICON_ERROR, self,
+                )
+            self._announce("AI transcription cancelled.")
+            return
+        self._show_transcript(result["segments"])
+
+    def _on_ai_chapters(self, _evt):
+        """Transcribe audio then apply AI-suggested chapter titles."""
+        import threading
+        from .activity import ActivityManager
+        audio_path = self._get_transcription_source()
+        if not audio_path:
+            return
+        tier = self.settings.get("ai_engine_tier", "Strong")
+        model = self.settings.get("ai_model_name", "small")
+
+        cancelled = threading.Event()
+        act = ActivityManager.get().start(
+            f"AI Chapter Suggestions ({model})",
+            can_cancel=True,
+            on_cancel=lambda: cancelled.set(),
+        )
+
+        prog_dlg = AIProcessingDialog(
+            self, title="Suggesting Chapters",
+            message=f"Loading {tier} model ({model})...",
+        )
+        prog_dlg.btn_cancel.Bind(
+            wx.EVT_BUTTON, lambda e: (cancelled.set(), None)
+        )
+        result: dict = {"chapters": None, "error": None}
+
+        def _run():
+            try:
+                from .ai.engine import create_engine
+                engine = create_engine(tier, model)
+
+                def on_progress(pct):
+                    if cancelled.is_set():
+                        raise RuntimeError("Cancelled by user")
+                    txt = f"Transcribing... {int(pct)}%"
+                    act.update(pct, txt)
+                    ActivityManager.get().notify_update(act)
+                    prog_dlg.update_progress(pct, txt)
+
+                segments = engine.transcribe(audio_path, on_progress)
+                act.update(99, "Analysing chapters...")
+                result["chapters"] = engine.suggest_chapters(segments)
+                act.finish("Chapter suggestion complete.")
+            except Exception as exc:
+                if cancelled.is_set():
+                    act.cancel()
+                else:
+                    act.fail(str(exc))
+                result["error"] = str(exc)
+            finally:
+                ActivityManager.get().remove(act)
+                wx.CallAfter(prog_dlg.EndModal, wx.ID_OK)
+
+        threading.Thread(target=_run, daemon=True).start()
+        prog_dlg.ShowModal()
+        prog_dlg.Destroy()
+
+        if result["error"]:
+            if "Cancelled" not in result["error"]:
+                wx.MessageBox(
+                    f"Chapter suggestion failed:\n{result['error']}",
+                    "AI Error", wx.OK | wx.ICON_ERROR, self,
+                )
+            self._announce("AI chapter suggestion cancelled.")
+            return
+        self._apply_ai_chapters(result["chapters"])
+
+    def _get_status_window(self) -> StatusWindow:
+        """Return the shared StatusWindow, creating it lazily."""
+        if self._status_window is None:
+            self._status_window = StatusWindow(self)
+        return self._status_window
+
+    def _on_show_activity(self, _evt=None):
+        """Open/raise the Background Activity status window."""
+        self._get_status_window().show_and_raise()
+
+    def _get_transcription_source(self) -> str:
+        """Return a path to transcribe, or empty string if nothing is available."""
+        if self.mode == "edit" and self.edit_path:
+            return self.edit_path
+        if self.output_path and os.path.exists(self.output_path):
+            return self.output_path
+        dlg = wx.FileDialog(
+            self, "Choose an audio file to transcribe",
+            wildcard=(
+                "Audio files (*.mp3;*.m4b;*.wav;*.flac)"
+                "|*.mp3;*.m4b;*.wav;*.flac"
+            ),
+            style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST,
+        )
+        path = ""
+        if dlg.ShowModal() == wx.ID_OK:
+            path = dlg.GetPath()
+        dlg.Destroy()
+        return path
+
+    def _show_transcript(self, segments):
+        """Show transcription results in a scrollable read-only dialog."""
+        if not segments:
+            self._announce("Transcription complete - no speech detected.")
+            wx.MessageBox(
+                "No speech was detected in the audio.",
+                "Transcription Result", wx.OK | wx.ICON_INFORMATION, self,
+            )
+            return
+        lines = [f"[{s.start:.1f}s - {s.end:.1f}s]  {s.text}" for s in segments]
+        dlg = wx.Dialog(
+            self, title="Transcription Result",
+            style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER,
+        )
+        dlg.SetName("Transcription result dialog")
+        outer = wx.BoxSizer(wx.VERTICAL)
+        tc = wx.TextCtrl(
+            dlg, value="\n".join(lines),
+            style=wx.TE_MULTILINE | wx.TE_READONLY | wx.HSCROLL,
+        )
+        tc.SetName("Transcription text, read only")
+        outer.Add(tc, 1, wx.EXPAND | wx.ALL, 10)
+        outer.Add(dlg.CreateButtonSizer(wx.OK), 0, wx.EXPAND | wx.ALL, 8)
+        dlg.SetSizerAndFit(outer)
+        dlg.SetSize((640, 480))
+        dlg.CentreOnParent()
+        dlg.ShowModal()
+        dlg.Destroy()
+        self._announce(f"Transcription complete. {len(segments)} segments.")
+
+    def _apply_ai_chapters(self, chapters):
+        """Apply AI chapter suggestions to the chapter list (with undo support)."""
+        if not chapters:
+            self._announce("No chapters could be suggested from the audio.")
+            wx.MessageBox(
+                "The AI could not identify any chapters in the audio.",
+                "AI Chapters", wx.OK | wx.ICON_INFORMATION, self,
+            )
+            return
+        count = len(chapters)
+        if wx.MessageBox(
+            f"The AI found {count} suggested chapter(s).\n"
+            "Apply these titles to the current list?",
+            "Apply AI Chapters",
+            wx.YES_NO | wx.ICON_QUESTION, self,
+        ) != wx.YES:
+            return
+
+        if self.mode == "edit":
+            old_chapters = list(self.edit_chapters)
+            # Build new Chapter list from AI segments, preserving existing
+            # url/img metadata where chapters align by index.
+            new_chapters = []
+            for i, ch_data in enumerate(chapters):
+                start_ms = int(ch_data["start"] * 1000)
+                end_ms = int(ch_data["end"] * 1000)
+                old = self.edit_chapters[i] if i < len(self.edit_chapters) else None
+                new_chapters.append(core.Chapter(
+                    index=i,
+                    title=ch_data["title"],
+                    start_ms=start_ms,
+                    end_ms=end_ms,
+                    url=old.url if old else "",
+                    img=old.img if old else "",
+                ))
+
+            def _undo_apply():
+                self.edit_chapters[:] = old_chapters
+                self.edit_dirty = True
+                self._refresh_list()
+
+            def _redo_apply():
+                self.edit_chapters[:] = new_chapters
+                self.edit_dirty = True
+                self._refresh_list()
+
+            self._undo.push(_UndoAction("AI chapter titles", _undo_apply, _redo_apply))
+            _redo_apply()
+        else:
+            # Build mode: update item titles from suggestions by position.
+            old_titles = [(item.title, item.edited) for item in self.items]
+            for i, ch_data in enumerate(chapters):
+                if i < len(self.items):
+                    self.items[i].title = ch_data["title"]
+                    self.items[i].edited = True
+
+            def _undo_build():
+                for i, (title, edited) in enumerate(old_titles):
+                    if i < len(self.items):
+                        self.items[i].title = title
+                        self.items[i].edited = edited
+                self._refresh_list()
+
+            def _redo_build():
+                for i, ch_data in enumerate(chapters):
+                    if i < len(self.items):
+                        self.items[i].title = ch_data["title"]
+                        self.items[i].edited = True
+                self._refresh_list()
+
+            self._undo.push(_UndoAction("AI chapter titles", _undo_build, _redo_build))
+            _redo_build()
+
+        self._announce(f"Applied {count} AI chapter suggestion(s).")
+
     def _on_wizard(self, _evt=None):
         from . import wizard
         wizard.show_wizard(
@@ -3546,11 +4204,25 @@ class MainFrame(wx.Frame):
         self.settings["wizard_seen"] = True
         settings_mod.save(self.settings)
 
+    def _on_child_focus(self, evt):
+        """Remember the last real control to hold focus (not a menu), so
+        "Help on This Control" still knows what to describe when reached
+        via the Help menu - which moves keyboard focus onto the menu bar."""
+        win = evt.GetWindow()
+        if win is not None:
+            self._last_focused_ctrl = win
+        evt.Skip()
+
     def _on_context_help(self, _evt):
-        """F1: explain whichever control currently has keyboard focus."""
+        """F1, or Help > Help on This Control: explain the focused control.
+
+        wx.Window.FindFocus() returns nothing useful while a menu is open,
+        so when invoked from the Help menu we fall back to the last control
+        that actually held keyboard focus.
+        """
         from . import context_help
-        title, body = context_help.describe_focused(self)
-        focused = wx.Window.FindFocus()
+        focused = wx.Window.FindFocus() or self._last_focused_ctrl
+        title, body = context_help.describe_focused(self, focused)
         dlg = context_help.ContextHelpDialog(self, title, body)
         dlg.ShowModal()
         dlg.Destroy()
@@ -3689,6 +4361,7 @@ class MainFrame(wx.Frame):
         if dlg.ShowModal() == wx.ID_OK:
             overrides = dlg.get_overrides()
             channel = dlg.get_channel()
+            was_beta_enabled = feature_flags.any_beta_enabled(self.settings)
             changed = (overrides != self.settings.get("feature_flags", {})
                        or channel != feature_flags.get_channel(self.settings))
             if changed:
@@ -3698,8 +4371,21 @@ class MainFrame(wx.Frame):
                 self._announce(
                     "Feature flags updated. Restart ChapterForge for the "
                     "change to take effect.")
+            if (not was_beta_enabled
+                    and feature_flags.any_beta_enabled(self.settings)
+                    and not self.settings.get("beta_warning_dismissed", False)):
+                self._show_beta_warning()
         dlg.Destroy()
         self.SetFocus()
+
+    def _show_beta_warning(self):
+        """Warn that beta features are now active, the moment they become so."""
+        dlg = feature_flags.BetaWarningDialog(self)
+        dlg.ShowModal()
+        if dlg.dont_show_again():
+            self.settings["beta_warning_dismissed"] = True
+            settings_mod.save(self.settings)
+        dlg.Destroy()
 
     def _on_reset_feature_flags(self, _evt):
         """Re-enable every optional feature from the Help menu."""
@@ -3885,7 +4571,8 @@ class MainFrame(wx.Frame):
             on_open=self._restore_from_tray,
             on_manage=lambda: self._on_watch_folders(None),
             on_quit=self._quit_from_tray,
-            get_player=lambda: self.player)
+            get_player=lambda: self.player,
+            get_status_window=self._get_status_window)
 
     def _on_minimize_to_tray(self, _evt=None):
         """Hide the window and show a tray icon so the user can restore later."""
@@ -4154,14 +4841,6 @@ class SettingsDialog(wx.Dialog):
         self.check_updates_startup.SetValue(
             bool(settings.get("check_updates_startup", True)))
 
-        self.beta_features = gcheck(
-            "Enable &beta features (Auphonic integration)",
-            "Enable beta features",
-            "Enables the Auphonic menu for audio post-production.\n"
-            "Beta features may change in future releases.\n"
-            "Requires an Auphonic account (auphonic.com).")
-        self.beta_features.SetValue(bool(settings.get("beta_features", False)))
-
         gp_sizer = wx.BoxSizer(wx.VERTICAL)
         gp_sizer.Add(gg, 1, wx.EXPAND | wx.ALL, 14)
         gp.SetSizer(gp_sizer)
@@ -4314,6 +4993,36 @@ class SettingsDialog(wx.Dialog):
             "Measures integrated loudness, true peak, and noise floor.\n"
             "Reports pass/fail against ACX requirements immediately after building.")
         self.acx_check.SetValue(bool(settings.get("acx_check_after_build", False)))
+
+        if feature_flags.is_enabled(settings, "publishing"):
+            self.publish_after_build = bcheck(
+                "&Publish to a destination after each build",
+                "Upload the finished master to a saved destination after each successful build",
+                "Sends the finished master over SFTP to the destination chosen below.\n"
+                "Configure destinations from Publish > Publishing Destinations…")
+            self.publish_after_build.SetValue(
+                bool(settings.get("publish_after_build", False)))
+
+            self._publish_dest_ids = ["default"] + [
+                d.id for d in self._publish.destinations()]
+            _dest_choices = ["Default destination"] + [
+                d.describe() for d in self._publish.destinations()]
+            self.publish_destination_choice = brow(
+                "&Destination to publish to:",
+                lambda: wx.Choice(bp, choices=_dest_choices),
+                "Destination to publish to after a build",
+                "Which saved destination to upload to. \"Default destination\" "
+                "follows whichever one you've marked as default.")
+            _stored_dest = str(settings.get("publish_after_build_destination", "default"))
+            try:
+                self.publish_destination_choice.SetSelection(
+                    self._publish_dest_ids.index(_stored_dest))
+            except ValueError:
+                self.publish_destination_choice.SetSelection(0)
+        else:
+            self.publish_after_build = None
+            self.publish_destination_choice = None
+            self._publish_dest_ids = []
 
         bp_sizer = wx.BoxSizer(wx.VERTICAL)
         bp_sizer.Add(bg, 1, wx.EXPAND | wx.ALL, 14)
@@ -4560,7 +5269,6 @@ class SettingsDialog(wx.Dialog):
             "high_contrast": self.theme_choice.GetSelection() == 3,
             "start_minimized": self.start_minimized.GetValue(),
             "check_updates_startup": self.check_updates_startup.GetValue(),
-            "beta_features": self.beta_features.GetValue(),
             # Feature 8
             "per_file_normalize": self.per_file_norm.GetValue(),
             "normalize_lufs": float(self.lufs_target.GetValue()),
@@ -4574,6 +5282,15 @@ class SettingsDialog(wx.Dialog):
             "rss_media_url": self.rss_media_url.GetValue().strip(),
             # ACX
             "acx_check_after_build": self.acx_check.GetValue(),
+            # Direct publishing
+            "publish_after_build": (self.publish_after_build.GetValue()
+                                    if self.publish_after_build is not None
+                                    else self.settings.get("publish_after_build", False)),
+            "publish_after_build_destination": (
+                self._publish_dest_ids[self.publish_destination_choice.GetSelection()]
+                if self.publish_destination_choice is not None
+                   and 0 <= self.publish_destination_choice.GetSelection() < len(self._publish_dest_ids)
+                else self.settings.get("publish_after_build_destination", "default")),
             # Feature 13
             "key_overrides": {row: override
                               for row, override in self._key_overrides.items()},
@@ -4588,7 +5305,7 @@ class _KeyCaptureDialog(wx.Dialog):
 
     def __init__(self, parent, cmd_name: str):
         super().__init__(parent, title="Press New Key",
-                         style=wx.DEFAULT_DIALOG_STYLE)
+                         style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
         self.captured_key: str = ""
         outer = wx.BoxSizer(wx.VERTICAL)
         msg = wx.StaticText(
@@ -5256,6 +5973,8 @@ class CommandPaletteDialog:
             ("Go to Chapters (Step 1)",       "Ctrl+1",         lambda: f._on_back_page(None),           lambda: f._page_tags.IsShown()),
             ("Go to Tags and Build (Step 2)", "Ctrl+2",         lambda: f._on_next_page(None),           lambda: nb() and not f._page_tags.IsShown() and has_items()),
             ("Go to Time…",                   "Ctrl+G",         lambda: f._on_goto_time(None),           lambda: f.player.has_media()),
+            ("Publish…",                      "Ctrl+Shift+U",   lambda: f._on_publish(None),             lambda: feature_flags.is_enabled(f.settings, "publishing") and nb() and has_out()),
+            ("Publishing Destinations…",      None,             lambda: f._on_manage_destinations(None), lambda: feature_flags.is_enabled(f.settings, "publishing")),
             ("Minimize to System Tray",       None,             lambda: f._on_minimize_to_tray(None),    lambda: True),
             ("Command Palette",               "Ctrl+Shift+P",   lambda: f._open_command_palette(),       lambda: True),
             ("Setup Wizard…",                 None,             lambda: f._on_wizard(None),              lambda: True),

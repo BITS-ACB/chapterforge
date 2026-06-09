@@ -171,3 +171,47 @@ def test_watcher_waits_for_stability(tmp_path):
     w._poll_once()
     w._poll_once()
     assert not events  # not yet stable -> nothing built
+
+
+def test_watcher_waits_for_cloud_placeholder_files(tmp_path, monkeypatch):
+    """A OneDrive/Dropbox/Google Drive "online-only" placeholder must not be
+    mistaken for a ready source - the watcher should report that it's waiting
+    and build only once every file is fully downloaded."""
+    watch = tmp_path / "watch"
+    book = watch / "Cloud Book"
+    book.mkdir(parents=True)
+    placeholder = book / "01 - Intro.mp3"
+    make_mp3(str(placeholder), 1)
+    make_mp3(str(book / "02 - End.mp3"), 1)
+
+    placeholder_path = str(placeholder)
+    real_is_placeholder = watcher_mod.is_cloud_placeholder
+    cloud_only = {"value": True}
+    monkeypatch.setattr(
+        watcher_mod, "is_cloud_placeholder",
+        lambda p: cloud_only["value"] if p == placeholder_path else real_is_placeholder(p))
+
+    proc = Process(name="T", watch_folder=str(watch), enabled=True)
+    w = watcher_mod.FolderWatcher(provider=lambda: [proc], settle_seconds=0)
+    events = []
+    w.on_event = events.append
+    w._poll_once()
+    w._poll_once()
+
+    kinds = [e.kind for e in events]
+    assert "waiting" in kinds
+    assert "started" not in kinds and "done" not in kinds
+    assert not os.path.isfile(str(book / watcher_mod.DONE_MARKER))
+
+    # Once the file finishes "downloading", the next poll builds normally.
+    cloud_only["value"] = False
+    events2 = _run_until_processed(w)
+    assert "done" in [e.kind for e in events2]
+    assert os.path.isfile(str(book / watcher_mod.DONE_MARKER))
+
+
+def test_is_cloud_placeholder_false_for_normal_file(tmp_path):
+    f = tmp_path / "normal.mp3"
+    f.write_bytes(b"not really mp3 data")
+    assert watcher_mod.is_cloud_placeholder(str(f)) is False
+    assert watcher_mod.is_cloud_placeholder(str(tmp_path / "missing.mp3")) is False

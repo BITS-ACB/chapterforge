@@ -396,6 +396,9 @@ footer.site { color: var(--muted); border-top: 1px solid var(--border);
 <li><strong>Failure Backoff</strong>: <code>.chapterforge_failed</code> files retry only after content changes</li>
 <li><strong>Output Exclusion</strong>: Generated masters are written to <code>_ChapterForge</code> sub-folder</li>
 </ul>
+<h4 id="watching-cloud-synced-folders">Watching Cloud-Synced Folders</h4>
+<p>You can point a watch folder at a local OneDrive, Dropbox or Google Drive sync folder just like any other folder - ChapterForge watches the synced copy on disk, so cloud-based production setups work without any special configuration.</p>
+<p>One thing worth knowing: these services can list &quot;online-only&quot; placeholder files - showing the final size and date before the audio has actually downloaded. ChapterForge detects these placeholders and waits for every file in a folder to finish downloading before it builds, so you never end up with a master built from incomplete audio. While it waits, you&#x27;ll see a &quot;ChapterForge - waiting&quot; notification telling you how many files are still downloading; the build starts automatically the moment they finish.</p>
 <h4 id="playback-from-the-tray">Playback from the Tray</h4>
 <p>If you minimize the main window to the system tray while audio is loaded in the player, the tray icon&#x27;s right-click menu gains Play/Pause, Stop, and Previous/Next Chapter, so you can keep listening and navigate between chapters without restoring the window. (The standalone watcher-only tray icon doesn&#x27;t show these, since it has no player of its own.)</p>
 <h3 id="43-batch-processing-system">4.3 Batch Processing System</h3>
@@ -565,6 +568,7 @@ chapterforge --batch &quot;C:\Audiobooks&quot; --quiet</code></pre>
 <li>Verify watch folder paths are correct and accessible</li>
 <li>Check for <code>.chapterforge_done</code> or <code>.chapterforge_failed</code> marker files</li>
 <li>Review watcher logs in the ChapterForge settings directory</li>
+<li>If the watch folder is inside OneDrive, Dropbox or Google Drive, look for a &quot;ChapterForge - waiting&quot; notification - the watcher pauses until every file has finished downloading from the cloud, and resumes automatically once they&#x27;re all present locally</li>
 </ol>
 <h3 id="getting-help">Getting Help</h3>
 <ul>
@@ -939,6 +943,7 @@ chapterforge --batch &quot;C:\Audiobooks&quot; --quiet</code></pre>
 <li><strong>Progress Notifications</strong>: System notifications for build start/completion</li>
 <li><strong>Error Handling</strong>: Automated error recovery and reporting</li>
 <li><strong>Custom Scripts</strong>: Run pre/post processing scripts on build completion</li>
+<li><strong>Cloud-Synced Folders</strong>: A watch folder can live inside a OneDrive, Dropbox or Google Drive sync folder. ChapterForge detects &quot;online-only&quot; placeholder files these services list before the audio finishes downloading, and waits for every file to be fully downloaded before it builds - so a master is never built from incomplete audio.</li>
 </ul>
 <h3 id="43-batch-processing-system">4.3 Batch Processing System</h3>
 <p>Process entire libraries with minimal setup:</p>

@@ -12,7 +12,8 @@ from typing import List, Optional
 
 import wx
 
-from . import a11y, settings as settings_mod
+from . import a11y, feature_flags, settings as settings_mod
+from .publish import load_destinations
 from .watcher_config import Process, load_processes, save_processes
 
 
@@ -104,6 +105,27 @@ class ProcessEditDialog(wx.Dialog):
         self.preset.SetSelection(sel)
         grid.Add(self.preset, 0)
 
+        # Per-process publish destination, only when the publishing beta
+        # feature is opted into - mirrors the picker in SettingsDialog.
+        self._dest_ids: List[str] = []
+        self.publish_dest = None
+        if feature_flags.is_enabled(settings_mod.load(), "publishing"):
+            self._dest_ids = ["", "default"] + [d.id for d in load_destinations()]
+            dest_choices = (["Don't publish automatically", "Default destination"]
+                            + [d.describe() for d in load_destinations()])
+            grid.Add(wx.StaticText(panel, label="Publish &after building:"),
+                     0, wx.ALIGN_CENTER_VERTICAL)
+            self.publish_dest = wx.Choice(panel, choices=dest_choices)
+            self.publish_dest.SetName(
+                "Destination to publish to automatically after each build "
+                "from this process")
+            spec = process.publish_destinations
+            try:
+                self.publish_dest.SetSelection(self._dest_ids.index(spec))
+            except ValueError:
+                self.publish_dest.SetSelection(0)
+            grid.Add(self.publish_dest, 0)
+
         sizer.Add(grid, 0, wx.EXPAND | wx.ALL, 12)
 
         self.enabled_chk = wx.CheckBox(panel, label="&Enabled")
@@ -154,6 +176,12 @@ class ProcessEditDialog(wx.Dialog):
         preset_sel = self.preset.GetSelection()
         preset_name = (self._preset_names[preset_sel]
                        if preset_sel > 0 else "")
+        if self.publish_dest is not None:
+            sel = self.publish_dest.GetSelection()
+            publish_destinations = (self._dest_ids[sel]
+                                    if 0 <= sel < len(self._dest_ids) else "")
+        else:
+            publish_destinations = self.process.publish_destinations
         return Process(
             name=self.name_ctrl.GetValue().strip(),
             watch_folder=self.folder_ctrl.GetValue().strip(),
@@ -171,6 +199,7 @@ class ProcessEditDialog(wx.Dialog):
             series_title=self.series_ctrl.GetValue().strip(),
             series_index=self.series_idx_ctrl.GetValue().strip(),
             preset=preset_name,
+            publish_destinations=publish_destinations,
         )
 
 

@@ -63,11 +63,13 @@ class WatcherController:
 
     def _handle(self, event: WatchEvent) -> None:
         category = {"failed": "error", "error": "error"}.get(event.kind, "info")
-        if event.kind in ("started", "done", "failed"):
+        if event.kind in ("started", "done", "failed", "waiting", "published"):
             title = {
                 "started": "ChapterForge - working",
                 "done": "ChapterForge - done",
                 "failed": "ChapterForge - failed",
+                "waiting": "ChapterForge - waiting",
+                "published": "ChapterForge - publish",
             }[event.kind]
             self.notifier.notify(title, event.message, category)
         if self.extra_on_event:
@@ -79,7 +81,8 @@ class ChapterForgeTaskBarIcon(wx.adv.TaskBarIcon):
                  on_open: Callable[[], None],
                  on_manage: Callable[[], None],
                  on_quit: Callable[[], None],
-                 get_player: Optional[Callable[[], Optional[object]]] = None) -> None:
+                 get_player: Optional[Callable[[], Optional[object]]] = None,
+                 get_status_window: Optional[Callable[[], object]] = None) -> None:
         super().__init__()
         self.controller = controller
         self.on_open = on_open
@@ -88,6 +91,8 @@ class ChapterForgeTaskBarIcon(wx.adv.TaskBarIcon):
         # Returns the main app's PlayerPanel, or None - only the main app's
         # tray icon supplies this; the standalone watcher has no player.
         self.get_player = get_player
+        # Returns the shared StatusWindow (or None for standalone watcher).
+        self.get_status_window = get_status_window
         self.SetIcon(make_app_icon(), self._tooltip())
         self.Bind(wx.adv.EVT_TASKBAR_LEFT_DCLICK, lambda e: self.on_open())
 
@@ -104,6 +109,17 @@ class ChapterForgeTaskBarIcon(wx.adv.TaskBarIcon):
         menu = wx.Menu()
         open_item = menu.Append(wx.ID_ANY, "&Open ChapterForge")
         self.Bind(wx.EVT_MENU, lambda e: self.on_open(), open_item)
+
+        # --- Background Activity ---
+        menu.AppendSeparator()
+        act_item = menu.Append(wx.ID_ANY, "&Background Activity...")
+        self.Bind(wx.EVT_MENU, self._on_show_activity, act_item)
+        if self.get_status_window is not None:
+            from .activity import ActivityManager
+            n = ActivityManager.get().active_count()
+            if n > 0:
+                ai_cancel_item = menu.Append(wx.ID_ANY, f"Cancel All AI Tasks ({n} running)")
+                self.Bind(wx.EVT_MENU, self._on_cancel_all_ai, ai_cancel_item)
 
         player = self.get_player() if self.get_player else None
         if player is not None and player.has_media():
@@ -138,6 +154,18 @@ class ChapterForgeTaskBarIcon(wx.adv.TaskBarIcon):
             else:
                 self.controller.start()
         self.refresh()
+
+    def _on_show_activity(self, _evt):
+        if self.get_status_window is not None:
+            wx.CallAfter(self.get_status_window().show_and_raise)
+        else:
+            wx.CallAfter(self.on_open)
+
+    def _on_cancel_all_ai(self, _evt):
+        from .activity import ActivityManager, ActivityState
+        for act in ActivityManager.get().all():
+            if act.state == ActivityState.RUNNING and act.can_cancel:
+                act.request_cancel()
 
 
 class _TrayApp(wx.App):

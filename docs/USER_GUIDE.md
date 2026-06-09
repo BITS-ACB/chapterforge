@@ -352,6 +352,20 @@ The Background Watcher allows automated processing of audio folders with system 
 - **Failure Backoff**: `.chapterforge_failed` files retry only after content changes
 - **Output Exclusion**: Generated masters are written to `_ChapterForge` sub-folder
 
+#### Watching Cloud-Synced Folders
+You can point a watch folder at a local OneDrive, Dropbox or Google Drive
+sync folder just like any other folder - ChapterForge watches the synced
+copy on disk, so cloud-based production setups work without any special
+configuration.
+
+One thing worth knowing: these services can list "online-only" placeholder
+files - showing the final size and date before the audio has actually
+downloaded. ChapterForge detects these placeholders and waits for every
+file in a folder to finish downloading before it builds, so you never end
+up with a master built from incomplete audio. While it waits, you'll see a
+"ChapterForge - waiting" notification telling you how many files are still
+downloading; the build starts automatically the moment they finish.
+
 #### Playback from the Tray
 If you minimize the main window to the system tray while audio is loaded
 in the player, the tray icon's right-click menu gains Play/Pause, Stop,
@@ -545,6 +559,10 @@ chapterforge --batch "C:\Audiobooks" --quiet
 2. Verify watch folder paths are correct and accessible
 3. Check for `.chapterforge_done` or `.chapterforge_failed` marker files
 4. Review watcher logs in the ChapterForge settings directory
+5. If the watch folder is inside OneDrive, Dropbox or Google Drive, look for
+   a "ChapterForge - waiting" notification - the watcher pauses until every
+   file has finished downloading from the cloud, and resumes automatically
+   once they're all present locally
 
 ### Getting Help
 
@@ -936,6 +954,11 @@ The Background Watcher allows automated processing of audio folders:
 - **Progress Notifications**: System notifications for build start/completion
 - **Error Handling**: Automated error recovery and reporting
 - **Custom Scripts**: Run pre/post processing scripts on build completion
+- **Cloud-Synced Folders**: A watch folder can live inside a OneDrive,
+  Dropbox or Google Drive sync folder. ChapterForge detects "online-only"
+  placeholder files these services list before the audio finishes
+  downloading, and waits for every file to be fully downloaded before it
+  builds - so a master is never built from incomplete audio.
 
 ### 4.3 Batch Processing System
 

@@ -94,110 +94,91 @@ Entry points: `main.py` (GUI / watcher), `cli_main.py` (CLI console).
 
 The primary workflow: open a folder of audio files, review the automatically assembled chapter list, set metadata, and build a single master file with embedded chapter markers.
 
-- Supported input formats: MP3, FLAC, WAV, OGG, M4A, AAC, Opus, WMA, MP2
-- Output formats: MP3 (ID3v2 CHAP/CTOC), M4B (native MP4 chapters), FLAC lossless (Vorbis Comment chapters), Opus (Ogg Opus, Vorbis Comment chapters)
-- Bitrate options: 128k to 320k for lossy outputs; lossless copy for FLAC source-to-FLAC output
-- Cover art: auto-detected from folder or manually selected; embedded in output
-- Natural sort for track ordering (`track2` before `track10`)
-- Progress announced to screen reader via `a11y.announce()`
-- Build runs on background thread; UI remains responsive
+- **Supported Input Formats**: MP3, FLAC, WAV, OGG, M4A, AAC, Opus, WMA, MP2.
+- **Output Formats**: 
+    - MP3 (ID3v2 CHAP/CTOC)
+    - M4B (native MP4 chapters)
+    - FLAC lossless (Vorbis Comment chapters)
+    - Opus (Ogg Opus, Vorbis Comment chapters)
+- **Build Options**: 
+    - Bitrate: 128k to 320k for lossy outputs; lossless copy for FLAC source-to-FLAC output.
+    - Natural sort for track ordering (`track2` before `track10`).
+- **Advanced Audio Processing**:
+    - **Loudness Normalization**: Global single-pass normalization via `loudnorm` or per-file normalization (target LUFS configurable, default -16.0 for ACX compliance).
+    - **Precision Trimming**: Automatic leading/trailing silence trimming from source files.
+    - **Chapter Transitions**: Configurable inter-chapter gaps (silence insertion) and fade-in/fade-out effects.
+- **Metadata & Art**: 
+    - Comprehensive ID3v2 tags including Narrator and Series info.
+    - Cover art: Auto-detected from folder or manually selected; embedded in output.
+- **Performance**: Build runs on a background worker thread; progress is announced via screen-reader bridge (`a11y.announce()`).
 
-### 7.2 Chapter Management
+### 7.2 Accessibility & GUI
 
-- Add, remove, reorder (Alt+Up / Alt+Down), merge adjacent chapters
-- Inline title editing (F2) and batch title editing (transforms: title case, strip track numbers, strip underscores, find-and-replace, number pattern)
-- Undo / Redo (Ctrl+Z / Ctrl+Y) for all chapter list operations; stack depth 50; cleared on new load or build
-- Chapter list column visibility: toggle #, Title, Start, Duration, Source columns (View > Columns)
-- CUE sheet import (applies chapter titles by position in both build and edit modes)
-- CSV chapter export (chapter number, title, start, duration, link URL, image path)
-- File renaming from chapter titles (pattern: `{n}`, `{n:02d}`, `{title}`, `{ext}`; live preview before applying)
-- Chapter validation: automatic checking for boundary issues
+A fully accessible wxPython-based interface designed for keyboard-only and screen-reader operation.
 
-### 7.3 Edit Mode (Single-File Editing)
+- **A11y Suite**: 
+    - **Prism Bridge**: Every control has a visible label and an explicit accessible name.
+    - **Navigation**: Full keyboard support with mnemonic accelerators and intuitive tabbing.
+    - **Theming**: Automatic detection and application of Windows High Contrast themes.
+- **Two-Step Workflow**: 
+    - **Step 1 (Chapter Management)**: Visual list for renaming, reordering (Alt+Up/Down), and removing chapters.
+    - **Step 2 (Tags & Build)**: Dedicated interface for master tags, output path, and build execution.
+- **UX Enhancements**: 
+    - **Command Palette**: Search and run any app command via `Ctrl+Shift+P`.
+    - **History**: Bounded undo/redo stack (depth 50) for chapter list operations.
+    - **Onboarding**: Guided Setup Wizard for new users.
+- **Diagnostics**: Ability to generate a "Help Information" text report of system versions and settings.
 
-Open an existing chaptered master file to re-edit chapter boundaries and titles without rebuilding from source files.
+### 7.3 CLI & Automation
 
-- Split a chapter at the current playhead position
-- Merge chapters up
-- Save changes back to the open file (lossless ID3 rewrite via Mutagen)
+Headless alternatives to the GUI for power users and batch processing.
 
-### 7.4 In-App Audio Player
+- **CLI Tool (`chapterforge-cli`)**:
+    - **Folder-to-Master**: Quick builds from folders via command-line arguments.
+    - **Batch Processing**: Recursively build masters for every sub-folder containing audio.
+    - **Auto-Chaptering**: Split a single long recording into chapters based on silence detection (`--split-silence`).
+    - **Plan Preview**: Dry-run flags (`--list`) to preview the build plan without writing files.
+    - **Update Management**: Direct check for and launch of new version installers.
+- **Background Watcher**:
+    - **Automated Builds**: Monitors folders for new content and triggers builds automatically.
+    - **Stability Detection**: Ensures files are fully written (handling cloud sync like OneDrive) before processing.
+    - **State Management**: Uses `.chapterforge_done` and `.chapterforge_failed` markers to prevent loops.
+- **System Tray**: Minimized operation with context menu for playback and watcher control; reports status via Windows Toasts.
+- **Autostart**: Option to launch the background watcher on Windows sign-in.
 
-Fully keyboard-accessible, chapter-aware audio player:
+### 7.4 Built-in Audio Player
 
-- Play / Pause (Space), Stop, Previous/Next Chapter
-- Rewind / Fast-forward by configurable step (default 10 seconds)
-- Volume control
-- Go to Time dialog (Ctrl+G): accepts HH:MM:SS, MM:SS, or decimal seconds
-- Right-click or Menu key brings up a "Play Controls" menu - on the player
-  itself, and as a submenu of the chapter list's context menu - with Play/
-  Pause, Stop, Previous/Next Chapter, Rewind, Forward and Go to Time. Items
-  reflect the player's current state (e.g. "Pause" once something is
-  playing) and are disabled when no audio is loaded
-- When minimized to the system tray with audio loaded, the tray menu offers
-  Play/Pause, Stop, and Previous/Next Chapter, so playback continues to be
-  controllable without restoring the window
+Accessible player for auditioning sources and reviewing masters.
 
-### 7.5 Lossless Trim and Cut
+- **Transport Controls**: Play/Pause (Space), Stop, Previous/Next Chapter, Rewind, and Forward.
+- **Tempo Control**: 
+    - **Time-Stretching**: Pitch-preserved playback speed adjustment (0.5x to 4.0x).
+    - **Speed Export**: Ability to save a permanent copy of the audio at the selected playback speed.
+- **Precision Editing**:
+    - **Region Selection**: Mark "Start" and "End" points during playback with pre-listen auditioning.
+    - **Lossless Trim**: Export only the selected region to a new file using FFmpeg `-c copy`.
+- **Chapter Awareness**: 
+    - **Audio Announcements**: Automatic screen-reader announcement of chapter titles on entry.
+    - **Boundary Pausing**: Configurable option to automatically pause playback at the end of a chapter.
 
-- Set begin and end trim markers from the current playhead position
-- Pre-listen as cut: plays from just before the cut point
-- Save trimmed selection to a new file using FFmpeg lossless copy (no quality loss)
-- Trim state resets when a new file is loaded
+### 7.5 Integrations & Publishing
 
-### 7.6 Split One Long Recording into Chapters
+- **Auphonic Integration**: 
+    - **Connection**: Secure OAuth2 account connection and credit balance tracking.
+    - **Workflow**: Submit audio for professional processing, track job status via polling, and download results.
+    - **Presets**: Support for account-specific Auphonic processing presets.
+- **Publishing**: Direct upload of built masters to configured SFTP destinations.
+- **Podcast Distribution**: 
+    - **RSS Generation**: Automatic creation of an `.rss` podcast feed.
+    - **Podcasting 2.0**: Generation of a `.json` sidecar file for advanced chapter support.
 
-- Open a single long recording in edit mode
-- Mark chapter boundaries using Split Here
-- File > Save as Individual Chapter Files: splits into one file per chapter using FFmpeg lossless copy
+### 7.6 Job Manifests (.cfjob)
 
-### 7.7 Silence-Based Auto-Chaptering
+Portable, human-readable UTF-8 text files storing complete project configurations.
 
-Automatically detect chapter boundaries by analyzing silence gaps:
-
-- Configurable noise threshold (default -30 dB)
-- Configurable minimum silence duration (default 0.8 seconds)
-- Available in GUI and CLI
-
-### 7.8 Metadata Tagging
-
-Full ID3v2 and MP4/FLAC metadata support:
-
-- Standard fields: Title, Artist, Album Artist, Genre, Year, Comment, Narrator, Series
-- Cover art (embedded)
-- Metadata lookup from MusicBrainz and Open Library
-- Podcasting 2.0 chapter sidecar (optional)
-- Sticky tag defaults: remembered between projects in settings
-
-### 7.9 Audio Processing Options
-
-- **Global normalization**: FFmpeg loudnorm pass over the final output
-- **Per-file normalization**: normalize each source file individually before concatenating (target LUFS configurable, default -16.0)
-- **Chapter transition fades**: fade-out then fade-in at each chapter boundary (0-5 seconds, default 0); forces re-encoding of boundary portions
-
-### 7.10 Reusable Build Presets
-
-Settings dialog includes a preset bar:
-
-- Three built-in presets: Podcast MP3, Audiobook M4B, FLAC Archive
-- Users can save any combination of build settings as a named preset
-- Presets stored in `settings.json` under `"presets"`
-
-### 7.11 Job Files (.cfjob)
-
-Human-readable, UTF-8 text files storing complete project configurations:
-
-- Version-controllable; can be shared or committed to Git
-- Supports all metadata fields, output configuration, and chapter list
-- Load via File > Open Job File (Ctrl+L); save via File > Save Job
-
-### 7.12 Background Folder Watcher
-
-Automated processing engine with system-tray integration:
-
-- Watch one or more folders for new audio content
-- Configurable naming templates for output files (`{folder}`, `{date}`, `{datetime}`, etc.)
-- Stability detection: waits for folder content to stabilize before processing
+- **Contents**: Track order, custom chapter titles, master tags, build options (bitrate, normalization), output filename, and cover art references.
+- **Purpose**: Enables version-controllable, shareable, and reproducible builds.
+- **Workflow**: Load via `File > Open Job File` (Ctrl+L); save via `File > Save Job`.
 - Atomic `.chapterforge_processing` lock files prevent double-processing
 - `.chapterforge_done` markers make folders one-shot
 - `.chapterforge_failed` files retry only after content changes
@@ -505,6 +486,56 @@ The following are known gaps or areas for future consideration. They are not req
 3. **Auphonic review-before-publish** - polling and download work; the Publish button in Job History is present but publishing to external Auphonic services is not exposed in the UI.
 4. **Transcript viewer** - downloaded transcript files open in the system default app; no in-app viewer.
 5. **Webhooks** - the polling fallback is implemented; a proper webhook receiver for faster status updates is not (desktop apps are not well-suited to this; polling is the right default).
-6. **macOS / Linux** - the codebase is cross-platform Python but the installer, DPAPI encryption, and system-tray integration are Windows-only.
+6. **macOS / Linux** - the codebase is cross-platform Python but the installer, DPAPI encryption, and system-tray integration are Windows-only. See Section 17 for the macOS port plan.
 7. **Waveform visualization** - referenced in some documentation but not implemented in 1.0.0.
 8. **AI chapter detection** - not implemented; referenced in early documentation drafts only.
+
+---
+
+## 17. macOS Port Plan (Planned - Not Started)
+
+This section expands the "macOS GUI port" item in `docs/ROADMAP.md` into a concrete engineering plan. It is planning only - no macOS implementation work has begun.
+
+### 17.1 Technical Analysis & Risks
+- **UI Framework**: `wxPython` is cross-platform, but `app.py` contains Windows-specific APIs and high-contrast theme logic tied to Win32.
+- **Accessibility**: The `a11y.py` Prism bridge is Windows-only. Porting requires a new bridge for macOS VoiceOver.
+- **Dependencies**: FFmpeg and `mpv` must be bundled for macOS (arm64/x64) or installed via Homebrew.
+- **File System**: Transit from `%APPDATA%` to `~/Library/Application Support/`.
+- **Packaging**: Transition from PyInstaller Windows (`.exe`) to macOS `.app` bundle, requiring Apple code signing and notarization.
+
+### 17.2 Phased Migration Approach
+
+#### Phase 1: Core & Environment (Headless)
+- **Path Normalization**: Ensure all paths use `pathlib` or `os.path.join` throughout `core.py` and `settings.py`.
+- **Dependency Audit**: Verify macOS compatibility for all `requirements.txt` packages.
+- **FFmpeg Porting**: Update `tools/get_ffmpeg.py` to fetch and verify macOS-compatible builds.
+- **CLI Validation**: Verify `cli_main.py` runs on macOS.
+
+#### Phase 2: Accessibility & GUI Porting
+- **A11y Layer**: Implement a macOS-specific bridge in `a11y.py` to interface with VoiceOver.
+- **GUI Refactoring**: Abstract Win32-only `SetName()` calls and translate Windows high-contrast detection to macOS "Increase Contrast" settings.
+- **Notifications**: Replace Windows Toast notifications in `notify.py` with `osascript` or native macOS notification libraries.
+
+#### Phase 3: Audio Player & System Integration
+- **Player Backend**: Bundle the macOS `mpv` binary and ensure `player.py` handles Unix-style process execution.
+- **System Tray**: Port `tray.py` from Windows shell logic to the macOS Menu Bar using `wx.MenuItem`.
+- **Autostart**: Replace Windows Registry keys with macOS `Login Items` plist or helper app.
+
+#### Phase 4: Packaging & Distribution
+- **Build Pipeline**: Replace `Build-Release.ps1` with a `Mac-Release.sh` script.
+- **Bundling**: Configure PyInstaller to produce a native `.app` bundle.
+- **Signing**: Implement the Apple notarization pipeline to avoid "Unidentified Developer" warnings.
+- **Installer**: Replace Inno Setup with `.dmg` or `.pkg` distribution.
+
+### 17.3 Execution Sequence (Todo List)
+1. [ ] Audit all path usages for cross-platform compatibility.
+2. [ ] Implement macOS FFmpeg fetcher in `tools/get_ffmpeg.py`.
+3. [ ] Port `notify.py` to support macOS notifications.
+4. [ ] Refactor `a11y.py` for VoiceOver compatibility.
+5. [ ] Abstract Win32 GUI calls in `app.py`.
+6. [ ] Update `tray.py` for macOS Menu Bar support.
+7. [ ] Establish a macOS build pipeline with code signing/notarization.
+8. [ ] End-to-end validation on Intel and Apple Silicon Macs.
+
+### 17.4 Development Environment (Note)
+Development of ChapterForge happens on Windows; there is currently no macOS build/test environment in this loop. The porting process will require a dedicated macOS runner for verification.

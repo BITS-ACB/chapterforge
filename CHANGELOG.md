@@ -9,13 +9,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 
-- **Release channels** - The Help > Feature Flags dialog now offers a
-  General/Beta/Alpha update-channel selector alongside individual feature
-  toggles. Each optional feature names the earliest channel it appears on;
-  switching to an earlier-access channel reveals newly-available features
-  with their descriptions on the spot, so users can opt in (or stay on
-  General) with a clear picture of what they're choosing. Implemented in
-  `chapterforge/feature_flags.py`.
+- **Release channels and an expanded feature flag list** - The Help >
+  Feature Flags dialog now offers a General/Beta update-channel selector
+  alongside individual feature toggles, and the registry has grown from 8 to
+  18 flags - covering chapter-file splitting, batch title editing, source
+  file renaming, chapter list import/export, setup templates, the build log,
+  the setup wizard, and the diagnostics report, in addition to the features
+  already flagged. Auphonic integration and editing existing master files
+  (Open Existing Master) are Beta-channel features; everything else is
+  General. Switching to Beta reveals newly-available features with their
+  descriptions on the spot, so users can opt in (or stay on General) with a
+  clear picture of what they're choosing. The old standalone "Enable beta
+  features" checkbox is gone - Auphonic is now gated the same way as every
+  other optional feature. Implemented in `chapterforge/feature_flags.py`.
+- **Cloud folder watching** - A watch folder can now live inside a OneDrive,
+  Dropbox or Google Drive sync folder. The watcher detects "online-only"
+  placeholder files these services list before the audio has actually
+  downloaded, and waits for every file in a folder to finish downloading
+  before it builds - so a master is never built from incomplete audio. A
+  "ChapterForge - waiting" notification appears while it waits, and the
+  build starts automatically the moment every file is present locally.
+  Implemented in `chapterforge/watcher.py`.
 - **Context-sensitive help (F1)** - Press **F1** on any focused control for
   a short, spoken-friendly explanation of exactly what it does and what
   pressing it will do *right now* - including live state (current speed,

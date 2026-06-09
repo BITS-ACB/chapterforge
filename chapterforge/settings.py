@@ -68,8 +68,6 @@ DEFAULTS: Dict[str, Any] = {
     "presets": {},
     # Chapter transition fade duration in milliseconds (0 = no fade).
     "fade_ms": 0,
-    # Beta features opt-in: enables experimental functionality (e.g. Auphonic integration).
-    "beta_features": False,
     # Silence trimming: strip leading/trailing silence from each track before concat.
     "trim_silence": False,
     "trim_silence_db": -50.0,    # dBFS threshold
@@ -83,6 +81,10 @@ DEFAULTS: Dict[str, Any] = {
     "rss_media_url": "",   # base URL where the audio file will be hosted
     # ACX compliance check: run automatically after every build.
     "acx_check_after_build": False,
+    # Direct publishing: upload the finished master to a saved destination
+    # automatically after every successful build.
+    "publish_after_build": False,
+    "publish_after_build_destination": "default",
     # Build log: keep a rolling log of recent builds.
     "log_build_history": True,
     # Feature flags: {flag_key: bool} overrides layered on chapterforge.feature_flags.REGISTRY defaults.
@@ -90,6 +92,9 @@ DEFAULTS: Dict[str, Any] = {
     # Release channel: 'general', 'beta' or 'alpha'. Controls which optional
     # features in the registry are available to opt into at all.
     "release_channel": "general",
+    # Suppresses the "you've enabled beta features" warning once the user
+    # has seen it and ticked "Don't show this warning again".
+    "beta_warning_dismissed": False,
 }
 
 

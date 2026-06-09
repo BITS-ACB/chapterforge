@@ -46,6 +46,7 @@ class Process:
     series_title: str = ""
     series_index: str = ""
     preset: str = ""   # named build preset from settings; overrides bitrate/normalize/format if set
+    publish_destinations: str = ""  # "" (don't publish), "default", or comma-separated destination ids
 
     def to_dict(self) -> Dict:
         return asdict(self)

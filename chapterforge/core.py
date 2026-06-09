@@ -46,6 +46,8 @@ from mutagen.id3 import (
 from mutagen.mp3 import MP3
 from mutagen.flac import FLAC, Picture
 
+from chapterforge.ai.whisper import WhisperEngine, TranscriptionSegment
+
 # ---------------------------------------------------------------------------
 # Audio formats accepted as chapter source files.
 # ---------------------------------------------------------------------------
@@ -98,23 +100,27 @@ def _find_tool(name: str) -> str:
 def _run(cmd: Sequence[str], **kwargs) -> subprocess.CompletedProcess:
     return subprocess.run(
         list(cmd),
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        creationflags=CREATE_NO_WINDOW,
+        capture_output=True,
+        text=True,
+        create_no_window=CREATE_NO_WINDOW,
         **kwargs,
     )
 
+def ai_transcribe_file(audio_path: str, model_size: str = "base") -> List[TranscriptionSegment]:
+    """
+    Magically transcribe an audio file using the best available hardware.
+    """
+    engine = WhisperEngine(model_size=model_size)
+    return engine.transcribe(audio_path)
 
-def _tool_version(name: str) -> str:
-    """Return the path + first version line of an ffmpeg-family tool."""
-    path = _find_tool(name)
-    try:
-        proc = _run([path, "-version"])
-        first = (proc.stdout or b"").decode("utf-8", "replace").splitlines()
-        version = first[0] if first else "(unknown)"
-    except Exception:
-        version = "(unknown)"
-    return f"{version}  [{path}]"
+def generate_ai_chapters(audio_path: str, model_size: str = "base") -> List[dict]:
+    """
+    Transcribe and automatically generate suggested chapters based on 
+    semantic content and silence gaps.
+    """
+    engine = WhisperEngine(model_size=model_size)
+    segments = engine.transcribe(audio_path)
+    return engine.suggest_chapters(segments)
 
 
 # ---------------------------------------------------------------------------

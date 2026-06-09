@@ -43,9 +43,6 @@ CHANNELS: List[Tuple[str, str, str]] = [
     ("beta", "Beta",
      "Everything in General, plus newer features that are still being "
      "refined and may have occasional rough edges."),
-    ("alpha", "Alpha",
-     "Everything in Beta, plus early, experimental features that may "
-     "change significantly or be removed without notice."),
 ]
 _CHANNEL_RANK: Dict[str, int] = {key: rank for rank, (key, _, _) in enumerate(CHANNELS)}
 _CHANNEL_DESCRIPTIONS: Dict[str, str] = {key: desc for key, _, desc in CHANNELS}
@@ -83,6 +80,11 @@ _FLAGS = [
     Flag("audio_player", "Audio player",
          "The in-app audio player panel, and the Play This Chapter, "
          "Split Here and Go to Time commands that depend on it."),
+    Flag("mp3_editing", "Edit existing master files",
+         "\"Open Existing Master…\" - fixes the tags and chapter titles "
+         "of a chaptered MP3/M4B you already built, without re-encoding it. "
+         "Off by default - opt in from Help > Feature Flags.",
+         default=False, channel="beta"),
     Flag("command_palette", "Command palette",
          "The Ctrl+Shift+P command palette for searching and running any command."),
     Flag("silence_chapter_detection", "Silence-based chapter detection",
@@ -103,6 +105,39 @@ _FLAGS = [
     Flag("auto_build_watcher", "Automatic folder watching",
          "Background watch-folder setup, auto-build in the system tray, "
          "and running the watcher automatically at sign-in."),
+    Flag("chapter_file_splitting", "Split master into chapter files",
+         "\"Save as Individual Chapter Files…\" - splits the open audio "
+         "into one file per chapter with a lossless FFmpeg copy."),
+    Flag("batch_title_editing", "Batch title editing",
+         "\"Batch Edit Titles…\" - applies a transformation to all "
+         "chapter titles at once."),
+    Flag("source_file_renaming", "Source file renaming",
+         "\"Rename Source Files…\" - renames the source MP3 files using "
+         "a pattern based on chapter titles."),
+    Flag("chapter_list_import_export", "Chapter list import/export",
+         "\"Load Chapter List From File…\" and \"Save Chapter List…\" - "
+         "exchanges chapter markers with label files, CUE sheets or JSON."),
+    Flag("job_templates", "Setup templates",
+         "\"Load a Saved Setup…\" and \"Save This Setup as a Template…\" "
+         "- reusable .cfjob files that capture chapter order, titles and tags."),
+    Flag("build_log", "Build log viewer",
+         "\"View Build Log…\" - shows a log of recent build activity."),
+    Flag("setup_wizard", "Setup wizard",
+         "\"Setup Wizard…\" - a guided walkthrough for configuring ChapterForge."),
+    Flag("diagnostics_report", "Diagnostics report",
+         "\"Get Help Information…\" - saves a text report of versions and "
+         "settings for support."),
+    Flag("auphonic", "Auphonic integration",
+         "The Auphonic menu - submits audio to Auphonic for AI-assisted "
+         "post-production (leveling, noise reduction, loudness). Requires "
+         "an Auphonic account (auphonic.com). Off by default - opt in from "
+         "Help > Feature Flags.",
+         default=False, channel="beta"),
+    Flag("publishing", "Direct publishing to remote destinations",
+         "The Publish menu - uploads a finished master to saved SFTP "
+         "destinations, manually or automatically after a build. Off by "
+         "default - opt in once you've configured a destination.",
+         default=False, channel="beta"),
 ]
 
 REGISTRY: Dict[str, Flag] = {flag.key: flag for flag in _FLAGS}
@@ -131,6 +166,17 @@ def is_enabled(settings, key: str) -> bool:
     flag = REGISTRY[key]
     overrides = settings.get("feature_flags", {})
     return bool(overrides.get(key, flag.default))
+
+
+def any_beta_enabled(settings) -> bool:
+    """True if any feature beyond the stable/general channel is enabled.
+
+    Used to decide whether to show the one-time "you're running beta
+    features" warning - it should appear the moment the user opts into
+    something experimental, not on every launch once they have.
+    """
+    return any(channel_rank(flag.channel) > 0 and is_enabled(settings, flag.key)
+               for flag in _FLAGS)
 
 
 def reset_to_defaults(settings) -> None:
@@ -258,3 +304,46 @@ class FeatureFlagsDialog(wx.Dialog):
         their registry default - the form stored in settings."""
         return {key: value for key, value in self._pending_overrides.items()
                 if key in REGISTRY and value != REGISTRY[key].default}
+
+
+class BetaWarningDialog(wx.Dialog):
+    """One-time heads-up shown the moment the user opts into a beta feature.
+
+    Beta features can change or misbehave between releases; this tells
+    people that plainly, in their own words, right when it becomes true for
+    them - with a way to silence it permanently once they've seen it.
+    """
+
+    def __init__(self, parent):
+        super().__init__(parent, title="Beta Features Enabled",
+                         style=wx.DEFAULT_DIALOG_STYLE)
+
+        outer = wx.BoxSizer(wx.VERTICAL)
+
+        message = wx.StaticText(self, label=(
+            "You've turned on one or more beta features.\n\n"
+            "Beta features are newer parts of ChapterForge that are still "
+            "being refined. They may behave unexpectedly, change in a "
+            "future update, or be removed - you're trying them at your own "
+            "risk. Your books and audio files are never at risk; only the "
+            "optional feature itself might be rough around the edges.\n\n"
+            "You can turn any feature back off at any time from "
+            "Help > Feature Flags."))
+        message.Wrap(420)
+        outer.Add(message, 0, wx.EXPAND | wx.ALL, 16)
+
+        self.dont_show_check = wx.CheckBox(
+            self, label="&Don't show this warning again")
+        outer.Add(self.dont_show_check, 0,
+                  wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 16)
+
+        outer.Add(self.CreateSeparatedButtonSizer(wx.OK), 0,
+                  wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 12)
+
+        self.SetSizerAndFit(outer)
+        self.SetMinSize((460, -1))
+        self.CentreOnParent()
+        self.dont_show_check.SetFocus()
+
+    def dont_show_again(self) -> bool:
+        return self.dont_show_check.GetValue()

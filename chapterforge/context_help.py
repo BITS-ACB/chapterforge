@@ -97,15 +97,35 @@ def _generic_description(ctrl: wx.Window) -> Tuple[str, str]:
     return (name, "\n\n".join(parts))
 
 
-def describe_focused(frame) -> Tuple[str, str]:
+def _describe_idle(frame) -> Tuple[str, str]:
+    return ("Getting started",
+            "No file is open yet. ChapterForge works in two modes:\n\n"
+            "Build mode - Open Folder (Ctrl+Shift+O) combines a folder of "
+            "source MP3 files into one master MP3 with chapter markers.\n\n"
+            "Edit mode - Open Existing Master (Ctrl+O) fixes the tags and "
+            "chapter titles of a chaptered MP3/M4B you already built, "
+            "without re-encoding it.\n\n"
+            "Use Tab or click a control, then press F1 again to learn what "
+            "it does.")
+
+
+def describe_focused(frame, ctrl: Optional[wx.Window] = None) -> Tuple[str, str]:
     """Return (title, body) help text for whichever control has focus.
+
+    *ctrl* lets the caller supply the control to describe directly - useful
+    when the real keyboard focus has moved somewhere unhelpful (e.g. onto the
+    menu bar, while choosing "Help on This Control" from the Help menu rather
+    than pressing its F1 accelerator). Defaults to ``wx.Window.FindFocus()``.
 
     Falls back to a generic, still-useful description (built from the
     control's accessible name, tooltip and type) for anything not covered
     by the control_help schema.
     """
-    ctrl = wx.Window.FindFocus()
     if ctrl is None:
+        ctrl = wx.Window.FindFocus()
+    if ctrl is None:
+        if frame.mode == "build" and not frame.items:
+            return _describe_idle(frame)
         return ("No control is focused",
                 "Use Tab or click a control, then press F1 again to learn "
                 "what it does.")
