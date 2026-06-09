@@ -56,26 +56,31 @@ _MODEL_DOWNLOAD_SIZES = {
 
 
 def _recommend_for_hardware(cfg: dict) -> tuple:
-    """Return (tier, model) based on detected hardware acceleration.
-    
-    Generates intelligent recommendations based on detected capabilities:
-    - NVIDIA CUDA: Strong tier with medium model (balanced)
-    - Apple Silicon: Strong tier with small model (optimized)
-    - Modern CPU (AVX): Strong tier with small model
-    - Legacy CPU: Strong tier with tiny model (slow but functional)
-    """
+    """Return (tier, model) based on detected hardware, preferring what is already on disk."""
+    from .ai import discovery
     accel = cfg.get("acceleration", "")
     device = cfg.get("device", "cpu")
-    
+
     if "CUDA" in accel and device == "cuda":
-        return ("Strong", "medium")
-    if "Apple Silicon" in accel:
-        return ("Strong", "small")
-    if "AVX" in accel or "Modern CPU" in accel:
-        return ("Strong", "small")
-    if "Legacy CPU" in accel:
-        return ("Strong", "tiny")
-    return ("Strong", "small")
+        hw_rec = ("Strong", "medium")
+    elif "Apple Silicon" in accel:
+        hw_rec = ("Strong", "small")
+    elif "AVX" in accel or "Modern CPU" in accel:
+        hw_rec = ("Strong", "small")
+    elif "Legacy CPU" in accel:
+        hw_rec = ("Strong", "tiny")
+    else:
+        hw_rec = ("Strong", "small")
+
+    # Return the hardware recommendation immediately if already on disk.
+    if discovery.is_ready(*hw_rec):
+        return hw_rec
+    # Fall back to any Strong model already downloaded to avoid a re-download.
+    for model in ("small", "tiny", "medium", "large-v3-turbo"):
+        alt = ("Strong", model)
+        if alt != hw_rec and discovery.is_ready(*alt):
+            return alt
+    return hw_rec
 
 
 def _check_ai_package(tier: str) -> bool:
@@ -1196,6 +1201,8 @@ class AIModelUnifiedDialog(wx.Dialog):
 
         pkg = _tier_pip_package(cur_tier)
         if pkg and not _check_ai_package(cur_tier):
+            self._show_gauge(True)
+            self._set_gauge(10)
             self._set_status(f"Installing {pkg}...")
             try:
                 import subprocess

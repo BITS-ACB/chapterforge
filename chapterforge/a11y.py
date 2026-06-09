@@ -19,11 +19,14 @@ grammar, and we never self-voice over a screen reader that is already speaking.
 from __future__ import annotations
 
 import logging
+import re
 from dataclasses import dataclass, replace
 from importlib import import_module
 from typing import Any, Callable, List, Optional
 
 logger = logging.getLogger(__name__)
+
+_CONTROL_CHARS_RE = re.compile(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]')
 
 AnnounceHandler = Callable[[str], None]
 
@@ -193,7 +196,7 @@ def announce(message: str) -> None:
     Safe to call from any thread for the speech/transcript parts; a host
     handler that touches a GUI must marshal to the UI thread itself.
     """
-    message = (message or "").strip()
+    message = _CONTROL_CHARS_RE.sub("", (message or "").strip())
     if not message:
         return
     if _transcript_enabled:
