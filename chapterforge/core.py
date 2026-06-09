@@ -47,8 +47,6 @@ from mutagen.id3 import (
 from mutagen.mp3 import MP3
 from mutagen.flac import FLAC, Picture
 
-from chapterforge.ai.whisper import WhisperEngine, TranscriptionSegment
-
 # ---------------------------------------------------------------------------
 # Audio formats accepted as chapter source files.
 # ---------------------------------------------------------------------------
@@ -108,21 +106,7 @@ def _run(cmd: Sequence[str], **kwargs) -> subprocess.CompletedProcess:
         **kwargs,
     )
 
-def ai_transcribe_file(audio_path: str, model_size: str = "base") -> List[TranscriptionSegment]:
-    """
-    Magically transcribe an audio file using the best available hardware.
-    """
-    engine = WhisperEngine(model_size=model_size)
-    return engine.transcribe(audio_path)
 
-def generate_ai_chapters(audio_path: str, model_size: str = "base") -> List[dict]:
-    """
-    Transcribe and automatically generate suggested chapters based on 
-    semantic content and silence gaps.
-    """
-    engine = WhisperEngine(model_size=model_size)
-    segments = engine.transcribe(audio_path)
-    return engine.suggest_chapters(segments)
 
 
 # ---------------------------------------------------------------------------
@@ -278,64 +262,9 @@ def enhanced_natural_key(text: str):
         for part in _NUM_RE.split(text)
     ]
 
-def get_file_modification_time(filepath: str) -> float:
-    """Get file modification time for fallback sorting."""
-    try:
-        return os.path.getmtime(filepath)
-    except OSError as e:
-        logger.warning(f"Could not get modification time for {filepath}: {e}")
-        return 0.0
-
 def natural_key(text: str):
-    """Standard natural sort key for backward compatibility."""
+    """Natural sort key; delegates to enhanced_natural_key."""
     return enhanced_natural_key(text)
-
-def smart_sort_files(filepaths: list, parent_dir: str = None) -> list:
-    """Sort files using enhanced logic with fallback to date-based ordering.
-    
-    Args:
-        filepaths: List of file paths to sort
-        parent_dir: Parent directory for getting full paths (optional)
-        
-    Returns:
-        List of sorted file paths
-    """
-    if not filepaths:
-        return filepaths
-    
-    logger.info(f"Sorting {len(filepaths)} files")
-    
-    # Try enhanced natural sorting first
-    try:
-        # Extract filenames for sorting
-        filenames = [os.path.basename(fp) for fp in filepaths]
-        
-        # Check if all files have detectable track numbers
-        has_track_numbers = all(
-            _SPECIAL_TRACK_RE.match(fn) or _MODERN_TRACK_RE.match(fn) 
-            for fn in filenames
-        )
-        
-        if has_track_numbers:
-            # Use enhanced sorting
-            sorted_files = sorted(
-                zip(filenames, filepaths), 
-                key=lambda x: enhanced_natural_key(x[0])
-            )
-            result = [fp for _, fp in sorted_files]
-            logger.info("Used enhanced natural sorting")
-        else:
-            # Fall back to modification time sorting
-            file_times = [(get_file_modification_time(fp), fp) for fp in filepaths]
-            result = [fp for _, fp in sorted(file_times)]
-            logger.info("Fell back to date-based sorting")
-            
-        return result
-        
-    except Exception as e:
-        logger.error(f"Error during sorting: {e}")
-        # Ultimate fallback: alphabetical sort
-        return sorted(filepaths)
 
 # Configure logging for troubleshooting
 logger = logging.getLogger(__name__)
@@ -356,33 +285,6 @@ def _validate_core_functions():
     if missing:
         raise ImportError(f"Missing required core functions: {missing}")
 
-# Safety validation to prevent the kind of issues that caused freezing
-def _validate_core_module_integrity():
-    """Validate that the core module has all required functions to prevent runtime errors."""
-    required_functions = {
-        'title_from_filename': title_from_filename,
-        'natural_key': natural_key,
-        'enhanced_natural_key': enhanced_natural_key,
-    }
-    
-    missing = []
-    for name, func in required_functions.items():
-        if not callable(func):
-            missing.append(name)
-    
-    if missing:
-        critical_error = f"Core module integrity check failed. Missing functions: {missing}"
-        logger.critical(critical_error)
-        # In a production environment, we might want to raise an exception here
-        # but for now we'll just log it to avoid breaking existing functionality
-        return False
-    return True
-
-# Validate module integrity at import time (after function definitions)
-# Note: This validation is temporarily disabled to avoid circular reference issues
-# _module_valid = _validate_core_module_integrity()
-# if not _module_valid:
-#     logger.warning("Core module may be unstable due to missing functions")
 
 # ---------------------------------------------------------------------------
 # Probing

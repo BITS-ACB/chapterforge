@@ -146,15 +146,6 @@ workflow without sight. The following items undermine that contract.
   (or focus the new "AI model status" label briefly to surface the
   "Ready:" line).
 
-### 2.5 "Run Setup Wizard..." button is labelled with ellipsis
-- **File:** `chapterforge/app.py`, line 701: `label="Run Setup &Wizard..."`.
-- **Symptom:** The three dots are correct Windows convention (the
-  button opens another dialog), but `CLAUDE.md` says no m-dashes or
-  emojis. The ellipsis is fine. The label is good. The
-  `SetName` is good. This is a non-issue; flagging it for completeness
-  so the next reviewer doesn't think we missed it.
-- **Fix:** None.
-
 ### 2.6 No `SetName` on the wizard "Setup AI Model" status / gauge during pip install
 - **File:** `chapterforge/app.py`, `_run_setup` (lines 1176-1234).
 - **Symptom:** `_set_status` is called with the install message; this
@@ -167,20 +158,6 @@ workflow without sight. The following items undermine that contract.
   download starts. This is also what the comment on line 1200
   implies (`self._set_gauge(20)`) - but the call is after the
   `subprocess.run`, so during install the gauge is at 0.
-
-### 2.7 No `SetName` on the discovery info labels in the settings card
-- **File:** `chapterforge/app.py`, `_refresh_model_card` (lines 996-1005).
-- **Symptom:** The download status label has
-  `status_lbl.SetName(f"{opt} - {'downloaded' if info.available else 'needs download'}")`
-  but it lacks the tier context. A screen-reader user navigating
-  horizontally hears "small - downloaded" and "medium - needs
-  download" but does not know they are in the Strong tier. The
-  StaticBox already announces the model group name on focus, so this
-  is mostly fine; but the per-row status label is in the same
-  StaticBox as the model radios, so the per-row announcement is
-  enough. Promote to "P3" (no fix needed; document that the model
-  radios sit inside a StaticBoxSizer that announces the tier).
-- **Fix:** None.
 
 ### 2.10 No `SetName` on the `wx.SearchCtrl` in the command palette
 - **File:** `chapterforge/app.py`, line 7037-7038:
@@ -244,57 +221,6 @@ workflow without sight. The following items undermine that contract.
   replaces the sizer with itself, which is a no-op. The legacy
   setup dialog would have to be re-tested before we can rely on it.
 - **Fix:** Remove the class.
-
-### 3.5 `_validate_core_module_integrity` is intentionally disabled
-- **File:** `chapterforge/core.py`, lines 358-383.
-- **Symptom:** The function is defined, then a comment on line 380
-  says "This validation is temporarily disabled to avoid circular
-  reference issues", and the call is commented out. There are no
-  circular references in the function - the only globals it uses
-  (`title_from_filename`, `natural_key`, `enhanced_natural_key`) are
-  all defined before line 358. The validation is harmless; the
-  comment is stale.
-- **Fix:** Either uncomment the call (it would catch a real bug if a
-  future refactor deletes one of those functions) or delete the
-  function entirely and the stale comment. Do not leave a
-  "temporarily disabled" comment for the next reviewer to puzzle
-  over.
-
-### 3.6 `enhanced_natural_key` and `natural_key` are aliases
-- **File:** `chapterforge/core.py`, lines 263-289.
-- **Symptom:** `natural_key` is just `return enhanced_natural_key(text)`.
-  One-line shim that adds indirection without value. The function
-  `smart_sort_files` on line 291 is also never called.
-- **Fix:** Inline `natural_key` into `enhanced_natural_key` (or vice
-  versa), delete `smart_sort_files`, and update the 1-2 callers that
-  still use the alias (none found in the current sweep beyond the
-  `_validate_core_module_integrity` whitelist above).
-
-### 3.7 `ai_transcribe_file` and `generate_ai_chapters` in `core.py`
-  duplicate `ai/engine.create_engine(...).transcribe(...)`
-- **File:** `chapterforge/core.py`, lines 109-123.
-- **Symptom:** The module-level helpers use the legacy
-  `WhisperEngine` (OpenAI Whisper, not faster-whisper). The GUI
-  uses the new `ai.engine.create_engine(tier, model)` factory. So
-  the CLI / a future API that calls `core.ai_transcribe_file` will
-  pull in `openai-whisper` (a ~3 GB dependency) when the rest of the
-  app uses `faster-whisper` (a ~50 MB dependency).
-- **Fix:** Either delete these two functions (no caller in the
-  current code) or rewrite them to call
-  `ai.engine.create_engine(tier, model)`.
-
-### 3.8 `from chapterforge.ai.whisper import WhisperEngine,
-  TranscriptionSegment` on `core.py:49` keeps `openai-whisper` as a
-  hard import
-- **File:** `chapterforge/core.py`, line 49.
-- **Symptom:** Even if 3.7 is fixed, this import is a hard
-  `import openai-whisper` which adds a multi-gigabyte dependency
-  to the base install. CLAUDE.md says "FFmpeg is external" but
-  doesn't mention the openai-whisper weight. This is a major
-  size-on-disk surprise.
-- **Fix:** Move the import inside `ai_transcribe_file` /
-  `generate_ai_chapters` and remove the top-level import. Better:
-  delete both functions (3.7) and the import.
 
 ### 3.11 `SettingsDialog` has many fields without `use_accessible=True`
 - **File:** `chapterforge/app.py`, `SettingsDialog` (around line 6100).
@@ -783,10 +709,10 @@ The repo has 19 test files and 29 tests, which is thin for a
 | Severity | Count |
 |----------|------:|
 | P0       |     6 |
-| P1       |    15 |
+| P1       |    11 |
 | P2       |     8 |
 | P3       |     2 |
-| **Total**| **31** |
+| **Total**| **27** |
 
 **Top 5 issues to fix next** (in order):
 
