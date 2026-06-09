@@ -14,6 +14,7 @@ Everything here is deterministic and testable without wxPython.
 
 from __future__ import annotations
 
+import functools
 import json
 import logging
 import os
@@ -78,6 +79,7 @@ def _candidate_dirs() -> list:
     return dirs
 
 
+@functools.lru_cache(maxsize=None)
 def _find_tool(name: str) -> str:
     """Return the path to an ffmpeg-family tool or raise a friendly error.
 

@@ -18,9 +18,12 @@ grammar, and we never self-voice over a screen reader that is already speaking.
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, replace
 from importlib import import_module
 from typing import Any, Callable, List, Optional
+
+logger = logging.getLogger(__name__)
 
 AnnounceHandler = Callable[[str], None]
 
@@ -130,29 +133,11 @@ class AnnouncementEngine:
     def speak(self, message: str) -> None:
         if self._backend is None:
             return
-        speak = getattr(self._backend, "speak", None)
-        # Use a more robust approach to handle callable checks
-        if speak is None:
-            return
-            
-        # Check if speak is callable, but handle potential pylint issues
         try:
-            speak_func = speak
-            if not callable(speak_func):
-                return
-        except Exception:
-            # If we can't determine if it's callable, assume it is and let it fail naturally
-            pass
-            
-        try:
-            # Use getattr to access the method dynamically to avoid pylint warnings
-            if hasattr(self._backend, 'speak'):
-                speak_method = getattr(self._backend, 'speak')
-                if callable(speak_method):
-                    try:
-                        speak_method(message, interrupt=False)
-                    except TypeError:
-                        speak_method(message)
+            self._backend.speak(message, interrupt=False)
+        except TypeError:
+            # Older backend without the interrupt keyword argument
+            self._backend.speak(message)
         except Exception as exc:  # pragma: no cover
             self._state = replace(self._state, last_error=str(exc))
 
@@ -220,5 +205,5 @@ def announce(message: str) -> None:
             pass
     try:
         _get_engine().speak(message)
-    except Exception:
-        pass
+    except (RuntimeError, OSError) as exc:
+        logger.debug("a11y speak error: %s", exc)

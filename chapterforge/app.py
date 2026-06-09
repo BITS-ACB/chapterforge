@@ -35,6 +35,12 @@ from .player import PlayerPanel
 from .auphonic import AuphonicService
 from .publish import PublishService
 
+def _safe_launch_browser(url: str) -> None:
+    """Launch a URL only if it starts with https://."""
+    if url and url.startswith("https://"):
+        wx.LaunchDefaultBrowser(url)
+
+
 # --- AI setup helpers --------------------------------------------------------
 
 _MODEL_DOWNLOAD_SIZES = {
@@ -86,7 +92,9 @@ def _check_ai_package(tier: str) -> bool:
             return True
         except ImportError:
             return False
-    return True  # Basic tier uses an external binary
+    if tier == "Basic":
+        return True  # uses an external binary; no pip package needed
+    return False  # unknown / unsupported tier (e.g. Canary)
 
 
 def _tier_pip_package(tier: str) -> str:
@@ -125,6 +133,7 @@ class AIProcessingDialog(wx.Dialog):
     """An accessible dialog for AI transcription progress."""
     def __init__(self, parent, title="AI Processing", message="Analyzing audio..."):
         super().__init__(parent, title=title, style=wx.DEFAULT_DIALOG_STYLE)
+        self._closed = False
         self.panel = wx.Panel(self)
         vbox = wx.BoxSizer(wx.VERTICAL)
         self.lbl = wx.StaticText(self.panel, label=message)
@@ -139,11 +148,20 @@ class AIProcessingDialog(wx.Dialog):
         self.panel.SetSizer(vbox)
         self.Fit()
         self.Centre()
+        self.Bind(wx.EVT_CLOSE, self._on_close)
+
+    def _on_close(self, evt):
+        self._closed = True
+        evt.Skip()
 
     def update_progress(self, pct, text=None):
+        if self._closed:
+            return
         wx.CallAfter(self._update_ui, pct, text)
 
     def _update_ui(self, pct, text):
+        if self._closed:
+            return
         self.gauge.SetValue(int(pct))
         if text:
             self.lbl.SetLabel(text)
@@ -642,7 +660,6 @@ class AIModelUnifiedDialog(wx.Dialog):
 
         # ---- Header (always visible) ---------------------------------
         hdr = wx.Panel(self)
-        hdr.SetName("AI Model dialog header")
         hdr_sz = wx.BoxSizer(wx.VERTICAL)
         self._hdr_title = wx.StaticText(hdr, label="AI Model")
         self._hdr_title.SetName("AI Model dialog")
@@ -729,14 +746,8 @@ class AIModelUnifiedDialog(wx.Dialog):
         self.Fit()
         self.CentreOnParent()
 
-        # If we opened in settings mode, focus the dialog (so the
-        # header card is announced) and route focus to the first
-        # interactive control via CallAfter once the event loop is
-        # idle. wx's ShowModal would normally do this for us, but the
-        # parent frame can also be in a state where the dialog has
-        # been freshly shown and the focus hasn't settled.
-        if self._has_model:
-            wx.CallAfter(self._focus_first_settings_control)
+        # _go_to(0) above already queues a CallAfter(focus_ctrl.SetFocus)
+        # for the first interactive control; no extra CallAfter needed.
 
     # ------------------------------------------------------------------
     # Step navigation
@@ -813,11 +824,6 @@ class AIModelUnifiedDialog(wx.Dialog):
             f"AI settings saved: {tier} tier, {model} model.")
         if self.IsModal():
             self.EndModal(wx.ID_OK)
-        else:
-            # Driven by a unit test or programmatic caller; bail out
-            # without crashing on the IsModal assertion. The caller
-            # is expected to read self.settings themselves.
-            self._saved = True
 
     def _on_switch_to_wizard(self, _evt):
         """Drop the settings card and run the wizard from the top.
@@ -841,6 +847,7 @@ class AIModelUnifiedDialog(wx.Dialog):
         # Disable Back on the very first wizard step; the user has
         # nothing to go back to before step 0.
         self._btn_back.Disable()
+        a11y.announce("Switched to AI setup wizard. Step 1 of 3.")
 
     def _go_to(self, idx: int):
         self._current_step = idx
@@ -1046,8 +1053,9 @@ class AIModelUnifiedDialog(wx.Dialog):
         # Quick visibility into what is already on disk so users with
         # half-installed environments get a clue why setup is about to
         # do the rest.
-        existing = wx.StaticText(content, label=discovery.ready_summary_text())
-        existing.SetName("Already downloaded AI model")
+        _summary_text = discovery.ready_summary_text()
+        existing = wx.StaticText(content, label=_summary_text)
+        existing.SetName(f"Already downloaded AI model - {_summary_text}")
         vbox.Add(existing, 0, wx.BOTTOM, 8)
 
         return vbox, None
@@ -1105,8 +1113,9 @@ class AIModelUnifiedDialog(wx.Dialog):
             "This will install the selected Python package (if it is not "
             "already present) and download the model. The download may take "
             "several minutes depending on your internet speed.\n\n"
-            "Press Setup AI Model to begin. You can return here any time "
-            "from Transcription > AI Model to change the engine or model."))
+            "Press the Setup AI Model button below to begin. You can return "
+            "here any time from Transcription > AI Model to change the engine "
+            "or model."))
         info.SetName("AI setup completion summary")
         info.Wrap(560)
         vbox.Add(info, 0, wx.EXPAND | wx.BOTTOM, 12)
@@ -1170,7 +1179,9 @@ class AIModelUnifiedDialog(wx.Dialog):
         def _apply():
             if self._gauge is None:
                 return
-            self._gauge.SetValue(max(0, min(100, int(pct))))
+            v = max(0, min(100, int(pct)))
+            self._gauge.SetValue(v)
+            self._gauge.SetName(f"AI model download progress: {v} percent")
         wx.CallAfter(_apply)
 
     def _run_setup(self):
@@ -1213,7 +1224,7 @@ class AIModelUnifiedDialog(wx.Dialog):
             def _pulse():
                 pct = 30
                 while not stop_pulse.is_set():
-                    pct = 30 + (pct + 1 - 30) % 60  # 30 -> 90 oscillating
+                    pct = 30 + (pct - 30 + 1) % 61  # 30 -> 90 oscillating
                     self._set_gauge(pct)
                     stop_pulse.wait(0.3)
             pulse = _t.Thread(target=_pulse, daemon=True)
@@ -1560,7 +1571,6 @@ class MainFrame(wx.Frame):
         self._tray = None
         self._watch_controller = None
         self._status_window: Optional[StatusWindow] = None
-        self._ai_cancel = False
         self._auphonic = AuphonicService(
             client_id=os.environ.get("AUPHONIC_CLIENT_ID", ""),
             client_secret=os.environ.get("AUPHONIC_CLIENT_SECRET", ""),
@@ -5053,11 +5063,6 @@ class MainFrame(wx.Frame):
             except Exception:
                 pass
             self._update_ai_menu_state()
-            if self.settings.get("ai_setup_done", False):
-                self._announce(
-                    f"AI ready: {self.settings.get('ai_engine_tier', 'Strong')} "
-                    f"tier, {self.settings.get('ai_model_name', 'small')} model."
-                )
         dlg.Destroy()
 
     def _on_ai_transcribe(self, _evt):
@@ -5605,7 +5610,7 @@ class MainFrame(wx.Frame):
             if result == wx.ID_YES:
                 self._download_and_install(release)
             elif result == wx.ID_NO:
-                wx.LaunchDefaultBrowser(
+                _safe_launch_browser(
                     release.download_url or updates.RELEASES_PAGE)
             return
         msg = (f"A new version is available: {release.version} "
@@ -5613,7 +5618,7 @@ class MainFrame(wx.Frame):
                f"{notes}\n\nOpen the download page now?")
         if wx.MessageBox(msg, "Update available",
                          wx.YES_NO | wx.ICON_INFORMATION, self) == wx.YES:
-            wx.LaunchDefaultBrowser(release.download_url or updates.RELEASES_PAGE)
+            _safe_launch_browser(release.download_url or updates.RELEASES_PAGE)
 
     def _download_and_install(self, release):
         from . import updates
@@ -5789,7 +5794,7 @@ class AboutDialog(wx.Dialog):
             btn = wx.Button(self, label=f"{text} - {desc}")
             btn.SetName(f"{text}. {desc}. Opens {url} in your browser.")
             btn.SetToolTip(url)
-            btn.Bind(wx.EVT_BUTTON, lambda _e, u=url: wx.LaunchDefaultBrowser(u))
+            btn.Bind(wx.EVT_BUTTON, lambda _e, u=url: _safe_launch_browser(u))
             outer.Add(btn, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 12)
 
         outer.Add(wx.StaticLine(self), 0, wx.EXPAND | wx.ALL, 10)
@@ -5797,8 +5802,8 @@ class AboutDialog(wx.Dialog):
         website_btn = wx.Button(self, label="Visit Project Website")
         website_btn.SetName("Visit ChapterForge project website")
         website_btn.SetToolTip("https://chapterforge.app")
-        website_btn.Bind(wx.EVT_BUTTON, lambda _e: wx.LaunchDefaultBrowser(
-            "https://chapterforge.app"))
+        website_btn.Bind(wx.EVT_BUTTON,
+                         lambda _e: _safe_launch_browser("https://chapterforge.app"))
         outer.Add(website_btn, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 12)
 
         btns = self.CreateButtonSizer(wx.OK | wx.CANCEL)
@@ -7155,7 +7160,7 @@ class CommandPaletteDialog:
             available = enabled_fn()
             label = f"{title}  [{key}]" if key else title
             if not available:
-                label = f"- {label}"  # em-dash prefix for unavailable
+                label = f"- {label}"  # regular hyphen prefix for unavailable items
             self.results.Append(label)
         n = len(self._visible)
         if n:
@@ -7239,10 +7244,12 @@ class FFmpegSetupDialog(wx.Dialog):
         self.gauge.SetName("Setup progress")
         outer.Add(self.gauge, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 12)
 
-        # OK button (hidden until done)
+        # OK button (hidden until done). Use the sizer to hide so the
+        # cell collapses; plain Hide() leaves an invisible gap on Windows.
         btn_sizer = self.CreateButtonSizer(wx.OK)
         self.ok_btn = self.FindWindow(wx.ID_OK)
-        self.ok_btn.Hide()
+        self._btn_sizer = btn_sizer
+        btn_sizer.Show(self.ok_btn, False)
         outer.Add(btn_sizer, 0, wx.EXPAND | wx.ALL, 12)
 
         self.SetSizerAndFit(outer)
@@ -7268,7 +7275,7 @@ class FFmpegSetupDialog(wx.Dialog):
         self.success = success
         self.status.SetLabel(message)
         self.gauge.SetValue(100)
-        self.ok_btn.Show()
+        self._btn_sizer.Show(self.ok_btn, True)
         self.Layout()
 
 

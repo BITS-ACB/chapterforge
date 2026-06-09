@@ -6,13 +6,13 @@ uninstalling or recompiling anything.
 
 Two settings work together:
 
-* ``release_channel`` - one of "general", "beta" or "alpha". Each flag in the
+* ``release_channel`` - one of "general" or "beta". Each flag in the
   registry below names the channel it first becomes available on; a feature
-  marked "beta" is available on both the beta and alpha channels, "alpha"
-  only on alpha. Moving to an earlier-access channel can reveal features that
-  were previously hidden entirely - the Feature Flags dialog rebuilds its
-  list live as the channel changes, showing each newly available feature's
-  description so the user can decide whether to opt in.
+  marked "beta" is only available on the beta channel. Moving to an
+  earlier-access channel can reveal features that were previously hidden
+  entirely - the Feature Flags dialog rebuilds its list live as the channel
+  changes, showing each newly available feature's description so the user
+  can decide whether to opt in.
 * ``feature_flags`` - a ``{flag_key: bool}`` dict of overrides layered on the
   registry defaults, for opting individual available features in or out.
 

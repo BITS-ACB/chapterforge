@@ -43,10 +43,12 @@ class HardwareCapabilities:
 
     def _has_cuda(self):
         try:
-            # Quick probe for nvidia-smi
-            subprocess.check_output(["nvidia-smi"], stderr=subprocess.STDOUT)
+            subprocess.check_output(
+                ["nvidia-smi"], stderr=subprocess.STDOUT, timeout=2.0
+            )
             return True
-        except (subprocess.CalledProcessError, FileNotFoundError):
+        except (subprocess.CalledProcessError, FileNotFoundError,
+                subprocess.TimeoutExpired):
             return False
 
     def _is_apple_silicon(self):
